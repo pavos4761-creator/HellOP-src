@@ -123,16 +123,33 @@ class App(tk.Tk):
         self.after(4000, self._auto_check)
         self.after(600, self._admin_prompt)
 
+    def _set_window_icon(self):
+        """Icono de la ventana y de la barra de tareas (en vez del plumín por defecto de Tk)."""
+        try:
+            self.iconphoto(True, self._logo_big)
+        except tk.TclError:
+            pass
+        if not IS_WIN:
+            return
+        try:
+            import base64
+            import ctypes
+            from util import APP_DIR
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("HellOP.App")
+            APP_DIR.mkdir(parents=True, exist_ok=True)
+            ico = APP_DIR / "hellop.ico"
+            ico.write_bytes(base64.b64decode(logo_data.ICO))
+            self.iconbitmap(default=str(ico))
+        except Exception:  # noqa: BLE001
+            pass
+
     # ---- cabecera -------------------------------------------------------
     def _build_header(self):
         h = tk.Frame(self, bg=SIDE)
         h.pack(fill="x")
         self._logo = tk.PhotoImage(data=logo_data.LOGO_64)
         self._logo_big = tk.PhotoImage(data=logo_data.LOGO_128)
-        try:
-            self.iconphoto(True, self._logo_big)
-        except tk.TclError:
-            pass
+        self._set_window_icon()
         tk.Label(h, image=self._logo, bg=SIDE, bd=0).pack(side="left", padx=(18, 8), pady=6)
         tk.Label(h, text="Hell", font=F(20, True), fg=FG, bg=SIDE).pack(side="left")
         tk.Label(h, text="OP", font=F(20, True), fg=CYAN, bg=SIDE).pack(side="left")

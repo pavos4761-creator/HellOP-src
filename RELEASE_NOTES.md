@@ -1,2 +1,1 @@
-• Nueva marca: HellOP, con logo nuevo y diseño negro/rojo brasa.
-• La app ahora tiene icono propio.
+• El icono de la ventana y de la barra de tareas ahora es el logo de HellOP.
