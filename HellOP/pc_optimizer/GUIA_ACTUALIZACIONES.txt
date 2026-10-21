@@ -1,0 +1,39 @@
+=====================================================
+ CÓMO TENER LA APP DESCARGABLE Y QUE SE ACTUALICE SOLA
+=====================================================
+Idea: subes la app a GitHub (gratis). GitHub fabrica el HellOP.exe solo.
+Dentro de la app hay una pestaña "Actualizaciones" con el botón ACTUALIZAR.
+
+PASOS (solo la primera vez)
+---------------------------
+1) Crea una cuenta gratis en https://github.com
+2) Pulsa "New repository". Nombre: pc-optimizer. Márcalo como PUBLIC. Créalo.
+3) En el repositorio: "uploading an existing file" y arrastra TODO el contenido
+   de esta carpeta (incluida la carpeta oculta .github). Pulsa "Commit changes".
+   Si la carpeta .github no se sube arrastrando, créala a mano:
+   Add file > Create new file > escribe  .github/workflows/release.yml
+   y pega el contenido de ese archivo.
+4) Crea la primera versión: "Releases" > "Create a new release" > etiqueta v1.0.0
+   > "Create new tag" > Publish. (Con la etiqueta, la pestaña Actions compila el .exe.)
+   Espera 3-5 minutos y en Releases aparecerán HellOP.exe y los .sha256.
+5) Descarga HellOP.exe desde Releases. Ese enlace lo puedes compartir.
+6) Abre la app > Actualizaciones > escribe  tu-usuario/pc-optimizer > Guardar.
+
+PARA ACTUALIZAR EN EL FUTURO
+----------------------------
+- Cada versión nueva se publica con una etiqueta nueva (v1.0.1, v1.0.2...) y el
+  número debe ser igual al de version.py.
+- En la app: Actualizaciones > Buscar > ACTUALIZAR AHORA. Se cierra y se abre sola.
+- Si me conectas tu GitHub (claude.ai > Configuración > Conectores) y me das
+  usuario/repositorio, yo subo los cambios y publico la versión por ti.
+
+COSAS QUE DEBES SABER
+---------------------
+- Windows SmartScreen / antivirus pueden avisar con el .exe, porque no está firmado
+  (pasa con casi todos los .exe hechos con Python). Es un falso positivo: "Más
+  información > Ejecutar de todos modos".
+- La app pide permisos de administrador al abrir (necesarios para optimizar).
+- El repositorio debe ser público para que la app pueda descargar.
+- La actualización comprueba la huella SHA256; si no coincide, no instala nada.
+- Tu copia actual de Python hay que cambiarla una sola vez por esta versión.
+- No he podido probar el .exe en un Windows real: si algo falla, dime el mensaje.

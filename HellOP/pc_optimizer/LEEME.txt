@@ -1,0 +1,62 @@
+HELLOP  -  analisis, optimizacion y limpieza para Windows
+================================================================
+
+COMO USARLO
+  1. Instala Python 3.10 o superior desde python.org (marca "Add python.exe to PATH").
+  2. Descomprime esta carpeta y haz doble clic en  ejecutar.bat
+     (instala lo necesario y abre la app como administrador).
+  3. Para probarla sin tocar nada:  ejecutar_demo.bat  (datos de ejemplo).
+  4. Para tener un programa .exe normal:  doble clic en  crear_exe.bat
+     y aparecera dist\HellOP.exe
+
+QUE HACE
+  ANALISIS DE PC   Procesador, placa, BIOS, RAM (tipo, velocidad, kit), grafica, discos
+                   (SSD NVMe / SATA / HDD, salud y desgaste), temperaturas, drivers y
+                   guia de BIOS/XMP/EXPO con los mejores tiempos para tu RAM.
+  OPTIMIZAR        Perfiles Gaming / Trabajo / EXTREMO / Completo. Te pregunta cambio por cambio:
+                   plan de energia, retrasos de Windows, Modo Juego, raton sin aceleracion,
+                   programas de inicio, servicios, apps basura, procesos pesados, DNS.
+                   Hace un test "antes" y crea un punto de restauracion antes de empezar.
+  LIMPIEZA         Temporales, cache de Windows Update, informes de error, navegadores,
+                   shaders, papelera y archivos duplicados (van a la Papelera).
+  MODO EXTREMO     (menu lateral) Optimiza EN VIVO mientras juegas: temporizador de Windows a
+                   0,5 ms, prioridad alta al juego, prioridad baja a lo de fondo, libera RAM de
+                   los programas de fondo y pausa servicios. Al desactivarlo o cerrar la app,
+                   todo vuelve a como estaba. Debe seguir abierta mientras juegas.
+  BIOS             Guia a medida de tu equipo: tiempos de RAM por niveles (seguro / afinado /
+                   extremo), lista de ajustes de BIOS con la ruta de menu de TU placa (XMP/EXPO,
+                   Resizable BAR, PBO/Curve Optimizer, FCLK, C-States...), comprobacion de UEFI /
+                   Secure Boot / Resizable BAR, boton para reiniciar directo a la BIOS y exportar
+                   la guia a un archivo para verla en el movil. Puedes ir marcando lo que hagas.
+  RENDIMIENTO      Test antes/despues con numeros reales y porcentaje de mejora.
+  HISTORIAL        Todo cambio reversible se puede deshacer con un clic.
+
+PERFIL EXTREMO (ajustes profundos)
+  Arranque (HPET, tick dinamico), energia de CPU/PCIe/USB, registro (prioridad, throttling,
+  temporizador global, MPO), red (EEE, Nagle), modo MSI de la grafica, servicios extra y dos
+  ajustes de SEGURIDAD <-> RENDIMIENTO (VBS/Integridad de memoria y mitigaciones de CPU).
+  Cada ajuste indica su EFECTO (real / pequeno / depende / casi nulo) y su RIESGO.
+  Los de riesgo ALTO piden una confirmacion extra. Todos se deshacen desde el Historial.
+  Algunos juegos con anti-cheat modernos (p. ej. Vanguard) exigen VBS/TPM activos.
+
+LO QUE LA APP NO HACE A PROPOSITO
+  - No apaga el antivirus (Defender) ni toca archivos del sistema: riesgo alto, ganancia casi nula.
+  - No incluye "trucos" que no hacen nada en Windows moderno (limpiar prefetch, MouseDataQueueSize, etc.).
+  - Los ajustes de BIOS y los tiempos de RAM los haces tu en la BIOS (Windows no puede): la app te guia.
+  - Tras tocar RAM/tensiones, pasa un test de estabilidad (TestMem5, Karhu o MemTest86).
+
+COSAS QUE DEBES SABER
+  - Los TIEMPOS de la RAM (CL, tRCD...) no se cambian desde Windows: la app te dice
+    exactamente que perfil activar en la BIOS.
+  - Las temperaturas exactas de CPU en Windows requieren un programa de sensores.
+    Si dejas abierto LibreHardwareMonitor, la app lo detecta y usa sus lecturas.
+  - Los drivers solo se avisan como "antiguos": descargalos siempre de la web oficial.
+  - Cerrar procesos y quitar apps NO se puede deshacer desde la app (la app te lo avisa).
+  - "0 delay" absoluto no existe: estos ajustes reducen latencia y tirones, no crean FPS de la nada.
+  - Un reinicio es necesario para que apliquen los cambios de arranque, VBS y modo MSI.
+  - Los datos y el historial se guardan en %APPDATA%\HellOP.
+
+ACTUALIZACIONES
+---------------
+Pestaña "Actualizaciones": botón Buscar y Actualizar ahora. Para preparar el
+repositorio de GitHub y el .exe descargable lee GUIA_ACTUALIZACIONES.txt.
