@@ -4,3 +4,5 @@ __version__ = "1.1.1"
 # Repositorio de GitHub donde se publican las versiones, con el formato  usuario/repositorio
 # (ejemplo: "mi-usuario/pc-optimizer"). También se puede poner desde la app, en «Actualizaciones».
 UPDATE_REPO = ""
+
+# Version publicada automaticamente al cambiar este archivo.
