@@ -8,6 +8,7 @@ from tkinter import messagebox, ttk  # noqa: F401
 from util import DEMO, IS_WIN, is_admin, relaunch_as_admin
 import psutil
 
+import logo_data
 import updater
 import version
 
@@ -54,7 +55,7 @@ class NavItem(tk.Frame):
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title(f"PC Optimizer v{version.__version__}" + ("  ·  MODO DEMO" if DEMO else ""))
+        self.title(f"HellOP v{version.__version__}" + ("  ·  MODO DEMO" if DEMO else ""))
         self.geometry("1140x760")
         self.minsize(980, 640)
         self.configure(bg=BG)
@@ -70,7 +71,7 @@ class App(tk.Tk):
         side = tk.Frame(body, bg=SIDE, width=230)
         side.pack(side="left", fill="y")
         side.pack_propagate(False)
-        tk.Frame(body, bg="#1b1b36", width=1).pack(side="left", fill="y")
+        tk.Frame(body, bg="#2c1619", width=1).pack(side="left", fill="y")
         self.content = tk.Frame(body, bg=BG)
         self.content.pack(side="left", fill="both", expand=True)
 
@@ -126,9 +127,15 @@ class App(tk.Tk):
     def _build_header(self):
         h = tk.Frame(self, bg=SIDE)
         h.pack(fill="x")
-        tk.Label(h, text="⚡", font=F(22, True), fg=CYAN, bg=SIDE, padx=(0)).pack(side="left", padx=(20, 4), pady=10)
-        tk.Label(h, text="PC", font=F(18, True), fg=FG, bg=SIDE).pack(side="left")
-        tk.Label(h, text=" OPTIMIZER", font=F(18, True), fg=CYAN, bg=SIDE).pack(side="left")
+        self._logo = tk.PhotoImage(data=logo_data.LOGO_64)
+        self._logo_big = tk.PhotoImage(data=logo_data.LOGO_128)
+        try:
+            self.iconphoto(True, self._logo_big)
+        except tk.TclError:
+            pass
+        tk.Label(h, image=self._logo, bg=SIDE, bd=0).pack(side="left", padx=(18, 8), pady=6)
+        tk.Label(h, text="Hell", font=F(20, True), fg=FG, bg=SIDE).pack(side="left")
+        tk.Label(h, text="OP", font=F(20, True), fg=CYAN, bg=SIDE).pack(side="left")
         tk.Label(h, text=f"v{version.__version__}", font=F(9, True), fg=MUTED, bg=SIDE).pack(side="left", padx=(12, 0), pady=(10, 0))
         tk.Label(h, text="análisis · optimización · limpieza", font=F(9), fg=MUTED, bg=SIDE).pack(side="left", padx=16, pady=(8, 0))
         right = tk.Frame(h, bg=SIDE)

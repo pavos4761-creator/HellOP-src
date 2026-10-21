@@ -59,7 +59,7 @@ class UpdatePage(tk.Frame):
         line.pack(fill="x")
         self.var_repo = tk.StringVar(value=updater.get_repo())
         e = tk.Entry(line, textvariable=self.var_repo, font=("Consolas", 11), bg=PANEL2, fg=FG, insertbackground=FG, relief="flat",
-                     highlightthickness=1, highlightbackground="#25254a", highlightcolor=VIOLET, width=34)
+                     highlightthickness=1, highlightbackground="#3d2125", highlightcolor=VIOLET, width=34)
         e.pack(side="left", ipady=6, padx=(0, 10))
         NeonButton(line, "Guardar", self.save_repo, color=VIOLET, filled=True, padx=16, pady=7, font=F(10, True)).pack(side="left")
         self.repo_msg = tk.Label(r.body, text="", font=F(9), fg=MUTED, bg=PANEL, anchor="w")
@@ -68,8 +68,8 @@ class UpdatePage(tk.Frame):
         s = Card(root, accent=YELLOW, title="⚠  Cómo funciona y qué tener en cuenta")
         s.pack(fill="x", pady=(0, 14))
         for t in ("Solo descarga archivos de GitHub y comprueba su huella SHA256 antes de instalar. Si no coincide, no instala nada.",
-                  "Tus datos (historial, ajustes, pruebas) están en %APPDATA%\\PCOptimizer y NO se tocan al actualizar.",
-                  "En modo .exe se guarda una copia de la versión anterior (PCOptimizer.exe.bak). En modo Python, en %APPDATA%\\PCOptimizer\\copia_<versión>.",
+                  "Tus datos (historial, ajustes, pruebas) están en %APPDATA%\\HellOP y NO se tocan al actualizar.",
+                  "En modo .exe se guarda una copia de la versión anterior (.exe.bak). En modo Python, en %APPDATA%\\HellOP\\copia_<versión>.",
                   "Tras actualizar, la app se cierra y se vuelve a abrir sola. Windows puede volver a pedirte permisos de administrador."):
             WrapLabel(s.body, text="•  " + t, font=F(9), fg=MUTED).pack(fill="x", pady=1)
 

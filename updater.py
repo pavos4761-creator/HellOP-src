@@ -1,8 +1,8 @@
 """Actualizaciones automáticas desde GitHub Releases.
 
 Flujo:  comprobar() → ¿hay una versión más nueva?  →  actualizar() descarga, VERIFICA el SHA256 y se reemplaza.
-  · Si la app es un .exe (PyInstaller): descarga PCOptimizer.exe y un script lo cambia cuando la app se cierra.
-  · Si se ejecuta como código Python: descarga PCOptimizer-src.zip y sustituye los .py (guarda copia de seguridad).
+  · Si la app es un .exe (PyInstaller): descarga HellOP.exe y un script lo cambia cuando la app se cierra.
+  · Si se ejecuta como código Python: descarga HellOP-src.zip y sustituye los .py (guarda copia de seguridad).
 Solo se descargan archivos de github.com / githubusercontent.com y SIEMPRE se comprueba su hash.
 """
 import hashlib
@@ -25,8 +25,9 @@ from util import APP_DIR, DEMO, IS_WIN
 
 API_BASE = os.environ.get("PCOPT_API_BASE", "https://api.github.com")   # solo se cambia en las pruebas
 CONFIG = APP_DIR / "update_config.json"
-EXE_ASSET = "PCOptimizer.exe"
-SRC_ASSET = "PCOptimizer-src.zip"
+# Se publican con los dos nombres: HellOP (nuevo) y PCOptimizer (para que la versión 1.0.0 pueda actualizarse).
+EXE_ASSETS = ("HellOP.exe", "PCOptimizer.exe")
+SRC_ASSETS = ("HellOP-src.zip", "PCOptimizer-src.zip")
 FROZEN = bool(getattr(sys, "frozen", False))
 SRC_DIR = Path(__file__).resolve().parent
 REPO_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
@@ -81,7 +82,7 @@ def _allowed(url):
 def _open(url, timeout=20):
     if not _allowed(url):
         raise UpdateError("Dirección de descarga no permitida: " + url)
-    req = urllib.request.Request(url, headers={"User-Agent": "PCOptimizer-Updater", "Accept": "application/vnd.github+json"})
+    req = urllib.request.Request(url, headers={"User-Agent": "HellOP-Updater", "Accept": "application/vnd.github+json"})
     return urllib.request.urlopen(req, timeout=timeout)
 
 
@@ -162,7 +163,8 @@ def _expected_hash(info, asset):
     return m.group(1).lower()
 
 
-def _fetch_verified(info, asset, dest, progress):
+def _fetch_verified(info, names, dest, progress):
+    asset = next((n for n in names if n in info["assets"]), names[0])
     url = info["assets"].get(asset)
     if not url:
         raise UpdateError(f"La versión {info['latest']} no incluye el archivo «{asset}».")
@@ -198,10 +200,10 @@ def _apply_exe(info, progress):
         raise UpdateError("La ruta del programa tiene caracteres especiales (% ! ^ &). Muévelo a una carpeta sencilla y vuelve a intentarlo.")
     new = exe.with_name(exe.name + ".new")
     try:
-        _fetch_verified(info, EXE_ASSET, str(new), progress)
+        _fetch_verified(info, EXE_ASSETS, str(new), progress)
     except PermissionError:
         raise UpdateError("No tengo permiso para escribir en la carpeta del programa. Muévelo a una carpeta tuya (Escritorio o Documentos).")
-    bat = Path(tempfile.gettempdir()) / "pcoptimizer_update.bat"
+    bat = Path(tempfile.gettempdir()) / "hellop_update.bat"
     bat.write_text(
         "@echo off\r\n"
         f'set "OLD={exe}"\r\nset "NEW={new}"\r\n'
@@ -221,8 +223,8 @@ def _apply_exe(info, progress):
 
 def _apply_source(info, progress):
     tmp = Path(tempfile.mkdtemp(prefix="pcopt_upd_"))
-    z = tmp / SRC_ASSET
-    _fetch_verified(info, SRC_ASSET, str(z), progress)
+    z = tmp / "paquete.zip"
+    _fetch_verified(info, SRC_ASSETS, str(z), progress)
     out = tmp / "new"
     with zipfile.ZipFile(z) as zf:
         for n in zf.namelist():                       # protección contra rutas peligrosas dentro del zip

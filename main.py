@@ -1,4 +1,4 @@
-"""PC Optimizer — punto de entrada.
+"""HellOP — punto de entrada.
 Uso:  python main.py          (normal)
       python main.py --demo   (datos de ejemplo, no toca nada)"""
 import sys

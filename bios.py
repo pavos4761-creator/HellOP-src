@@ -432,7 +432,7 @@ def save_checks(d):
 # Exportar a TXT (para consultarlo en el móvil mientras estás dentro de la BIOS)
 # --------------------------------------------------------------------------
 def export_text(g):
-    L = ["GUÍA DE BIOS PARA MÁXIMO RENDIMIENTO — PC Optimizer", time.strftime("%d/%m/%Y"), "=" * 62, ""]
+    L = ["GUÍA DE BIOS PARA MÁXIMO RENDIMIENTO — HellOP", time.strftime("%d/%m/%Y"), "=" * 62, ""]
     for k, v in g["platform"]:
         L.append(f"{k:<12}: {v}")
     L += ["", f"Tecla para entrar a la BIOS: {g['enter_key']}",
@@ -459,7 +459,7 @@ def export_to_desktop(g):
     base = Path.home() / "Desktop"
     if not base.exists():
         base = Path.home()
-    path = base / "Guia_BIOS_PCOptimizer.txt"
+    path = base / "Guia_BIOS_HellOP.txt"
     path.write_text(export_text(g), "utf-8")
     return path
 

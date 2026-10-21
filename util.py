@@ -11,8 +11,15 @@ from pathlib import Path
 IS_WIN = sys.platform == "win32"
 DEMO = "--demo" in sys.argv          # modo demo: no toca nada, datos de ejemplo
 
-APP_NAME = "PC Optimizer"
-APP_DIR = Path(os.environ.get("APPDATA") or Path.home()) / "PCOptimizer"
+APP_NAME = "HellOP"
+_BASE = Path(os.environ.get("APPDATA") or Path.home())
+APP_DIR = _BASE / "HellOP"
+_OLD = _BASE / "PCOptimizer"
+try:                                   # conserva el historial de la versión anterior
+    if _OLD.exists() and not APP_DIR.exists():
+        _OLD.rename(APP_DIR)
+except OSError:
+    pass
 try:
     APP_DIR.mkdir(parents=True, exist_ok=True)
 except OSError:

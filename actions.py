@@ -226,7 +226,7 @@ def create_restore_point():
         pass
     script = ("$ErrorActionPreference='Stop'; try { "
               "Enable-ComputerRestore -Drive ($env:SystemDrive + '\\'); "
-              "Checkpoint-Computer -Description 'PC Optimizer' -RestorePointType 'MODIFY_SETTINGS'; "
+              "Checkpoint-Computer -Description 'HellOP' -RestorePointType 'MODIFY_SETTINGS'; "
               "'OK' } catch { 'ERR: ' + $_.Exception.Message }")
     rc, out, err = run_ps(script, timeout=240)
     try:
@@ -433,7 +433,7 @@ STARTUP_SOURCES = [   # (hive, clave Run, clave StartupApproved, necesita admin)
     ("HKLM", r"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", _APPROVED + r"\Run", True),
     ("HKLM", r"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Run", _APPROVED + r"\Run32", True),
 ]
-PROTECTED_STARTUP = ("securityhealth", "windows defender", "windowsdefender", "pcoptimizer", "pc optimizer")
+PROTECTED_STARTUP = ("securityhealth", "windows defender", "windowsdefender", "pcoptimizer", "pc optimizer", "hellop")
 
 STARTUP_HINTS = [   # (patrón, explicación, ¿conviene dejarlo?)
     (r"discord", "Chat de voz. Se abrirá igual cuando lo lances tú.", False),
@@ -695,7 +695,7 @@ PROTECTED_PROCS = {
     "lsass.exe", "csrss.exe", "winlogon.exe", "services.exe", "wininit.exe", "smss.exe", "system",
     "registry", "memcompression", "msmpeng.exe", "audiodg.exe", "applicationframehost.exe",
     "msedgewebview2.exe", "widgets.exe", "lockapp.exe", "dllhost.exe", "backgroundtaskhost.exe",
-    "systemsettings.exe", "taskmgr.exe", "python.exe", "pythonw.exe", "pcoptimizer.exe", "wmiprvse.exe",
+    "systemsettings.exe", "taskmgr.exe", "python.exe", "pythonw.exe", "pcoptimizer.exe", "hellop.exe", "wmiprvse.exe",
 }
 
 

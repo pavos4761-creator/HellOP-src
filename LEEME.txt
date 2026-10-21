@@ -1,4 +1,4 @@
-PC OPTIMIZER  -  analisis, optimizacion y limpieza para Windows
+HELLOP  -  analisis, optimizacion y limpieza para Windows
 ================================================================
 
 COMO USARLO
@@ -7,7 +7,7 @@ COMO USARLO
      (instala lo necesario y abre la app como administrador).
   3. Para probarla sin tocar nada:  ejecutar_demo.bat  (datos de ejemplo).
   4. Para tener un programa .exe normal:  doble clic en  crear_exe.bat
-     y aparecera dist\PCOptimizer.exe
+     y aparecera dist\HellOP.exe
 
 QUE HACE
   ANALISIS DE PC   Procesador, placa, BIOS, RAM (tipo, velocidad, kit), grafica, discos
@@ -54,7 +54,7 @@ COSAS QUE DEBES SABER
   - Cerrar procesos y quitar apps NO se puede deshacer desde la app (la app te lo avisa).
   - "0 delay" absoluto no existe: estos ajustes reducen latencia y tirones, no crean FPS de la nada.
   - Un reinicio es necesario para que apliquen los cambios de arranque, VBS y modo MSI.
-  - Los datos y el historial se guardan en %APPDATA%\PCOptimizer.
+  - Los datos y el historial se guardan en %APPDATA%\HellOP.
 
 ACTUALIZACIONES
 ---------------

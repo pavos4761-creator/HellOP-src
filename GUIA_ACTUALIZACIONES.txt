@@ -1,7 +1,7 @@
 =====================================================
  CÓMO TENER LA APP DESCARGABLE Y QUE SE ACTUALICE SOLA
 =====================================================
-Idea: subes la app a GitHub (gratis). GitHub fabrica el PCOptimizer.exe solo.
+Idea: subes la app a GitHub (gratis). GitHub fabrica el HellOP.exe solo.
 Dentro de la app hay una pestaña "Actualizaciones" con el botón ACTUALIZAR.
 
 PASOS (solo la primera vez)
@@ -15,8 +15,8 @@ PASOS (solo la primera vez)
    y pega el contenido de ese archivo.
 4) Crea la primera versión: "Releases" > "Create a new release" > etiqueta v1.0.0
    > "Create new tag" > Publish. (Con la etiqueta, la pestaña Actions compila el .exe.)
-   Espera 3-5 minutos y en Releases aparecerán PCOptimizer.exe y los .sha256.
-5) Descarga PCOptimizer.exe desde Releases. Ese enlace lo puedes compartir.
+   Espera 3-5 minutos y en Releases aparecerán HellOP.exe y los .sha256.
+5) Descarga HellOP.exe desde Releases. Ese enlace lo puedes compartir.
 6) Abre la app > Actualizaciones > escribe  tu-usuario/pc-optimizer > Guardar.
 
 PARA ACTUALIZAR EN EL FUTURO

@@ -9,12 +9,12 @@ if errorlevel 1 (
   exit /b 1
 )
 %PY% -m pip install -q -r requirements.txt pyinstaller
-%PY% -m PyInstaller --noconfirm --onefile --noconsole --uac-admin --name PCOptimizer main.py
+%PY% -m PyInstaller --noconfirm --onefile --noconsole --uac-admin --name HellOP --icon assets\hellop.ico main.py
 if errorlevel 1 (
   echo Algo fallo al crear el .exe.
   pause
   exit /b 1
 )
 echo.
-echo Listo: dist\PCOptimizer.exe  (pide permisos de administrador al abrirse)
+echo Listo: dist\HellOP.exe  (pide permisos de administrador al abrirse)
 pause

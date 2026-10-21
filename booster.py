@@ -26,7 +26,7 @@ NEVER_TOUCH = {
     "msmpeng.exe", "securityhealthservice.exe", "securityhealthsystray.exe", "memcompression", "conhost.exe",
     "discord.exe", "obs64.exe", "obs32.exe", "teamspeak3.exe", "ts3client_win64.exe", "mumble.exe", "voicemeeter.exe",
     "voicemeeter8x64.exe", "nvcontainer.exe", "nvidia share.exe", "nvdisplay.container.exe", "radeonsoftware.exe",
-    "python.exe", "pythonw.exe", "pcoptimizer.exe", "taskmgr.exe",
+    "python.exe", "pythonw.exe", "pcoptimizer.exe", "hellop.exe", "taskmgr.exe",
 }
 
 PRIO = {}
