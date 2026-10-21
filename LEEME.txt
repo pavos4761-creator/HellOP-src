@@ -60,3 +60,10 @@ ACTUALIZACIONES
 ---------------
 Pestaña "Actualizaciones": botón Buscar y Actualizar ahora. Para preparar el
 repositorio de GitHub y el .exe descargable lee GUIA_ACTUALIZACIONES.txt.
+
+DIAGNOSTICO Y OVERCLOCK (v1.2.0)
+--------------------------------
+Diagnostico: mide tu PC mientras juegas (cuenta atras de 10 s para volver al juego) y dice si te frena la
+CPU, la GPU, la RAM, el disco o el calor, y busca causas de tirones. No cambia ningun ajuste.
+Overclock: guia segura adaptada a tu procesador, grafica y RAM (undervolt y subidas pequenas).
+Optimizar > Extremo: ajustes nuevos para NVIDIA (relojes altos, limite de potencia, HAGS) y Ryzen (EPP, boost).

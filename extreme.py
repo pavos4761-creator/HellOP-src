@@ -14,7 +14,7 @@ import psutil
 import os
 
 from actions import Action, RegTweak, active_scheme, reg_read, REG_BINARY, REG_DWORD, REG_SZ
-from util import as_list, ps_quote, run_cmd, run_ps, run_ps_json
+from util import APP_DIR, IS_WIN, as_list, nvsmi, ps_quote, run_cmd, run_ps, run_ps_json
 
 K_PRIO = r"SYSTEM\CurrentControlSet\Control\PriorityControl"
 K_POWER_THR = r"SYSTEM\CurrentControlSet\Control\Power\PowerThrottling"
@@ -90,8 +90,32 @@ SUB_PCIE = "501a4d13-42af-4429-9fd1-a8218c268e20"
 SUB_USB = "2a737441-1930-4402-8d77-b2bebba308a3"
 
 
-def power_actions():
+def _is_amd():
+    return "AMD" in os.environ.get("PROCESSOR_IDENTIFIER", "").upper()
+
+
+def amd_power_actions():
+    """Ajustes de energía pensados para Ryzen (solo se ofrecen si el procesador es AMD)."""
+    if not _is_amd():
+        return []
     return [
+        PowerSettingAction("pw_epp", "Ryzen: preferencia de rendimiento al máximo (EPP = 0)",
+                           "Le dice a tu Ryzen que, ante cualquier carga, suba de frecuencia YA en vez de esperar. Los Ryzen modernos "
+                           "tardan unos milisegundos en subir el reloj; con esto lo hacen más rápido. Efecto en juegos: pequeño pero se nota "
+                           "en los mínimos de FPS. Solo funciona si tu Windows y tu BIOS lo permiten (si no, no aparece).",
+                           SUB_PROC, "36687f9e-e3a5-4dbf-b1dc-15eb381c6863", 0, effect="depende", desktop_only=True),
+        PowerSettingAction("pw_boostpol", "Ryzen: política de boost al 100 %",
+                           "El procesador intenta mantener la frecuencia turbo en vez de relajarla. Más constancia de FPS; algo más de calor.",
+                           SUB_PROC, "45bcc044-d885-43e2-8605-ee0ec6e96b59", 100, effect="depende", desktop_only=True),
+        PowerSettingAction("pw_maxproc", "Procesador: máximo siempre al 100 %",
+                           "Asegura que Windows no limita la frecuencia máxima. En la mayoría de equipos ya está así; se ofrece solo si alguien lo cambió.",
+                           SUB_PROC, "bc5038f7-23e0-4960-96da-33abaf5935ec", 100, effect="mínimo", desktop_only=True),
+    ]
+
+
+
+def power_actions():
+    return amd_power_actions() + [
         PowerSettingAction("pw_minproc", "Procesador siempre al 100 % (sin bajar de frecuencia)",
                            "El estado mínimo del procesador pasa de ~5 % a 100 %: la CPU no «despierta» de un modo de ahorro "
                            "cuando le pides trabajo. Menos micro-tirones y respuesta inmediata. A cambio gasta más energía y calienta algo más.",
@@ -469,6 +493,116 @@ def gpu_actions():
     return acts
 
 
+
+# --------------------------------------------------------------------------
+# Gráfica NVIDIA
+# --------------------------------------------------------------------------
+K_DISPLAY_CLASS = r"SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}"
+
+
+class NvidiaPowerLimitAction(Action):
+    id, group = "nv_power", "gpu"
+    title = "NVIDIA: subir el límite de potencia al máximo permitido"
+    desc = ("Tu gráfica viene con un límite de vatios; si tu modelo permite subirlo, la GPU mantiene más tiempo sus relojes altos "
+            "bajo carga. Solo sube hasta el máximo que el fabricante ya permite, nunca más. Con muchas tarjetas el máximo es "
+            "igual al actual y entonces no se ofrece. IMPORTANTE: este ajuste se pierde al apagar el PC.")
+    needs_admin = True
+    profiles = ("extreme",)
+    effect = "pequeño"
+    risk = "medio"
+    warning = "Más consumo y calor en la gráfica. Se deshace desde el Historial o al reiniciar el PC."
+
+    @staticmethod
+    def _vals():
+        exe = nvsmi()
+        if not exe:
+            return None
+        rc, out, _ = run_cmd([exe, "--query-gpu=power.limit,power.max_limit", "--format=csv,noheader,nounits"], timeout=15)
+        if rc != 0 or not out:
+            return None
+        try:
+            cur, mx = [float(x) for x in out.splitlines()[0].split(",")]
+        except ValueError:
+            return None
+        return cur, mx
+
+    def check(self):
+        v = self._vals()
+        if not v or v[1] - v[0] < 1:
+            return None
+        return f"Límite actual: {v[0]:.0f} W  →  máximo permitido: {v[1]:.0f} W"
+
+    def apply(self):
+        v = self._vals()
+        if not v:
+            raise RuntimeError("No pude leer el límite de potencia de la gráfica")
+        rc, out, err = run_cmd([nvsmi(), "-pl", f"{v[1]:.0f}"], timeout=20)
+        if rc != 0:
+            raise RuntimeError(err or out or "nvidia-smi no aceptó el cambio (hace falta ser administrador)")
+        return {"prev": v[0]}
+
+    @classmethod
+    def undo_data(cls, d):
+        exe = nvsmi()
+        if exe and d.get("prev"):
+            run_cmd([exe, "-pl", f"{float(d['prev']):.0f}"], timeout=20)
+
+
+def _nvidia_class_keys():
+    """Subclaves 0000, 0001… de la clase «Display» que pertenecen a NVIDIA."""
+    if not IS_WIN:
+        return []
+    import winreg
+    out = []
+    try:
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, K_DISPLAY_CLASS) as k:
+            i = 0
+            while True:
+                try:
+                    sub = winreg.EnumKey(k, i)
+                except OSError:
+                    break
+                i += 1
+                if not sub.isdigit():
+                    continue
+                try:
+                    with winreg.OpenKey(k, sub) as sk:
+                        prov = str(winreg.QueryValueEx(sk, "ProviderName")[0]).upper()
+                        desc = str(winreg.QueryValueEx(sk, "DriverDesc")[0])
+                except OSError:
+                    continue
+                if "NVIDIA" in prov:
+                    out.append((sub, desc))
+    except OSError:
+        pass
+    return out
+
+
+def nvidia_actions():
+    acts = []
+    if nvsmi():
+        acts.append(NvidiaPowerLimitAction())
+    for sub, desc in _nvidia_class_keys():
+        path = K_DISPLAY_CLASS + "\\" + sub
+        acts.append(RegTweak(f"x_powermizer:{sub}", "gpu", f"NVIDIA: relojes siempre altos, sin bajar de velocidad ({desc})",
+                             "Fuerza el modo «Preferir el máximo rendimiento» de la gráfica desde el registro: la GPU no baja sus relojes "
+                             "cuando la carga varía. Evita los tirones que aparecen cuando la gráfica tarda en volver a subir de velocidad. "
+                             "A cambio consume más en reposo y los ventiladores pueden sonar más. Puede que tu driver lo ignore.",
+                             [("HKLM", path, "PerfLevelSrc", 0x2222, REG_DWORD),
+                              ("HKLM", path, "PowerMizerEnable", 1, REG_DWORD),
+                              ("HKLM", path, "PowerMizerLevel", 1, REG_DWORD),
+                              ("HKLM", path, "PowerMizerLevelAC", 1, REG_DWORD)],
+                             needs_admin=True, profiles=("extreme",), effect="depende", reboot=True, risk="medio",
+                             warning="Más calor y ruido en reposo. Se deshace desde el Historial."))
+    acts.append(RegTweak("x_hags", "gpu", "Programación de GPU acelerada por hardware (HAGS)",
+                         "Deja que la propia gráfica organice su cola de trabajo en vez de Windows. En unos juegos baja la latencia y en "
+                         "otros no cambia o incluso empeora un poco. Pruébalo y quédate con lo que mejor te vaya (se deshace desde el Historial). "
+                         "Solo se ofrece si tu equipo ya lo soporta y está desactivado.",
+                         [("HKLM", r"SYSTEM\CurrentControlSet\Control\GraphicsDrivers", "HwSchMode", 2, REG_DWORD)],
+                         needs_admin=True, profiles=("extreme",), effect="depende", reboot=True, require_existing=True))
+    return acts
+
+
 # --------------------------------------------------------------------------
 def extreme_actions():
     acts = power_actions() + bcd_actions() + registry_actions() + service_extra_actions()
@@ -477,4 +611,4 @@ def extreme_actions():
 
 
 def hardware_actions():
-    return nic_actions() + gpu_actions()
+    return nic_actions() + gpu_actions() + nvidia_actions()

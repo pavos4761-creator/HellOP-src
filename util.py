@@ -157,3 +157,15 @@ def age_text(days):
     if days < 700:
         return f"hace {int(days // 30)} meses"
     return f"hace {days / 365:.1f} años"
+
+
+def nvsmi():
+    """Ruta de nvidia-smi (está en el PATH o en la carpeta del driver) o None."""
+    import shutil
+    p = shutil.which("nvidia-smi")
+    if p:
+        return p
+    for c in (r"C:\Windows\System32\nvidia-smi.exe", r"C:\Program Files\NVIDIA Corporation\NVSMI\nvidia-smi.exe"):
+        if os.path.exists(c):
+            return c
+    return None

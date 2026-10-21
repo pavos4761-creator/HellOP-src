@@ -20,6 +20,8 @@ PAGES = [
     ("optimize", "⚡", "Optimizar"),
     ("booster", "☢", "Modo Extremo"),
     ("bios", "◉", "BIOS"),
+    ("diag", "◈", "Diagnóstico"),
+    ("oc", "⚙", "Overclock"),
     ("clean", "✦", "Limpieza"),
     ("bench", "▲", "Rendimiento"),
     ("history", "↺", "Historial / Deshacer"),
@@ -100,6 +102,8 @@ class App(tk.Tk):
         from page_bios import BiosPage
         from page_booster import BoosterPage
         from page_clean import CleanPage
+        from page_diag import DiagPage
+        from page_oc import OcPage
         from page_history import HistoryPage
         from page_optimize import OptimizePage
         from page_update import UpdatePage
@@ -108,6 +112,8 @@ class App(tk.Tk):
             "optimize": OptimizePage(self.content, self),
             "booster": BoosterPage(self.content, self),
             "bios": BiosPage(self.content, self),
+            "diag": DiagPage(self.content, self),
+            "oc": OcPage(self.content, self),
             "clean": CleanPage(self.content, self),
             "bench": BenchPage(self.content, self),
             "history": HistoryPage(self.content, self),

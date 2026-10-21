@@ -38,6 +38,7 @@ GROUPS = [
     ("speed", "Respuesta del sistema"),
     ("gaming", "Juegos"),
     ("latency", "Latencia extrema (núcleo, energía y registro)"),
+    ("gpu", "Gráfica y procesador (ajustes específicos)"),
     ("tradeoff", "Rendimiento a cambio de seguridad"),
     ("startup", "Programas de inicio"),
     ("services", "Servicios de Windows"),
@@ -941,6 +942,9 @@ def demo_actions():
         DemoAction("x3", "latency", "Desactivar el ahorro de energía de la tarjeta de red (Realtek PCIe GbE)", "Quita EEE, Green Ethernet y moderación de interrupciones: menos latencia de red. Se corta la red 2 segundos.", "Ajustes: 3", admin=True, profiles=("extreme",), effect="pequeño"),
         DemoAction("x4", "latency", "Modo MSI en la gráfica (NVIDIA GeForce RTX 3060)", "Las interrupciones de la GPU pasan a MSI: menos latencia y carga de CPU.", "MSISupported = por defecto → 1", admin=True, reboot=True, risk="medio", profiles=("extreme",), effect="depende"),
         DemoAction("x5", "tradeoff", "Desactivar VBS / Integridad de memoria", "Windows ejecuta tu sistema dentro de un mini-hipervisor de seguridad que cuesta FPS en algunos juegos.", "VBS: activo", admin=True, reboot=True, risk="alto", profiles=("extreme",), effect="real", warning="Baja la protección contra malware que ataca el núcleo de Windows. Solo si juegas en un PC que usas con cuidado."),
+        DemoAction("x6", "gpu", "Ryzen: preferencia de rendimiento al máximo (EPP = 0)", "Tu Ryzen sube de frecuencia al instante ante cualquier carga: mejores mínimos de FPS.", "Valor actual: 33 → nuevo: 0", admin=True, profiles=("extreme",), effect="depende"),
+        DemoAction("x7", "gpu", "NVIDIA: relojes siempre altos, sin bajar de velocidad (NVIDIA GeForce RTX 3060)", "Modo «Preferir el máximo rendimiento» forzado desde el registro: la GPU no tarda en volver a subir de velocidad.", "Modifica 4 ajustes del registro", admin=True, reboot=True, risk="medio", profiles=("extreme",), effect="depende", warning="Más calor y ruido en reposo. Se deshace desde el Historial."),
+        DemoAction("x8", "gpu", "NVIDIA: subir el límite de potencia al máximo permitido", "La GPU mantiene más tiempo sus relojes altos bajo carga. Se pierde al apagar el PC.", "Límite actual: 170 W  →  máximo permitido: 170 W", admin=True, risk="medio", profiles=("extreme",), effect="pequeño"),
         DemoAction("d11", "network", "Cambiar el DNS a Cloudflare (1.1.1.1)", "Un DNS más rápido hace que las páginas empiecen a cargar antes.", "Tu DNS responde en 31 ms · Cloudflare en 9 ms", admin=True),
     ]
 
