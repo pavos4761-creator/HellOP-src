@@ -6,19 +6,19 @@ import tkinter.font as tkfont
 from tkinter import ttk
 
 # ---------------------------------------------------------------- paleta
-BG = "#0a0607"
-SIDE = "#0f0809"
-PANEL = "#170f10"
-PANEL2 = "#231518"
-BORDER = "#3d2125"
-FG = "#fff0e8"
-MUTED = "#b4948a"
-CYAN = "#ff5a2e"
-PINK = "#ffb02e"
-GREEN = "#39ff88"
+BG = "#040a07"
+SIDE = "#07120c"
+PANEL = "#0c1a12"
+PANEL2 = "#132a1d"
+BORDER = "#1f4a32"
+FG = "#eafff2"
+MUTED = "#8fb8a0"
+CYAN = "#19e68c"
+PINK = "#b6ff3c"
+GREEN = "#5bff9a"
 YELLOW = "#ffd23f"
-RED = "#ff3b3b"
-VIOLET = "#e0245e"
+RED = "#ff4d5e"
+VIOLET = "#00c2a8"
 
 FONT = "Segoe UI"
 MONO = "Consolas"
@@ -84,11 +84,14 @@ class NeonButton(tk.Canvas):
         self.color, self.filled, self.command, self.enabled = color, filled, command, True
         self._text, self._font = text, tkfont.Font(font=font or F(10, True))
         self._padx, self._pady, self._hover = padx, pady, False
+        self._t, self._job, self._press = 0.0, None, False      # _t: 0 = reposo, 1 = ratón encima (transición suave)
         super().__init__(parent, bg=_bg_of(parent), highlightthickness=0, bd=0, cursor="hand2")
         self._resize()
         self.bind("<Enter>", lambda e: self._set_hover(True))
         self.bind("<Leave>", lambda e: self._set_hover(False))
+        self.bind("<ButtonPress-1>", self._down)
         self.bind("<ButtonRelease-1>", self._click)
+        self.bind("<Destroy>", self._stop)
 
     def _resize(self):
         w = self._font.measure(self._text) + self._padx * 2 + 4
@@ -99,29 +102,58 @@ class NeonButton(tk.Canvas):
     def _draw(self):
         self.delete("all")
         w, h = int(self["width"]), int(self["height"])
-        c, bg = self.color, _bg_of(self.master)
+        c, bg, t = self.color, _bg_of(self.master), self._t
+        dy = 1 if self._press else 0
         if not self.enabled:
             round_rect(self, 2, 2, w - 2, h - 2, 12, fill=PANEL2, outline=BORDER)
             fg = MUTED
         elif self.filled:
-            if self._hover:
-                round_rect(self, 0, 0, w, h, 14, fill=mix(c, bg, 0.65), outline="")
-            round_rect(self, 2, 2, w - 2, h - 2, 12, fill=mix(c, "#ffffff", 0.35) if self._hover else c, outline="")
+            if t > 0.03:                                                     # halo de brillo que crece al acercar el ratón
+                round_rect(self, 0, 0, w, h, 14, fill=mix(bg, c, 0.35 * t), outline="")
+            round_rect(self, 2, 2 + dy, w - 2, h - 2 + dy, 12, fill=mix(c, "#ffffff", 0.30 * t), outline="")
             fg = BG
         else:
-            if self._hover:
-                round_rect(self, 0, 0, w, h, 14, fill=mix(c, bg, 0.8), outline="")
-            round_rect(self, 2, 2, w - 2, h - 2, 12, fill=mix(c, PANEL2, 0.78) if self._hover else PANEL2,
-                       outline=c, width=1)
-            fg = FG if self._hover else c
-        self.create_text(w / 2, h / 2, text=self._text, fill=fg, font=self._font)
+            if t > 0.03:
+                round_rect(self, 0, 0, w, h, 14, fill=mix(bg, c, 0.22 * t), outline="")
+            round_rect(self, 2, 2 + dy, w - 2, h - 2 + dy, 12, fill=mix(PANEL2, c, 0.22 * t), outline=mix(c, "#ffffff", 0.25 * t), width=1)
+            fg = mix(c, FG, t)
+        self.create_text(w / 2, h / 2 + dy, text=self._text, fill=fg, font=self._font)
         self.configure(cursor="hand2" if self.enabled else "arrow")
 
     def _set_hover(self, flag):
         self._hover = flag
-        self._draw()
+        if self._job is None:
+            self._job = self.after(16, self._anim)
+
+    def _anim(self):
+        self._job = None
+        goal = 1.0 if self._hover else 0.0
+        self._t += (goal - self._t) * 0.35
+        if abs(goal - self._t) < 0.03:
+            self._t = goal
+        else:
+            self._job = self.after(16, self._anim)
+        try:
+            self._draw()
+        except tk.TclError:
+            pass
+
+    def _stop(self, _e=None):
+        if self._job is not None:
+            try:
+                self.after_cancel(self._job)
+            except tk.TclError:
+                pass
+            self._job = None
+
+    def _down(self, _e):
+        if self.enabled:
+            self._press = True
+            self._draw()
 
     def _click(self, e):
+        self._press = False
+        self._draw()
         if self.enabled and self.command and 0 <= e.x <= int(self["width"]) and 0 <= e.y <= int(self["height"]):
             self.command()
 
@@ -251,18 +283,38 @@ class MiniBar(tk.Canvas):
 
 # ---------------------------------------------------------------- degradado y títulos
 class GradientBar(tk.Canvas):
-    def __init__(self, parent, height=3, stops=GRADIENT, width=None):
+    """Barra de degradado. Con animate=True el color «fluye» de izquierda a derecha."""
+
+    def __init__(self, parent, height=3, stops=GRADIENT, width=None, animate=False):
         super().__init__(parent, height=height, bg=_bg_of(parent), highlightthickness=0, bd=0,
                          **({"width": width} if width else {}))
-        self.stops = stops
+        self.stops, self.animate, self.phase, self._ids, self._wd = stops, animate, 0.0, [], 0
+        self._loop = tuple(stops) + (stops[0],)               # degradado circular para que no se vea el salto
         self.bind("<Configure>", self._draw)
+        if animate:
+            self.after(80, self._tick)
+
+    def _col(self, i, n):
+        return gradient_color(self._loop if self.animate else self.stops, ((i / max(1, n)) + self.phase) % 1.0)
 
     def _draw(self, e):
         self.delete("all")
-        w = max(2, e.width)
-        step = 4
-        for x in range(0, w, step):
-            self.create_rectangle(x, 0, x + step, e.height, fill=gradient_color(self.stops, x / w), outline="")
+        self._wd = w = max(2, e.width)
+        step = 6 if self.animate else 4
+        self._ids = []
+        n = len(range(0, w, step))
+        for k, x in enumerate(range(0, w, step)):
+            self._ids.append(self.create_rectangle(x, 0, x + step, e.height, fill=self._col(k, n), outline=""))
+
+    def _tick(self):
+        try:
+            self.phase = (self.phase + 0.006) % 1.0
+            n = len(self._ids)
+            for k, rid in enumerate(self._ids):
+                self.itemconfigure(rid, fill=self._col(k, n))
+            self.after(80, self._tick)
+        except tk.TclError:
+            pass
 
 
 def page_title(parent, title, subtitle=None, accent=CYAN):
@@ -386,3 +438,80 @@ class CheckBox(tk.Frame):
 
 def checkbox(parent, text, var, bg=PANEL, fg=FG, font=None):
     return CheckBox(parent, text, var, bg=bg, fg=fg, font=font)
+
+
+# ---------------------------------------------------------------- chispas animadas
+class SparkField(tk.Canvas):
+    """Zona animada: aura que «respira» detrás del logo y chispas verdes que suben."""
+
+    def __init__(self, parent, logo=None, bg=SIDE, n=26):
+        super().__init__(parent, bg=bg, highlightthickness=0, bd=0, height=60)
+        self._bgc, self.logo, self.n, self.t, self.parts = bg, logo, n, 0.0, []
+        self.bind("<Configure>", self._reset)
+        self.after(60, self._tick)
+
+    def _reset(self, e):
+        import random
+        self.parts = [[random.uniform(0, max(1, e.width)), random.uniform(0, max(1, e.height)), random.uniform(0.25, 0.9),
+                       random.uniform(1.2, 2.8), random.uniform(0, 6.28), random.choice((CYAN, PINK, VIOLET))] for _ in range(self.n)]
+
+    def _tick(self):
+        try:
+            self.delete("all")
+            w, h = self.winfo_width(), self.winfo_height()
+            self.t += 0.06
+            import math
+            cx, cy = w / 2, h / 2
+            if h > 90 and w > 90:                                           # aura que respira
+                pulse = 0.5 + 0.5 * math.sin(self.t)
+                for i in range(6):
+                    r = 34 + i * 7 + 4 * pulse
+                    self.create_oval(cx - r, cy - r, cx + r, cy + r, outline=mix(self._bgc, CYAN, max(0.0, 0.30 - 0.045 * i + 0.08 * pulse)))
+            for p in self.parts:
+                p[1] -= p[2]
+                p[0] += math.sin(self.t + p[4]) * 0.25
+                if p[1] < -4:
+                    p[1], p[0] = h + 4, (p[0] % max(1, w))
+                tw = 0.35 + 0.65 * (0.5 + 0.5 * math.sin(self.t * 2 + p[4]))
+                r = p[3]
+                self.create_oval(p[0] - r, p[1] - r, p[0] + r, p[1] + r, fill=mix(self._bgc, p[5], tw), outline="")
+            if self.logo is not None and h > 90 and w > 90:
+                self.create_image(cx, cy, image=self.logo)
+            self.after(60, self._tick)
+        except tk.TclError:
+            pass
+
+
+# ---------------------------------------------------------------- logo con aura que respira
+class PulseLogo(tk.Canvas):
+    """El logo con anillos de luz que se expanden suavemente."""
+
+    def __init__(self, parent, image, size=76, bg=SIDE):
+        super().__init__(parent, width=size, height=size, bg=bg, highlightthickness=0, bd=0)
+        self.image, self.size, self._bgc, self.t = image, size, bg, 0.0
+        self._job = None
+        self.bind("<Destroy>", lambda e: self._stop())
+        self._tick()
+
+    def _stop(self):
+        if self._job is not None:
+            try:
+                self.after_cancel(self._job)
+            except tk.TclError:
+                pass
+            self._job = None
+
+    def _tick(self):
+        import math
+        try:
+            self.delete("all")
+            c = self.size / 2
+            for k in range(3):                                  # tres anillos desfasados que nacen del logo y se apagan
+                ph = (self.t + k / 3) % 1.0
+                r = 24 + ph * (c - 26)
+                self.create_oval(c - r, c - r, c + r, c + r, outline=mix(self._bgc, CYAN, 0.55 * (1 - ph) ** 1.5), width=2)
+            self.create_image(c, c, image=self.image)
+            self.t = (self.t + 0.012) % 1.0
+            self._job = self.after(50, self._tick)
+        except tk.TclError:
+            pass

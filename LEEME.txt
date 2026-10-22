@@ -74,3 +74,9 @@ Mis juegos: busca tus juegos de Steam/Epic (o anade un .exe), elige el perfil de
 al abrir el juego se activa el Modo Extremo con su perfil y al cerrarlo todo vuelve a su sitio.
 Monitor: graficas en vivo de CPU, RAM, grafica (NVIDIA), red.
 Optimizar > Limpieza profunda: quita telemetria, publicidad, tareas programadas y servicios sobrantes (todo reversible).
+
+
+NUEVO DISEÑO VERDE (v1.4.0)
+---------------------------
+Página de Inicio con accesos rápidos, menú por secciones y animaciones.
+Si las animaciones van lentas en tu PC, abre la app con la variable HELLOP_NO_ANIM=1.

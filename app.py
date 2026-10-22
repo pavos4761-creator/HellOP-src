@@ -8,52 +8,107 @@ from tkinter import messagebox, ttk  # noqa: F401
 from util import DEMO, IS_WIN, is_admin, relaunch_as_admin
 import psutil
 
+import anim
 import logo_data
 import updater
 import version
 
 from widgets import (BG, CYAN, F, FG, GREEN, MUTED, PANEL2, PINK, RED, SIDE, VIOLET, GradientBar, MiniBar,
-                     NeonButton, badge, install_mousewheel, setup_styles)
+                     NeonButton, PulseLogo, SparkField, badge, install_mousewheel, mix, round_rect, setup_styles)
 
-PAGES = [
-    ("analysis", "◎", "Análisis de PC"),
-    ("optimize", "⚡", "Optimizar"),
-    ("games", "▣", "Mis juegos"),
-    ("booster", "☢", "Modo Extremo"),
-    ("bios", "◉", "BIOS"),
-    ("monitor", "≈", "Monitor"),
-    ("diag", "◈", "Diagnóstico"),
-    ("oc", "⚙", "Overclock"),
-    ("clean", "✦", "Limpieza"),
-    ("bench", "▲", "Rendimiento"),
-    ("history", "↺", "Historial / Deshacer"),
-    ("update", "⟳", "Actualizaciones"),
+SECTIONS = [
+    ("INICIO", [("home", "⌂", "Inicio"), ("analysis", "◎", "Análisis de PC")]),
+    ("OPTIMIZAR", [("optimize", "⚡", "Optimizar"), ("clean", "✦", "Limpieza"), ("bench", "▲", "Antes y después")]),
+    ("GAMING", [("games", "▣", "Mis juegos"), ("booster", "☢", "Modo Extremo"), ("monitor", "≈", "Monitor"),
+                ("diag", "◈", "Diagnóstico")]),
+    ("AVANZADO", [("bios", "◉", "BIOS"), ("oc", "⚙", "Overclock")]),
+    ("SISTEMA", [("history", "↺", "Historial / Deshacer"), ("update", "⟳", "Actualizaciones")]),
 ]
+PAGES = [item for _title, items in SECTIONS for item in items]
 
 
-class NavItem(tk.Frame):
+class NavItem(tk.Canvas):
+    """Entrada del menú: el fondo y el color se funden suavemente, la barra lateral «crece» al activarse
+    y puede llevar un punto que late (p. ej. modo automático activo)."""
+    H = 27
+
     def __init__(self, parent, icon, text, command):
-        super().__init__(parent, bg=SIDE, cursor="hand2")
-        self.strip = tk.Frame(self, bg=SIDE, width=3)
-        self.strip.pack(side="left", fill="y")
-        self.lbl = tk.Label(self, text=f"  {icon}   {text}", font=F(10, True), fg=MUTED, bg=SIDE,
-                            anchor="w", padx=8, pady=8, cursor="hand2")
-        self.lbl.pack(side="left", fill="x", expand=True)
-        for w in (self, self.lbl):
-            w.bind("<Button-1>", lambda e: command())
-            w.bind("<Enter>", lambda e: self._hover(True))
-            w.bind("<Leave>", lambda e: self._hover(False))
-        self.active = False
+        super().__init__(parent, bg=SIDE, height=self.H, highlightthickness=0, bd=0, cursor="hand2")
+        self.icon, self.text, self.command = icon, text, command
+        self.hov = self.act = 0.0
+        self.active = self._hover_goal = False
+        self.dot, self.pulse, self._job = None, 0.0, None
+        self.bind("<Configure>", lambda e: self._draw())
+        self.bind("<Enter>", lambda e: self._go(hover=True))
+        self.bind("<Leave>", lambda e: self._go(hover=False))
+        self.bind("<Button-1>", lambda e: self.command())
+        self.bind("<Destroy>", lambda e: self._stop())
 
-    def _hover(self, on):
-        if not self.active:
-            self.lbl.config(fg=FG if on else MUTED)
+    def _stop(self):
+        if self._job is not None:
+            try:
+                self.after_cancel(self._job)
+            except tk.TclError:
+                pass
+            self._job = None
+
+    def _go(self, hover=None):
+        if hover is not None:
+            self._hover_goal = hover
+        if not anim.ENABLED:
+            self.hov, self.act = float(self._hover_goal), float(self.active)
+            self._draw()
+            return
+        if self._job is None:
+            self._job = self.after(16, self._step)
+
+    def _step(self):
+        self._job = None
+        gh, ga = float(self._hover_goal), float(self.active)
+        self.hov += (gh - self.hov) * 0.3
+        self.act += (ga - self.act) * 0.25
+        done = abs(gh - self.hov) < 0.02 and abs(ga - self.act) < 0.02
+        if done:
+            self.hov, self.act = gh, ga
+        else:
+            self._job = self.after(16, self._step)
+        self._draw()
 
     def set_active(self, on):
         self.active = on
-        self.strip.config(bg=CYAN if on else SIDE)
-        self.lbl.config(fg=CYAN if on else MUTED, bg=PANEL2 if on else SIDE)
-        self.config(bg=PANEL2 if on else SIDE)
+        self._go()
+
+    def set_dot(self, color):
+        self.dot = color
+        self._draw()
+
+    def beat(self, phase):
+        if self.dot:
+            self.pulse = phase
+            self._draw()
+
+    def _draw(self):
+        import math
+        try:
+            self.delete("all")
+            w = max(10, self.winfo_width())
+            k = max(self.hov * 0.55, self.act)
+            if k > 0.02:
+                round_rect(self, 8, 2, w - 8, self.H - 2, 9, fill=mix(SIDE, PANEL2, k), outline="")
+            if self.act > 0.02:
+                hgt = 4 + 14 * self.act
+                round_rect(self, 8, self.H / 2 - hgt / 2, 11, self.H / 2 + hgt / 2, 1.5, fill=CYAN, outline="")
+            col = mix(mix(MUTED, FG, self.hov), CYAN, self.act)
+            self.create_text(26, self.H / 2, text=self.icon, fill=col, font=F(11, True), anchor="center")
+            self.create_text(44, self.H / 2, text=self.text, fill=col, font=F(10, True), anchor="w")
+            if self.dot:
+                a = 0.45 + 0.55 * (0.5 + 0.5 * math.sin(self.pulse))
+                r = 4 + 1.5 * (0.5 + 0.5 * math.sin(self.pulse))
+                cx, cy = w - 22, self.H / 2
+                self.create_oval(cx - r - 3, cy - r - 3, cx + r + 3, cy + r + 3, fill=mix(SIDE, self.dot, 0.18 * a), outline="")
+                self.create_oval(cx - r, cy - r, cx + r, cy + r, fill=mix(SIDE, self.dot, a), outline="")
+        except tk.TclError:
+            pass
 
 
 class App(tk.Tk):
@@ -75,21 +130,26 @@ class App(tk.Tk):
         side = tk.Frame(body, bg=SIDE, width=230)
         side.pack(side="left", fill="y")
         side.pack_propagate(False)
-        tk.Frame(body, bg="#2c1619", width=1).pack(side="left", fill="y")
+        tk.Frame(body, bg="#16301f", width=1).pack(side="left", fill="y")
         self.content = tk.Frame(body, bg=BG)
         self.content.pack(side="left", fill="both", expand=True)
 
-        tk.Label(side, text="MENÚ", font=F(8, True), fg=MUTED, bg=SIDE, anchor="w").pack(fill="x", padx=18, pady=(18, 6))
+        spark = SparkField(side, bg=SIDE, n=14)
+        spark.configure(height=30)
+        spark.pack(fill="x")
         self.nav = {}
-        for key, icon, text in PAGES:
-            n = NavItem(side, icon, text, lambda k=key: self.show(k))
-            n.pack(fill="x")
-            self.nav[key] = n
-        tk.Label(side, text="Todo lo que cambia se guarda\nen el Historial para poder\ndeshacerlo.", font=F(9),
-                 fg=MUTED, bg=SIDE, justify="left", anchor="w").pack(side="bottom", fill="x", padx=18, pady=(8, 18))
+        for title, items in SECTIONS:
+            tk.Label(side, text=title, font=F(8, True), fg=MUTED, bg=SIDE, anchor="w").pack(fill="x", padx=20, pady=(6, 0))
+            for key, icon, text in items:
+                n = NavItem(side, icon, text, lambda k=key: self.show(k))
+                n.pack(fill="x")
+                self.nav[key] = n
+        tk.Label(side, text="Todo se puede deshacer\ndesde Historial.", font=F(9),
+                 fg=MUTED, bg=SIDE, justify="left", anchor="w").pack(side="bottom", fill="x", padx=18, pady=(6, 10))
         live = tk.Frame(side, bg=SIDE)
         live.pack(side="bottom", fill="x", padx=18, pady=(0, 6))
-        tk.Label(live, text="EN VIVO", font=F(8, True), fg=MUTED, bg=SIDE, anchor="w").pack(fill="x", pady=(0, 4))
+        self.live_lbl = tk.Label(live, text="●  EN VIVO", font=F(8, True), fg=MUTED, bg=SIDE, anchor="w")
+        self.live_lbl.pack(fill="x", pady=(0, 4))
         self.bar_cpu = MiniBar(live, "CPU", CYAN)
         self.bar_ram = MiniBar(live, "RAM", PINK)
         self.bar_cpu.pack(pady=1)
@@ -106,12 +166,14 @@ class App(tk.Tk):
         from page_clean import CleanPage
         from page_diag import DiagPage
         from page_games import GamesPage
+        from page_home import HomePage
         from page_monitor import MonitorPage
         from page_oc import OcPage
         from page_history import HistoryPage
         from page_optimize import OptimizePage
         from page_update import UpdatePage
         self.pages = {
+            "home": HomePage(self.content, self),
             "analysis": AnalysisPage(self.content, self),
             "optimize": OptimizePage(self.content, self),
             "games": GamesPage(self.content, self),
@@ -125,7 +187,9 @@ class App(tk.Tk):
             "history": HistoryPage(self.content, self),
             "update": UpdatePage(self.content, self),
         }
-        self.show("analysis")
+        self.show("home")
+        self._anim_phase = 0.0
+        self.after(80, self._anim_tick)
         self.protocol("WM_DELETE_WINDOW", self.on_close)
         import booster
         rec = booster.recover_after_crash()
@@ -163,11 +227,11 @@ class App(tk.Tk):
         self._logo = tk.PhotoImage(data=logo_data.LOGO_64)
         self._logo_big = tk.PhotoImage(data=logo_data.LOGO_128)
         self._set_window_icon()
-        tk.Label(h, image=self._logo, bg=SIDE, bd=0).pack(side="left", padx=(18, 8), pady=6)
+        PulseLogo(h, self._logo, size=74, bg=SIDE).pack(side="left", padx=(14, 6), pady=2)
         tk.Label(h, text="Hell", font=F(20, True), fg=FG, bg=SIDE).pack(side="left")
         tk.Label(h, text="OP", font=F(20, True), fg=CYAN, bg=SIDE).pack(side="left")
         tk.Label(h, text=f"v{version.__version__}", font=F(9, True), fg=MUTED, bg=SIDE).pack(side="left", padx=(12, 0), pady=(10, 0))
-        tk.Label(h, text="análisis · optimización · limpieza", font=F(9), fg=MUTED, bg=SIDE).pack(side="left", padx=16, pady=(8, 0))
+        tk.Label(h, text="optimización extrema para gaming", font=F(9), fg=MUTED, bg=SIDE).pack(side="left", padx=16, pady=(8, 0))
         right = tk.Frame(h, bg=SIDE)
         right.pack(side="right", padx=18)
         self.hdr_right = right
@@ -247,15 +311,35 @@ class App(tk.Tk):
 
     # ---- navegación -------------------------------------------------------
     def show(self, key):
-        for k, p in self.pages.items():
-            p.pack_forget()
+        first = self.current is None
+        for p in self.pages.values():
+            p.place_forget()
         for k, n in self.nav.items():
             n.set_active(k == key)
+        if getattr(self, "_slide_cancel", None):
+            self._slide_cancel()
         self.current = key
         page = self.pages[key]
-        page.pack(fill="both", expand=True)
+        if first or not anim.ENABLED:
+            page.place(x=0, y=0, relwidth=1, relheight=1)
+        else:                                     # entra deslizando suavemente desde la derecha
+            page.place(x=30, y=0, relwidth=1, relheight=1)
+            self._slide_cancel = anim.tween(self, 190, lambda p: page.place_configure(x=int(30 * (1 - p))),
+                                            done=lambda: page.place_configure(x=0))
         if hasattr(page, "on_show"):
             page.on_show()
+
+    def _anim_tick(self):
+        """Latido de los puntos del menú y del indicador «en vivo»."""
+        import math
+        self._anim_phase += 0.28
+        for n in self.nav.values():
+            n.beat(self._anim_phase)
+        try:
+            self.live_lbl.config(fg=mix(MUTED, GREEN, 0.5 + 0.5 * math.sin(self._anim_phase * 0.8)))
+        except tk.TclError:
+            return
+        self.after(90, self._anim_tick)
 
     def status(self, text):
         self.statusbar.config(text=text)

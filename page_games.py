@@ -104,6 +104,7 @@ class GamesPage(tk.Frame):
             m, s = divmod(secs, 60)
             txt += f" · {m:02d}:{s:02d}"
         self.state.config(text=txt, fg=GREEN if on else MUTED)
+        self.app.nav["games"].set_dot((PINK if (w and w.current) else GREEN) if on else None)
         if on:
             self.app.status(txt)
 
