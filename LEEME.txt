@@ -67,3 +67,10 @@ Diagnostico: mide tu PC mientras juegas (cuenta atras de 10 s para volver al jue
 CPU, la GPU, la RAM, el disco o el calor, y busca causas de tirones. No cambia ningun ajuste.
 Overclock: guia segura adaptada a tu procesador, grafica y RAM (undervolt y subidas pequenas).
 Optimizar > Extremo: ajustes nuevos para NVIDIA (relojes altos, limite de potencia, HAGS) y Ryzen (EPP, boost).
+
+MIS JUEGOS, MONITOR Y LIMPIEZA PROFUNDA (v1.3.0)
+------------------------------------------------
+Mis juegos: busca tus juegos de Steam/Epic (o anade un .exe), elige el perfil de cada uno y activa el modo automatico:
+al abrir el juego se activa el Modo Extremo con su perfil y al cerrarlo todo vuelve a su sitio.
+Monitor: graficas en vivo de CPU, RAM, grafica (NVIDIA), red.
+Optimizar > Limpieza profunda: quita telemetria, publicidad, tareas programadas y servicios sobrantes (todo reversible).

@@ -17,6 +17,7 @@ from util import APP_DIR, DEMO, IS_WIN, is_admin, run_cmd
 
 STATE_FILE = APP_DIR / ("booster_demo.json" if DEMO else "booster_estado.json")
 
+HIGH_PERF = "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c"
 SERVICES_TO_PAUSE = ["SysMain", "WSearch", "wuauserv", "BITS", "DoSvc", "DiagTrack"]
 
 # nunca se tocan (sistema, seguridad, voz/streaming que NO conviene frenar)
@@ -133,6 +134,8 @@ class Booster:
         self.started = None
         self.game_pids = []
         self.timer_ms = None
+        self.saved_affinity = {}         # pid -> núcleos originales
+        self.prev_plan = None            # plan de energía anterior
 
     # ------------------------------------------------------------------
     def start(self, game_name, opts, log=lambda m: None):
@@ -144,6 +147,8 @@ class Booster:
         self.game_name = game_name
         self.saved.clear()
         self.stopped.clear()
+        self.saved_affinity.clear()
+        self.prev_plan = None
         self.freed = self.lowered = 0
 
         if opts.get("timer"):
@@ -199,6 +204,39 @@ class Booster:
                     pass
             self.freed = freed if not DEMO else 1.1 * 1024 ** 3
             log(f"🧹  RAM liberada de programas de fondo: {self.freed / 1024 ** 2:.0f} MB")
+        if opts.get("affinity") and game_name:
+            cores = psutil.cpu_count() or 0
+            if DEMO:
+                log("🧵  Núcleos 0 y 1 libres para Windows (demo)")
+            elif cores >= 6:
+                n = 0
+                for pid in self.game_pids:
+                    try:
+                        pr = psutil.Process(pid)
+                        self.saved_affinity.setdefault(pid, pr.cpu_affinity())
+                        pr.cpu_affinity([c for c in range(cores) if c > 1])
+                        n += 1
+                    except (psutil.Error, AttributeError, OSError):
+                        pass
+                log(f"🧵  Núcleos 0 y 1 libres para Windows ({n} proceso{'s' if n != 1 else ''} del juego)")
+            else:
+                log("🧵  Afinidad omitida: hace falta una CPU de 6 núcleos o más")
+        if opts.get("power"):
+            if DEMO:
+                log("⚡  Plan de energía: Alto rendimiento (demo)")
+            else:
+                try:
+                    from actions import active_scheme
+                    guid, _name = active_scheme()
+                    if guid and guid != HIGH_PERF:
+                        rc, _o, _e = run_cmd(["powercfg", "/setactive", HIGH_PERF], timeout=20)
+                        if rc == 0:
+                            self.prev_plan = guid
+                            log("⚡  Plan de energía: Alto rendimiento (se restaurará al terminar)")
+                        else:
+                            log("⚡  No pude cambiar el plan de energía (tu equipo no lo permite)")
+                except Exception:  # noqa: BLE001
+                    pass
         if opts.get("services") and (is_admin() or DEMO):
             for name in SERVICES_TO_PAUSE:
                 try:
@@ -266,6 +304,13 @@ class Booster:
                     restored += 1
                 except psutil.Error:
                     pass
+            for pid, cores in list(self.saved_affinity.items()):
+                try:
+                    psutil.Process(pid).cpu_affinity(cores)
+                except (psutil.Error, OSError):
+                    pass
+            if self.prev_plan:
+                run_cmd(["powercfg", "/setactive", self.prev_plan], timeout=20)
             for name in self.stopped:
                 run_cmd(["sc", "start", name], timeout=30)
         set_timer(False)
@@ -273,6 +318,8 @@ class Booster:
             "temporizador devuelto a su valor normal.")
         self.saved.clear()
         self.stopped.clear()
+        self.saved_affinity.clear()
+        self.prev_plan = None
         self.active = False
         try:
             STATE_FILE.unlink()
@@ -297,7 +344,7 @@ class Booster:
 
     def _save_state(self):
         try:
-            STATE_FILE.write_text(json.dumps({"stopped": self.stopped, "ts": time.time()}), "utf-8")
+            STATE_FILE.write_text(json.dumps({"stopped": self.stopped, "plan": self.prev_plan, "ts": time.time()}), "utf-8")
         except OSError:
             pass
 
@@ -311,6 +358,8 @@ def recover_after_crash():
     if not DEMO:
         for name in data.get("stopped", []):
             run_cmd(["sc", "start", name], timeout=30)
+        if data.get("plan"):
+            run_cmd(["powercfg", "/setactive", data["plan"]], timeout=20)
     try:
         STATE_FILE.unlink()
     except OSError:

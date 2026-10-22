@@ -13,6 +13,8 @@ OPTIONS = [
     ("bg_ram", "Liberar la RAM que usan los programas de fondo", True),
     ("services", "Pausar servicios que despiertan al disco y la CPU (SysMain, búsqueda, Windows Update…) · necesita administrador", True),
     ("dns", "Vaciar la caché DNS", False),
+    ("power", "Plan de energía de Alto rendimiento mientras juegas (se restaura al terminar)", True),
+    ("affinity", "Dejar los núcleos 0 y 1 libres para Windows (solo CPU de 6 núcleos o más; prueba si te va mejor)", False),
 ]
 
 
@@ -155,6 +157,19 @@ class BoosterPage(tk.Frame):
         self.app.status("Modo Extremo desactivado")
 
     # ------------------------------------------------------------------
+    def sync(self):
+        """El modo automático puede activar o desactivar el Modo Extremo: ajusta el botón."""
+        if self.busy:
+            return
+        if self.b.active:
+            self.btn.set_text("■   DESACTIVAR Y DEJARLO TODO COMO ESTABA")
+            self.btn.set_color(GREEN)
+        else:
+            self.btn.set_text("☢   ACTIVAR MODO EXTREMO")
+            self.btn.set_color(PINK)
+            for t in self.tiles.values():
+                t.config(text="—")
+
     def _loop(self):
         if self.b.active:
             s = self.b.stats()

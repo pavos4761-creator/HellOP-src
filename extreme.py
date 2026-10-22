@@ -594,12 +594,6 @@ def nvidia_actions():
                               ("HKLM", path, "PowerMizerLevelAC", 1, REG_DWORD)],
                              needs_admin=True, profiles=("extreme",), effect="depende", reboot=True, risk="medio",
                              warning="Más calor y ruido en reposo. Se deshace desde el Historial."))
-    acts.append(RegTweak("x_hags", "gpu", "Programación de GPU acelerada por hardware (HAGS)",
-                         "Deja que la propia gráfica organice su cola de trabajo en vez de Windows. En unos juegos baja la latencia y en "
-                         "otros no cambia o incluso empeora un poco. Pruébalo y quédate con lo que mejor te vaya (se deshace desde el Historial). "
-                         "Solo se ofrece si tu equipo ya lo soporta y está desactivado.",
-                         [("HKLM", r"SYSTEM\CurrentControlSet\Control\GraphicsDrivers", "HwSchMode", 2, REG_DWORD)],
-                         needs_admin=True, profiles=("extreme",), effect="depende", reboot=True, require_existing=True))
     return acts
 
 

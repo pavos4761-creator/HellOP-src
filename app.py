@@ -18,8 +18,10 @@ from widgets import (BG, CYAN, F, FG, GREEN, MUTED, PANEL2, PINK, RED, SIDE, VIO
 PAGES = [
     ("analysis", "◎", "Análisis de PC"),
     ("optimize", "⚡", "Optimizar"),
+    ("games", "▣", "Mis juegos"),
     ("booster", "☢", "Modo Extremo"),
     ("bios", "◉", "BIOS"),
+    ("monitor", "≈", "Monitor"),
     ("diag", "◈", "Diagnóstico"),
     ("oc", "⚙", "Overclock"),
     ("clean", "✦", "Limpieza"),
@@ -34,8 +36,8 @@ class NavItem(tk.Frame):
         super().__init__(parent, bg=SIDE, cursor="hand2")
         self.strip = tk.Frame(self, bg=SIDE, width=3)
         self.strip.pack(side="left", fill="y")
-        self.lbl = tk.Label(self, text=f"  {icon}   {text}", font=F(11, True), fg=MUTED, bg=SIDE,
-                            anchor="w", padx=8, pady=13, cursor="hand2")
+        self.lbl = tk.Label(self, text=f"  {icon}   {text}", font=F(10, True), fg=MUTED, bg=SIDE,
+                            anchor="w", padx=8, pady=8, cursor="hand2")
         self.lbl.pack(side="left", fill="x", expand=True)
         for w in (self, self.lbl):
             w.bind("<Button-1>", lambda e: command())
@@ -58,7 +60,7 @@ class App(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title(f"HellOP v{version.__version__}" + ("  ·  MODO DEMO" if DEMO else ""))
-        self.geometry("1140x760")
+        self.geometry("1140x800")
         self.minsize(980, 640)
         self.configure(bg=BG)
         setup_styles(self)
@@ -103,6 +105,8 @@ class App(tk.Tk):
         from page_booster import BoosterPage
         from page_clean import CleanPage
         from page_diag import DiagPage
+        from page_games import GamesPage
+        from page_monitor import MonitorPage
         from page_oc import OcPage
         from page_history import HistoryPage
         from page_optimize import OptimizePage
@@ -110,8 +114,10 @@ class App(tk.Tk):
         self.pages = {
             "analysis": AnalysisPage(self.content, self),
             "optimize": OptimizePage(self.content, self),
+            "games": GamesPage(self.content, self),
             "booster": BoosterPage(self.content, self),
             "bios": BiosPage(self.content, self),
+            "monitor": MonitorPage(self.content, self),
             "diag": DiagPage(self.content, self),
             "oc": OcPage(self.content, self),
             "clean": CleanPage(self.content, self),
@@ -127,6 +133,7 @@ class App(tk.Tk):
             self.status("Se reanudaron servicios que el Modo Extremo había pausado: " + ", ".join(rec))
         self.after(50, self._pump)
         self.after(4000, self._auto_check)
+        self.after(1500, self.pages["games"].boot)
         self.after(600, self._admin_prompt)
 
     def _set_window_icon(self):
@@ -225,6 +232,8 @@ class App(tk.Tk):
     def on_close(self):
         """Antes de cerrar deja todo como estaba (prioridades, servicios, temporizador)."""
         try:
+            self.pages["games"].shutdown()
+            self.pages["monitor"].shutdown()
             self.pages["booster"].shutdown()
         except Exception:  # noqa: BLE001
             pass

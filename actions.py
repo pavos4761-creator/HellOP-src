@@ -39,6 +39,7 @@ GROUPS = [
     ("gaming", "Juegos"),
     ("latency", "Latencia extrema (núcleo, energía y registro)"),
     ("gpu", "Gráfica y procesador (ajustes específicos)"),
+    ("deep", "Limpieza profunda de Windows"),
     ("tradeoff", "Rendimiento a cambio de seguridad"),
     ("startup", "Programas de inicio"),
     ("services", "Servicios de Windows"),
@@ -945,6 +946,14 @@ def demo_actions():
         DemoAction("x6", "gpu", "Ryzen: preferencia de rendimiento al máximo (EPP = 0)", "Tu Ryzen sube de frecuencia al instante ante cualquier carga: mejores mínimos de FPS.", "Valor actual: 33 → nuevo: 0", admin=True, profiles=("extreme",), effect="depende"),
         DemoAction("x7", "gpu", "NVIDIA: relojes siempre altos, sin bajar de velocidad (NVIDIA GeForce RTX 3060)", "Modo «Preferir el máximo rendimiento» forzado desde el registro: la GPU no tarda en volver a subir de velocidad.", "Modifica 4 ajustes del registro", admin=True, reboot=True, risk="medio", profiles=("extreme",), effect="depende", warning="Más calor y ruido en reposo. Se deshace desde el Historial."),
         DemoAction("x8", "gpu", "NVIDIA: subir el límite de potencia al máximo permitido", "La GPU mantiene más tiempo sus relojes altos bajo carga. Se pierde al apagar el PC.", "Límite actual: 170 W  →  máximo permitido: 170 W", admin=True, risk="medio", profiles=("extreme",), effect="pequeño"),
+        DemoAction("y1", "deep", "Desactivar las tareas de telemetría y compatibilidad de Windows", "Tareas que recogen datos de uso y aparecen de golpe consumiendo disco y CPU, a veces en plena partida.", "5 tarea(s) programada(s) activa(s)", admin=True, profiles=("deep",), effect="real"),
+        DemoAction("y2", "deep", "Quitar publicidad, apps patrocinadas y sugerencias de Windows", "Windows instala apps patrocinadas y muestra consejos en Inicio y en la pantalla de bloqueo. Esto lo apaga todo.", "Modifica 21 ajustes del registro", profiles=("deep",), effect="pequeño"),
+        DemoAction("y3", "deep", "Quitar el reparto de actualizaciones entre PCs (P2P)", "Windows puede usar tu conexión para subir actualizaciones a otros ordenadores: te roba ancho de banda jugando online.", "Ahora: DODownloadMode = por defecto  →  nuevo: 0", admin=True, profiles=("deep",), effect="real"),
+        DemoAction("y4", "deep", "Edge: que no se ejecute en segundo plano", "Edge se queda cargado y precarga páginas aunque no lo uses. Esto lo detiene.", "Modifica 2 ajustes del registro", admin=True, profiles=("deep",), effect="real"),
+        DemoAction("y5", "deep", "Desactivar Copilot y Recall (funciones de IA de Windows)", "Quita Copilot de la barra y evita que Recall capture tu pantalla para analizarla.", "Modifica 2 ajustes del registro", admin=True, profiles=("deep",), effect="pequeño"),
+        DemoAction("y6", "deep", "Desactivar servicio: Telemetría de NVIDIA", "Envía datos de uso de tu driver a NVIDIA. Los juegos y el panel funcionan igual sin él.", "Servicio «NvTelemetryContainer»: automático", admin=True, profiles=("deep",), effect="pequeño"),
+        DemoAction("y7", "latency", "Agrupar servicios de Windows en menos procesos (svchost)", "Se agrupan como en versiones antiguas: menos procesos, menos RAM y menos cambios de contexto.", "Ahora: SvcHostSplitThresholdInKB = por defecto  →  nuevo: 16777216", admin=True, reboot=True, profiles=("extreme",), effect="pequeño"),
+        DemoAction("y8", "tradeoff", "Excluir tus carpetas de juegos del análisis en tiempo real del antivirus", "Defender no analiza cada archivo que el juego lee: menos tirones y cargas más rápidas.", "4 carpeta(s) de juegos sin excluir", admin=True, risk="medio", profiles=("extreme",), effect="depende", warning="Esas carpetas dejan de analizarse en busca de virus. Hazlo solo con juegos oficiales de Steam/Epic."),
         DemoAction("d11", "network", "Cambiar el DNS a Cloudflare (1.1.1.1)", "Un DNS más rápido hace que las páginas empiecen a cargar antes.", "Tu DNS responde en 31 ms · Cloudflare en 9 ms", admin=True),
     ]
 
@@ -978,11 +987,19 @@ def discover(profile, progress=None):
             import extreme
             step("Buscando ajustes extremos (registro, arranque, energía)…", extreme.extreme_actions)
             step("Revisando tarjeta de red y gráfica…", extreme.hardware_actions)
+            import deepclean
+            step("Buscando ajustes extra de rendimiento…", deepclean.extra_gaming_actions)
+        if profile == "deep":
+            import deepclean
+            step("Revisando tareas programadas, telemetría y publicidad…", deepclean.deep_actions)
     chosen = []
     for a in acts:
         if profile == "full":
-            if tuple(a.profiles) == ("extreme",):
-                continue            # lo extremo solo se ofrece si lo eliges expresamente
+            if tuple(a.profiles) in (("extreme",), ("deep",)):
+                continue            # lo extremo y la limpieza profunda solo se ofrecen si los eliges expresamente
+        elif profile == "deep":
+            if "deep" not in a.profiles and "work" not in a.profiles:
+                continue
         elif profile == "extreme":
             if "gaming" not in a.profiles and "extreme" not in a.profiles:
                 continue

@@ -19,6 +19,9 @@ PROFILES = [
     ("extreme", "☢", "EXTREMO", RED,
      "Todo lo de Gaming MÁS ajustes profundos: arranque (HPET, tick), energía de CPU/PCIe/USB, registro, red, modo MSI de la GPU "
      "y opciones que cambian seguridad por FPS. Cada uno te dice su efecto REAL y su riesgo."),
+    ("deep", "✧", "LIMPIEZA PROFUNDA", VIOLET,
+     "Quita lo que Windows hace sin que lo pidas: telemetría, tareas programadas, publicidad, Copilot/Recall, Edge en segundo plano, "
+     "reparto P2P de actualizaciones y servicios sobrantes. Más privacidad y menos ruido de fondo."),
     ("full", "⚙", "COMPLETO", GREEN,
      "Todo lo anterior junto. Revisaré todo lo que se puede mejorar en tu PC y te lo preguntaré cambio por cambio."),
 ]
@@ -64,11 +67,11 @@ class OptimizePage(tk.Frame):
                            "no se podrán aplicar. Usa «Reabrir como administrador» arriba a la derecha.").pack(fill="x")
         row = tk.Frame(self.stage, bg=BG)
         row.pack(fill="x")
-        for i in range(4):
+        for i in range(3):
             row.columnconfigure(i, weight=1, uniform="p")
         for i, (key, icon, name, color, desc) in enumerate(PROFILES):
             c = Card(row, accent=color)
-            c.grid(row=0, column=i, sticky="nsew", padx=(0, 12) if i < 3 else 0)
+            c.grid(row=i // 3, column=i % 3, sticky="nsew", padx=(0, 12) if i % 3 < 2 else 0, pady=(0, 12))
             tk.Label(c.body, text=icon, font=F(30, True), fg=color, bg=PANEL).pack(anchor="w")
             tk.Label(c.body, text=name, font=F(16, True), fg=color, bg=PANEL).pack(anchor="w", pady=(0, 6))
             WrapLabel(c.body, text=desc, fg=FG).pack(fill="x")
