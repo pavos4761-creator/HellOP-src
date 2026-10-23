@@ -54,7 +54,7 @@ class GameProfilePage(tk.Frame):
         for gid in gp.GAMES:
             if gid in found:
                 out.append((gid, str(found[gid]), {p: gp.plan(gid, p) for p in gp.PRESETS}))
-        return out
+        return out, [g for g in gp.find_guides() if g in gp.GUIDES]
 
     def _last_entry(self, gid):
         for e in reversed(actions.load_log()):
@@ -62,13 +62,21 @@ class GameProfilePage(tk.Frame):
                 return e
         return None
 
-    def _render(self, data):
+    def _render(self, res):
+        data, guides = res
         for w in self.list.winfo_children():
             w.destroy()
-        if not data:
-            self.msg.config(text="No he encontrado ninguno de los juegos compatibles (Fortnite, VALORANT, Minecraft Java, CS2).", fg=YELLOW)
+        for gid in guides:
+            g = gp.GUIDES[gid]
+            c = Card(self.list, accent=CYAN, title=f"{g['name']}  ·  guía de ajustes")
+            c.pack(fill="x", pady=(0, 12))
+            WrapLabel(c.body, text=g["note"], font=F(9), fg=MUTED).pack(fill="x", pady=(0, 6))
+            for i, t in enumerate(g["steps"], 1):
+                WrapLabel(c.body, text=f"{i}.  {t}", font=F(10), fg=FG).pack(fill="x", pady=2)
+        if not data and not guides:
+            self.msg.config(text="No he encontrado ninguno de los juegos compatibles (Fortnite, VALORANT, Minecraft Java, League of Legends, CS2, eFootball).", fg=YELLOW)
             return
-        self.msg.config(text=f"{len(data)} juego(s) encontrado(s)", fg=GREEN)
+        self.msg.config(text=f"{len(data) + len(guides)} juego(s) encontrado(s)", fg=GREEN)
         for gid, path, plans in data:
             g = gp.GAMES[gid]
             c = Card(self.list, accent=PINK, title=g["name"])

@@ -25,10 +25,10 @@ PRESETS = {
 }
 
 # Calidad estilo Unreal (0 bajo … 3 épico) — la usan Fortnite y Valorant
-_UE_MAX = {"sg.ShadowQuality": 0, "sg.TextureQuality": 1, "sg.EffectsQuality": 0, "sg.PostProcessQuality": 0,
+_UE_MAX = {"sg.ShadingQuality": 0, "sg.ShadowQuality": 0, "sg.TextureQuality": 1, "sg.EffectsQuality": 0, "sg.PostProcessQuality": 0,
            "sg.ViewDistanceQuality": 1, "sg.AntiAliasingQuality": 0, "sg.FoliageQuality": 0,
            "bUseVSync": False, "FrameRateLimit": 0.0}
-_UE_BAL = {"sg.ShadowQuality": 1, "sg.TextureQuality": 2, "sg.EffectsQuality": 1, "sg.PostProcessQuality": 1,
+_UE_BAL = {"sg.ShadingQuality": 1, "sg.ShadowQuality": 1, "sg.TextureQuality": 2, "sg.EffectsQuality": 1, "sg.PostProcessQuality": 1,
            "sg.ViewDistanceQuality": 2, "sg.AntiAliasingQuality": 1, "sg.FoliageQuality": 1,
            "bUseVSync": False, "FrameRateLimit": 144.0}
 
@@ -41,7 +41,19 @@ GAMES = {
     "valorant": {
         "name": "VALORANT", "sep": "=",
         "presets": {"max": _UE_MAX, "balanced": _UE_BAL},
-        "note": "Cierra VALORANT y Riot Client antes de aplicar.",
+        "note": "Cierra VALORANT y Riot Client antes de aplicar. Riot guarda tus ajustes también en tu cuenta: "
+                "si al iniciar sesión vuelven a cambiar, ajústalos dentro del juego.",
+    },
+    "lol": {
+        "name": "League of Legends", "sep": "=",
+        "presets": {
+            "max": {"ShadowQuality": 0, "EffectsQuality": 0, "CharacterQuality": 0, "EnvironmentQuality": 0,
+                    "WaitForVerticalSync": 0, "AntiAliasing": 0},
+            "balanced": {"ShadowQuality": 1, "EffectsQuality": 1, "CharacterQuality": 2, "EnvironmentQuality": 2,
+                         "WaitForVerticalSync": 0, "AntiAliasing": 0},
+        },
+        "note": "Cierra League of Legends y el cliente de Riot antes de aplicar. Solo se cambian calidades y VSync. "
+                "El límite de FPS cámbialo dentro del juego (Vídeo → Avanzado).",
     },
     "minecraft": {
         "name": "Minecraft (Java)", "sep": ":",
@@ -62,6 +74,21 @@ GAMES = {
     },
 }
 
+# Juegos sin archivo editable seguro: solo guía de ajustes dentro del juego
+GUIDES = {
+    "efootball": {
+        "name": "eFootball",
+        "note": "No toco su archivo de configuración porque no puedo verificar su formato; en su lugar, estos ajustes dentro del juego:",
+        "steps": [
+            "Ajustes → Gráficos: calidad de gráficos «Normal» o «Baja» y sombras en el mínimo.",
+            "Resolución: la de tu monitor en pantalla completa (no «sin bordes»); bajar resolución solo si sigues justo de FPS.",
+            "Antialiasing y efectos de espectadores/césped: en bajo. Es lo que más gasta en tu gráfica.",
+            "Límite de FPS: 60 (el juego va pensado para 60). Subirlo no mejora la jugabilidad.",
+            "Si tienes tirones: cierra el lanzador de Steam/overlays y activa el Modo Extremo antes de abrir el juego.",
+        ],
+    },
+}
+
 BEGIN, END = "// HellOP begin", "// HellOP end"
 
 
@@ -74,6 +101,8 @@ def _demo_files():
         "fortnite.ini": "[/Script/FortniteGame.FortGameUserSettings]\nsg.ShadowQuality=3\nsg.TextureQuality=3\nsg.EffectsQuality=3\n"
                         "sg.PostProcessQuality=3\nsg.ViewDistanceQuality=3\nsg.AntiAliasingQuality=3\nsg.FoliageQuality=3\n"
                         "bUseVSync=True\nFrameRateLimit=60.000000\n",
+        "lol.cfg": "[Performance]\nShadowQuality=3\nEffectsQuality=3\nCharacterQuality=3\nEnvironmentQuality=3\n"
+                   "WaitForVerticalSync=1\nAntiAliasing=1\n",
         "minecraft.txt": "version:3465\nrenderDistance:16\ngraphics:\"fancy\"\nparticles:0\nentityShadows:true\n"
                          "enableVsync:true\nmaxFps:120\nao:true\n",
     }
@@ -84,6 +113,42 @@ def _demo_files():
             p.write_text(text, "utf-8")
         out[fn.split(".")[0]] = p
     return out
+
+
+def _find_lol():
+    """Busca Config\\game.cfg de League of Legends (por el instalador de Riot o en las rutas habituales)."""
+    cands = []
+    try:
+        import json
+        pd = Path(os.environ.get("PROGRAMDATA", r"C:\ProgramData")) / "Riot Games" / "RiotClientInstalls.json"
+        data = json.loads(pd.read_text("utf-8"))
+        for k in (data.get("associated_client") or {}):
+            if "league of legends" in k.lower():
+                cands.append(Path(k) / "Config" / "game.cfg")
+    except Exception:  # noqa: BLE001
+        pass
+    for drive in "CDEF":
+        cands.append(Path(f"{drive}:/Riot Games/League of Legends/Config/game.cfg"))
+    for p in cands:
+        if p.is_file():
+            return p
+    return None
+
+
+def find_guides():
+    """Juegos con guía (sin archivo editable) detectados en este PC: lista de ids."""
+    if DEMO:
+        return ["efootball"]
+    found = []
+    try:
+        docs = Path.home() / "Documents" / "KONAMI"
+        if docs.is_dir() and any(p.name.lower().startswith("efootball") for p in docs.iterdir()):
+            found.append("efootball")
+        elif any(g["id"] == "steam:1665460" for g in games.scan_steam()):
+            found.append("efootball")
+    except Exception:  # noqa: BLE001
+        pass
+    return found
 
 
 def find_files():
@@ -104,6 +169,9 @@ def find_files():
             if p.is_file():
                 out[gid] = p
                 break
+    lol = _find_lol()
+    if lol:
+        out["lol"] = lol
     try:
         for g in games.scan_steam():
             if g["id"] == "steam:730":
