@@ -179,6 +179,7 @@ def _load_registry():
     """Asegura que las clases de acciones extremas estén registradas para poder deshacerlas."""
     try:
         import extreme  # noqa: F401
+        import gameprofiles  # noqa: F401
     except Exception:  # noqa: BLE001
         pass
 

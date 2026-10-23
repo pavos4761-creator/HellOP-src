@@ -19,10 +19,11 @@ from widgets import (BG, CYAN, F, FG, GREEN, MUTED, PANEL2, PINK, RED, SIDE, VIO
 SECTIONS = [
     ("INICIO", [("home", "⌂", "Inicio"), ("analysis", "◎", "Análisis de PC")]),
     ("OPTIMIZAR", [("optimize", "⚡", "Optimizar"), ("clean", "✦", "Limpieza"), ("bench", "▲", "Antes y después")]),
-    ("GAMING", [("games", "▣", "Mis juegos"), ("booster", "☢", "Modo Extremo"), ("monitor", "≈", "Monitor"),
-                ("diag", "◈", "Diagnóstico")]),
+    ("GAMING", [("games", "▣", "Mis juegos"), ("gameprof", "✧", "Ajustes de juego"), ("booster", "☢", "Modo Extremo"),
+                ("monitor", "≈", "Monitor"), ("diag", "◈", "Diagnóstico")]),
     ("AVANZADO", [("bios", "◉", "BIOS"), ("oc", "⚙", "Overclock")]),
-    ("SISTEMA", [("history", "↺", "Historial / Deshacer"), ("update", "⟳", "Actualizaciones")]),
+    ("SISTEMA", [("health", "♥", "Salud del PC"), ("debloat", "✖", "Quitar bloatware"),
+                ("history", "↺", "Historial / Deshacer"), ("update", "⟳", "Actualizaciones")]),
 ]
 PAGES = [item for _title, items in SECTIONS for item in items]
 
@@ -30,7 +31,7 @@ PAGES = [item for _title, items in SECTIONS for item in items]
 class NavItem(tk.Canvas):
     """Entrada del menú: el fondo y el color se funden suavemente, la barra lateral «crece» al activarse
     y puede llevar un punto que late (p. ej. modo automático activo)."""
-    H = 27
+    H = 25
 
     def __init__(self, parent, icon, text, command):
         super().__init__(parent, bg=SIDE, height=self.H, highlightthickness=0, bd=0, cursor="hand2")
@@ -165,7 +166,10 @@ class App(tk.Tk):
         from page_booster import BoosterPage
         from page_clean import CleanPage
         from page_diag import DiagPage
+        from page_debloat import DebloatPage
+        from page_gameprof import GameProfilePage
         from page_games import GamesPage
+        from page_health import HealthPage
         from page_home import HomePage
         from page_monitor import MonitorPage
         from page_oc import OcPage
@@ -185,6 +189,9 @@ class App(tk.Tk):
             "clean": CleanPage(self.content, self),
             "bench": BenchPage(self.content, self),
             "history": HistoryPage(self.content, self),
+            "gameprof": GameProfilePage(self.content, self),
+            "health": HealthPage(self.content, self),
+            "debloat": DebloatPage(self.content, self),
             "update": UpdatePage(self.content, self),
         }
         self.show("home")

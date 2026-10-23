@@ -1,5 +1,4 @@
-• Nuevo diseño en verde: logo, colores y botones renovados.
-• Animaciones: las pantallas se deslizan al cambiar, el menú se ilumina suave, el logo late y hay chispas en la barra lateral.
-• Menú ordenado en secciones (Inicio, Optimizar, Gaming, Avanzado, Sistema).
-• Nueva página de Inicio con accesos rápidos y el estado de HellOP de un vistazo.
-• Punto de color en «Mis juegos» cuando el modo automático está activo.
+• Nueva página «Ajustes de juego»: perfiles «Máximo FPS» y «Equilibrado» para Fortnite, VALORANT, Minecraft (Java) y CS2. Guarda una copia del archivo del juego y se puede restaurar.
+• Nueva página «Salud del PC»: temperaturas (gráfica y procesador si Windows los da), revisión de drivers con enlace al fabricante y medición de ping, variación y pérdida, con buscador de DNS más rápido.
+• Nueva página «Quitar bloatware»: apps de Windows y programas de fabricante (McAfee, HP, Dell…) con casillas, nada marcado de antemano y sin tocar drivers ni componentes de Windows.
+• Menú ajustado para que quepan las páginas nuevas.
