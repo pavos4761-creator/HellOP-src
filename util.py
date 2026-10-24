@@ -116,6 +116,11 @@ def relaunch_as_admin():
     else:
         params = " ".join(f'"{a}"' for a in sys.argv)
     try:
+        if getattr(sys, "frozen", False):          # que el nuevo proceso no herede el estado interno de PyInstaller
+            for k in [k for k in os.environ if k.startswith("_PYI")]:
+                os.environ.pop(k, None)
+            os.environ.pop("_MEIPASS2", None)
+            os.environ["PYINSTALLER_RESET_ENVIRONMENT"] = "1"
         rc = ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, params, None, 1)
         return rc > 32
     except Exception:  # noqa: BLE001

@@ -194,6 +194,15 @@ def actualizar(info, progress=lambda pct, msg: None):
     return _apply_exe(info, progress) if FROZEN else _apply_source(info, progress)
 
 
+def clean_env():
+    """Entorno para lanzar la app de nuevo desde el .exe: sin las variables internas de PyInstaller.
+    Si las hereda, el .exe nuevo cree que sigue siendo «hijo» del anterior (ya cerrado) y muestra
+    «Security validation failure: invalid originating onefile parent process»."""
+    env = {k: v for k, v in os.environ.items() if not k.startswith("_PYI") and k != "_MEIPASS2"}
+    env["PYINSTALLER_RESET_ENVIRONMENT"] = "1"
+    return env
+
+
 def _apply_exe(info, progress):
     exe = Path(sys.executable).resolve()
     if re.search(r"[%!^&]", str(exe)):
@@ -214,10 +223,13 @@ def _apply_exe(info, progress):
         ")\r\n"
         "exit /b 1\r\n"
         ":ok\r\n"
+        'set "PYINSTALLER_RESET_ENVIRONMENT=1"\r\n'
+        'set "_PYI_APPLICATION_HOME_DIR="\r\nset "_PYI_ARCHIVE_FILE="\r\nset "_PYI_PARENT_PROCESS_LEVEL="\r\nset "_MEIPASS2="\r\n'
         'start "" "%OLD%"\r\n'
         '(goto) 2>nul & del "%~f0"\r\n', "utf-8")
     if IS_WIN:
-        subprocess.Popen(["cmd", "/c", str(bat)], creationflags=0x00000008 | 0x00000200 | 0x08000000, close_fds=True)
+        subprocess.Popen(["cmd", "/c", str(bat)], creationflags=0x00000008 | 0x00000200 | 0x08000000, close_fds=True,
+                         env=clean_env())
     return "restart"
 
 
