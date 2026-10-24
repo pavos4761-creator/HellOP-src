@@ -30,7 +30,7 @@ _UE_MAX = {"sg.ShadingQuality": 0, "sg.ShadowQuality": 0, "sg.TextureQuality": 1
            "bUseVSync": False, "FrameRateLimit": 0.0}
 _UE_BAL = {"sg.ShadingQuality": 1, "sg.ShadowQuality": 1, "sg.TextureQuality": 2, "sg.EffectsQuality": 1, "sg.PostProcessQuality": 1,
            "sg.ViewDistanceQuality": 2, "sg.AntiAliasingQuality": 1, "sg.FoliageQuality": 1,
-           "bUseVSync": False, "FrameRateLimit": 144.0}
+           "bUseVSync": False, "FrameRateLimit": 300.0}
 
 GAMES = {
     "fortnite": {
@@ -62,14 +62,14 @@ GAMES = {
                     "entityShadows": False, "enableVsync": False, "maxFps": 260, "ao": False,
                     "biomeBlendRadius": 0, "clouds": "off"},
             "balanced": {"renderDistance": 12, "graphics": "fancy", "fancyGraphics": True, "particles": 1,
-                         "entityShadows": True, "enableVsync": False, "maxFps": 144, "ao": True,
+                         "entityShadows": True, "enableVsync": False, "maxFps": 260, "ao": True,
                          "biomeBlendRadius": 2, "clouds": "fast"},
         },
         "note": "Cierra Minecraft antes de aplicar. Mods como Sodium suben mucho más los FPS.",
     },
     "cs2": {
         "name": "Counter-Strike 2", "sep": " ", "autoexec": True,
-        "presets": {"max": {"fps_max": 0}, "balanced": {"fps_max": 144}},
+        "presets": {"max": {"fps_max": 0}, "balanced": {"fps_max": 300}},
         "note": "Escribe fps_max en tu autoexec.cfg (CS2 lo carga solo). Los gráficos se bajan dentro del juego.",
     },
 }

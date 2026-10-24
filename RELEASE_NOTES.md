@@ -1,2 +1,1 @@
-• VALORANT: ahora se busca su archivo de ajustes en todas las carpetas de configuración (cuenta y WindowsClient) y se elige el que tiene ajustes gráficos.
-• Ajustes de juego: si un juego compatible no se encuentra, la página te dice cuáles faltan y cómo hacer que cree su archivo.
+• Ajustes de juego: el perfil «Equilibrado» ya no limita a 144 FPS. Ahora el tope es 300 en Fortnite, VALORANT y CS2, y sin límite en Minecraft (260 es «ilimitado» en el juego), pensado para monitores de 240-280 Hz.
