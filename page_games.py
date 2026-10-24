@@ -5,6 +5,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 
 import games
+import licencia
 from util import DEMO
 from widgets import (BG, CYAN, F, FG, GREEN, MUTED, PANEL, PANEL2, PINK, RED, VIOLET, YELLOW, Card, NeonButton,
                      ScrollFrame, WrapLabel, badge, checkbox, page_title)
@@ -59,7 +60,7 @@ class GamesPage(tk.Frame):
     # ------------------------------------------------------------------
     def boot(self):
         """Al abrir la app: si el modo automático estaba activado, lo reanuda."""
-        if games.load()["auto"]:
+        if games.load()["auto"] and not licencia.locked("games"):
             self._ensure_watcher().start()
             self._refresh_state()
 

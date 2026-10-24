@@ -66,10 +66,9 @@ class LicensePage(tk.Frame):
         inc = Card(root, accent=PINK, title="Qué incluye PRO")
         inc.pack(fill="x", pady=(0, 12))
         names = {k: t for _s, items in sys.modules[type(self.app).__module__].SECTIONS for k, _i, t in items}
-        WrapLabel(inc.body, text=", ".join(names[k] for k in sorted(lic.PRO_PAGES, key=lambda k: list(names).index(k))) + ".",
+        WrapLabel(inc.body, text=", ".join(names[k] for k in names if k in lic.PRO_PAGES) + ".",
                   font=F(10), fg=FG).pack(fill="x")
-        WrapLabel(inc.body, text="GRATIS incluye el análisis de tu PC, optimizar, limpieza, antes y después, mis juegos, monitor, "
-                                 "diagnóstico, BIOS, historial y actualizaciones.", font=F(9), fg=MUTED).pack(fill="x", pady=(6, 0))
+        WrapLabel(inc.body, text="GRATIS incluye solo: análisis de tu PC, limpieza, monitor, historial y actualizaciones.", font=F(9), fg=MUTED).pack(fill="x", pady=(6, 0))
 
         if lic.owner_secret() or DEMO:
             self.build_generator(root)
@@ -90,7 +89,7 @@ class LicensePage(tk.Frame):
         tk.Label(d, text="Caduca en:", font=F(10), fg=MUTED, bg=PANEL).pack(side="left", padx=(0, 8))
         self.days = 30
         self.dbtn = {}
-        for n, label in ((7, "7 días"), (30, "30 días"), (90, "90 días"), (365, "1 año")):
+        for n, label in ((7, "7 días"), (30, "30 días"), (90, "90 días"), (180, "6 meses"), (365, "1 año")):
             b = NeonButton(d, label, lambda n_=n: self.set_days(n_), color=MUTED, padx=12, pady=5, font=F(9, True))
             b.pack(side="left", padx=3)
             self.dbtn[n] = b

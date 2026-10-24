@@ -23,8 +23,9 @@ CLOCK_FILE = APP_DIR / "reloj.json"
 EPOCH = date(2024, 1, 1)
 VERSION = 1
 
-# Páginas que necesitan clave (cámbialo aquí cuando quieras mover algo entre GRATIS y PRO)
-PRO_PAGES = {"hidden", "tweaks", "gameprof", "fps", "health", "debloat", "booster", "oc"}
+# Páginas GRATIS: todo lo demás necesita clave. (Cámbialo aquí cuando quieras mover algo entre GRATIS y PRO)
+FREE_PAGES = {"home", "analysis", "clean", "monitor", "history", "update", "license"}
+PRO_PAGES = {"optimize", "bench", "games", "booster", "diag", "fps", "gameprof", "hidden", "tweaks", "bios", "oc", "health", "debloat"}
 
 
 # --------------------------------------------------------------------------
@@ -177,4 +178,4 @@ def is_pro():
 
 
 def locked(page_key):
-    return page_key in PRO_PAGES and not is_pro()
+    return page_key not in FREE_PAGES and page_key != "locked" and not is_pro()
