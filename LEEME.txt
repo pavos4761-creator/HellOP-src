@@ -93,3 +93,9 @@ TWEAKS (v1.6.0)
 ---------------
 Página «Tweaks»: elige tú qué aplicar, en tres niveles (Seguros / Medios / Extremos). Todo se deshace desde Historial.
 Prioridad alta permanente: no se ofrece para VALORANT ni Fortnite por su anti-cheat; para ellos usa el Modo juego automático.
+
+
+RENDIMIENTO OCULTO (v1.7.0)
+---------------------------
+Busca en tu PC lo que más FPS cuesta: monitor a menos Hz de los que soporta, RAM en canal único o sin XMP/EXPO, juegos en HDD, PCIe, VBS, plan de energía.
+La frecuencia del monitor solo se cambia en el monitor principal y se puede deshacer desde Historial.

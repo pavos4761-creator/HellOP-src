@@ -180,6 +180,7 @@ def _load_registry():
     try:
         import extreme  # noqa: F401
         import gameprofiles  # noqa: F401
+        import hidden  # noqa: F401
     except Exception:  # noqa: BLE001
         pass
 

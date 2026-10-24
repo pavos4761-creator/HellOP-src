@@ -18,7 +18,7 @@ from widgets import (BG, CYAN, F, FG, GREEN, MUTED, PANEL2, PINK, RED, SIDE, VIO
 
 SECTIONS = [
     ("INICIO", [("home", "⌂", "Inicio"), ("analysis", "◎", "Análisis de PC")]),
-    ("OPTIMIZAR", [("optimize", "⚡", "Optimizar"), ("clean", "✦", "Limpieza"), ("bench", "▲", "Antes y después")]),
+    ("OPTIMIZAR", [("hidden", "⌕", "Rendimiento oculto"), ("optimize", "⚡", "Optimizar"), ("clean", "✦", "Limpieza"), ("bench", "▲", "Antes y después")]),
     ("GAMING", [("games", "▣", "Mis juegos"), ("gameprof", "✧", "Ajustes de juego"), ("booster", "☢", "Modo Extremo"),
                 ("monitor", "≈", "Monitor"), ("diag", "◈", "Diagnóstico")]),
     ("AVANZADO", [("tweaks", "☄", "Tweaks"), ("bios", "◉", "BIOS"), ("oc", "⚙", "Overclock")]),
@@ -145,8 +145,6 @@ class App(tk.Tk):
                 n = NavItem(side, icon, text, lambda k=key: self.show(k))
                 n.pack(fill="x")
                 self.nav[key] = n
-        tk.Label(side, text="Todo se puede deshacer\ndesde Historial.", font=F(9),
-                 fg=MUTED, bg=SIDE, justify="left", anchor="w").pack(side="bottom", fill="x", padx=18, pady=(6, 10))
         live = tk.Frame(side, bg=SIDE)
         live.pack(side="bottom", fill="x", padx=18, pady=(0, 6))
         self.live_lbl = tk.Label(live, text="●  EN VIVO", font=F(8, True), fg=MUTED, bg=SIDE, anchor="w")
@@ -170,6 +168,7 @@ class App(tk.Tk):
         from page_gameprof import GameProfilePage
         from page_games import GamesPage
         from page_health import HealthPage
+        from page_hidden import HiddenPage
         from page_home import HomePage
         from page_monitor import MonitorPage
         from page_oc import OcPage
@@ -192,6 +191,7 @@ class App(tk.Tk):
             "history": HistoryPage(self.content, self),
             "gameprof": GameProfilePage(self.content, self),
             "tweaks": TweaksPage(self.content, self),
+            "hidden": HiddenPage(self.content, self),
             "health": HealthPage(self.content, self),
             "debloat": DebloatPage(self.content, self),
             "update": UpdatePage(self.content, self),
