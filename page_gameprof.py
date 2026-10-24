@@ -37,6 +37,8 @@ class GameProfilePage(tk.Frame):
         self.msg.pack(side="left", padx=14)
         self.list = tk.Frame(root, bg=BG)
         self.list.pack(fill="x")
+        self.miss = WrapLabel(root, text="", font=F(9), fg=MUTED, bg=BG)
+        self.miss.pack(fill="x", pady=(0, 10))
         self._loaded = False
 
     def on_show(self):
@@ -64,6 +66,10 @@ class GameProfilePage(tk.Frame):
 
     def _render(self, res):
         data, guides = res
+        names = [gp.GAMES[g]["name"] for g in gp.GAMES if g not in {d[0] for d in data}]
+        self.miss.config(text=("No encontrados en este PC: " + ", ".join(names) + ". Si lo tienes instalado, ábrelo una vez, entra en "
+                               "Ajustes → Vídeo, cámbialo algo y ciérralo para que cree su archivo; luego pulsa «Buscar mis juegos».")
+                         if names else "")
         for w in self.list.winfo_children():
             w.destroy()
         for gid in guides:

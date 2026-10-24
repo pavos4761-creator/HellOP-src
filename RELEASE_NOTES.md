@@ -1,3 +1,2 @@
-• Ajustes de juego: añadido League of Legends (perfiles «Máximo FPS» y «Equilibrado») y una guía paso a paso para eFootball.
-• VALORANT y Fortnite: ahora también se ajusta la calidad de sombreado (sg.ShadingQuality).
-• Mejoras de detección de la carpeta de League of Legends.
+• VALORANT: ahora se busca su archivo de ajustes en todas las carpetas de configuración (cuenta y WindowsClient) y se elige el que tiene ajustes gráficos.
+• Ajustes de juego: si un juego compatible no se encuentra, la página te dice cuáles faltan y cómo hacer que cree su archivo.

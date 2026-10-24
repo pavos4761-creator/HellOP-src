@@ -151,6 +151,20 @@ def find_guides():
     return found
 
 
+def _valorant_files(local):
+    """GameUserSettings.ini de VALORANT: en la carpeta de tu cuenta y/o en WindowsClient. Primero el que tiene ajustes gráficos."""
+    base = Path(local) / "VALORANT" / "Saved" / "Config"
+    found = [Path(p) for p in glob.glob(str(base / "**" / "GameUserSettings.ini"), recursive=True)]
+
+    def score(p):
+        try:
+            has_sg = "sg.ShadowQuality" in p.read_text("utf-8", "replace")
+            return (has_sg, p.stat().st_mtime)
+        except OSError:
+            return (False, 0)
+    return sorted(found, key=score, reverse=True)
+
+
 def find_files():
     """Devuelve {id_juego: ruta_del_archivo} de los juegos encontrados en este PC."""
     if DEMO:
@@ -162,7 +176,7 @@ def find_files():
     cands = {
         "fortnite": [Path(local) / "FortniteGame" / "Saved" / "Config" / "WindowsClient" / "GameUserSettings.ini"],
         "minecraft": [Path(roam) / ".minecraft" / "options.txt"],
-        "valorant": [Path(p) for p in glob.glob(str(Path(local) / "VALORANT" / "Saved" / "Config" / "*" / "Windows" / "GameUserSettings.ini"))],
+        "valorant": _valorant_files(local),
     }
     for gid, paths in cands.items():
         for p in paths:
