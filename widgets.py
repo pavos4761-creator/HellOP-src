@@ -533,21 +533,29 @@ class PulseLogo(tk.Canvas):
 
 # ---------------------------------------------------------------- logo en el color del tema
 def themed_logo(img, force=False):
-    """En PRO pasa el logo (verde) a morado girando el tono de cada pixel. En GRATIS lo deja igual."""
+    """En PRO pasa el logo (verde) a morado girando el tono de cada pixel. En GRATIS lo deja igual.
+    Si algo falla devuelve el logo original: nunca debe impedir que la app arranque."""
     if not (PRO_THEME or force):
         return img
-    import colorsys
-    out = img.copy()
-    w, h = img.width(), img.height()
-    for y in range(h):
-        row = []
-        for x in range(w):
-            if img.transparency_get(x, y):
-                row.append("{}")
-                continue
-            r, g, b = img.get(x, y)
-            hh, ss, vv = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
-            r2, g2, b2 = colorsys.hsv_to_rgb((hh + 0.33) % 1.0, ss, vv)
-            row.append("#%02x%02x%02x" % (int(r2 * 255), int(g2 * 255), int(b2 * 255)))
-        out.put("{" + " ".join(row) + "}", to=(0, y))
-    return out
+    try:
+        import colorsys
+        out = img.copy()
+        w, h = img.width(), img.height()
+        for y in range(h):
+            x = 0
+            while x < w:
+                if img.transparency_get(x, y):
+                    x += 1
+                    continue
+                run = []
+                x0 = x
+                while x < w and not img.transparency_get(x, y):
+                    r, g, b = img.get(x, y)
+                    hh, ss, vv = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+                    r2, g2, b2 = colorsys.hsv_to_rgb((hh + 0.33) % 1.0, ss, vv)
+                    run.append("#%02x%02x%02x" % (int(r2 * 255), int(g2 * 255), int(b2 * 255)))
+                    x += 1
+                out.put("{" + " ".join(run) + "}", to=(x0, y))
+        return out
+    except Exception:  # noqa: BLE001
+        return img
