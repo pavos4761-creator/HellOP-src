@@ -33,29 +33,32 @@ jobs:
       - name: Compilar el exe
         run: python -m PyInstaller --noconsole --onefile --uac-admin --name HellOP --icon assets/hellop.ico main.py
 
-      - name: Empaquetar codigo y calcular huellas SHA256
+      - name: Calcular huellas SHA256 (el codigo fuente NO se publica)
         shell: pwsh
         run: |
-          Compress-Archive -Path *.py, requirements.txt -DestinationPath dist/HellOP-src.zip -Force
           Copy-Item dist/HellOP.exe dist/PCOptimizer.exe
-          Copy-Item dist/HellOP-src.zip dist/PCOptimizer-src.zip
-          foreach ($f in "HellOP.exe", "HellOP-src.zip", "PCOptimizer.exe", "PCOptimizer-src.zip") {
+          foreach ($f in "HellOP.exe", "PCOptimizer.exe") {
             $h = (Get-FileHash "dist/$f" -Algorithm SHA256).Hash.ToLower()
             "$h  $f" | Out-File -Encoding ascii "dist/$f.sha256"
           }
 
-      - name: Publicar la release
+      - name: Comprobar que existe el permiso para publicar
+        shell: pwsh
+        env:
+          T: ${{ secrets.PUBLIC_REPO_TOKEN }}
+        run: |
+          if (-not $env:T) { Write-Error "Falta el secreto PUBLIC_REPO_TOKEN (Settings > Secrets and variables > Actions)."; exit 1 }
+
+      - name: Publicar la release en el repositorio PUBLICO (solo el exe)
         uses: softprops/action-gh-release@v2
         with:
+          repository: pavos4761-creator/PCOptimizer
+          token: ${{ secrets.PUBLIC_REPO_TOKEN }}
           tag_name: v${{ steps.ver.outputs.v }}
           name: v${{ steps.ver.outputs.v }}
           body_path: RELEASE_NOTES.md
           files: |
             dist/HellOP.exe
             dist/HellOP.exe.sha256
-            dist/HellOP-src.zip
-            dist/HellOP-src.zip.sha256
             dist/PCOptimizer.exe
             dist/PCOptimizer.exe.sha256
-            dist/PCOptimizer-src.zip
-            dist/PCOptimizer-src.zip.sha256
