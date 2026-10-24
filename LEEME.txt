@@ -105,3 +105,10 @@ FPS REALES (v1.8.0)
 -------------------
 Usa PresentMon (Intel, gratis) para medir FPS, 1 % low y tirones. Se descarga una vez y se verifica. Ejecuta HellOP como administrador.
 Para comparar, mide dos veces en la MISMA situación; menos de ~4 % de diferencia es ruido.
+
+
+LICENCIA (v1.9.0)
+-----------------
+Gratis: análisis, optimizar, limpieza, antes y después, mis juegos, monitor, diagnóstico, BIOS, historial y actualizaciones.
+PRO (con clave): Rendimiento oculto, Ajustes de juego, Modo Extremo, FPS reales, Tweaks, Overclock, Salud del PC y Quitar bloatware.
+Creador: copia tu archivo hellop_privada.key a %APPDATA%\HellOP y aparece el generador en la página Licencia. Guárdalo en un lugar seguro y NUNCA lo subas a GitHub ni se lo des a nadie.

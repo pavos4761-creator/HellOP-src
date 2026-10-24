@@ -9,11 +9,12 @@ from util import DEMO, IS_WIN, is_admin, relaunch_as_admin
 import psutil
 
 import anim
+import licencia
 import logo_data
 import updater
 import version
 
-from widgets import (BG, CYAN, F, FG, GREEN, MUTED, PANEL2, PINK, RED, SIDE, VIOLET, GradientBar, MiniBar,
+from widgets import (BG, CYAN, F, FG, GREEN, MUTED, PANEL2, PINK, RED, SIDE, VIOLET, YELLOW, GradientBar, MiniBar,
                      NeonButton, PulseLogo, SparkField, badge, install_mousewheel, mix, round_rect, setup_styles)
 
 SECTIONS = [
@@ -23,7 +24,7 @@ SECTIONS = [
                 ("monitor", "≈", "Monitor"), ("diag", "◈", "Diagnóstico"), ("fps", "▤", "FPS reales")]),
     ("AVANZADO", [("tweaks", "☄", "Tweaks"), ("bios", "◉", "BIOS"), ("oc", "⚙", "Overclock")]),
     ("SISTEMA", [("health", "♥", "Salud del PC"), ("debloat", "✖", "Quitar bloatware"),
-                ("history", "↺", "Historial / Deshacer"), ("update", "⟳", "Actualizaciones")]),
+                ("history", "↺", "Historial / Deshacer"), ("update", "⟳", "Actualizaciones"), ("license", "★", "Licencia")]),
 ]
 PAGES = [item for _title, items in SECTIONS for item in items]
 
@@ -39,6 +40,7 @@ class NavItem(tk.Canvas):
         self.hov = self.act = 0.0
         self.active = self._hover_goal = False
         self.dot, self.pulse, self._job = None, 0.0, None
+        self.pro = False
         self.bind("<Configure>", lambda e: self._draw())
         self.bind("<Enter>", lambda e: self._go(hover=True))
         self.bind("<Leave>", lambda e: self._go(hover=False))
@@ -79,6 +81,10 @@ class NavItem(tk.Canvas):
         self.active = on
         self._go()
 
+    def set_pro(self, on):
+        self.pro = on
+        self._draw()
+
     def set_dot(self, color):
         self.dot = color
         self._draw()
@@ -102,6 +108,8 @@ class NavItem(tk.Canvas):
             col = mix(mix(MUTED, FG, self.hov), CYAN, self.act)
             self.create_text(26, self.H / 2, text=self.icon, fill=col, font=F(11, True), anchor="center")
             self.create_text(44, self.H / 2, text=self.text, fill=col, font=F(10, True), anchor="w")
+            if self.pro:
+                self.create_text(w - 16, self.H / 2, text="PRO", fill=mix(SIDE, YELLOW, 0.8), font=F(7, True), anchor="e")
             if self.dot:
                 a = 0.45 + 0.55 * (0.5 + 0.5 * math.sin(self.pulse))
                 r = 4 + 1.5 * (0.5 + 0.5 * math.sin(self.pulse))
@@ -116,7 +124,7 @@ class App(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title(f"HellOP v{version.__version__}" + ("  ·  MODO DEMO" if DEMO else ""))
-        self.geometry("1140x800")
+        self.geometry("1140x840")
         self.minsize(980, 640)
         self.configure(bg=BG)
         setup_styles(self)
@@ -168,6 +176,8 @@ class App(tk.Tk):
         from page_gameprof import GameProfilePage
         from page_fps import FpsPage
         from page_games import GamesPage
+        from page_license import LicensePage
+        from page_locked import LockedPage
         from page_health import HealthPage
         from page_hidden import HiddenPage
         from page_home import HomePage
@@ -197,7 +207,10 @@ class App(tk.Tk):
             "health": HealthPage(self.content, self),
             "debloat": DebloatPage(self.content, self),
             "update": UpdatePage(self.content, self),
+            "license": LicensePage(self.content, self),
+            "locked": LockedPage(self.content, self),
         }
+        self.refresh_license()
         self.show("home")
         self._anim_phase = 0.0
         self.after(80, self._anim_tick)
@@ -256,6 +269,20 @@ class App(tk.Tk):
             NeonButton(right, "Reabrir como administrador", self.restart_admin, color=RED, padx=10, pady=4,
                        font=F(9, True)).pack(side="left", padx=6)
         GradientBar(self, height=3).pack(fill="x")
+
+    def refresh_license(self):
+        """Actualiza la etiqueta de licencia de la cabecera y las marcas PRO del menú."""
+        st = licencia.status()
+        txt = {"owner": "CREADOR", "pro": "PRO" + (f" · {st['days']} d" if st["days"] is not None else ""), "free": "GRATIS",
+               "expired": "CLAVE CADUCADA", "invalid": "CLAVE NO VÁLIDA"}[st["level"]]
+        col = {"owner": PINK, "pro": GREEN, "free": MUTED, "expired": YELLOW, "invalid": RED}[st["level"]]
+        if getattr(self, "lic_badge", None):
+            self.lic_badge.destroy()
+        self.lic_badge = badge(self.hdr_right, txt, col)
+        self.lic_badge.pack(side="left", padx=6, before=self.hdr_right.winfo_children()[0])
+        self.lic_badge.bind("<Button-1>", lambda e: self.show("license"))
+        for k, n in self.nav.items():
+            n.set_pro(licencia.locked(k))
 
     def mark_update_available(self, latest):
         """Muestra en la cabecera un botón verde cuando hay una versión nueva."""
@@ -330,7 +357,12 @@ class App(tk.Tk):
         if getattr(self, "_slide_cancel", None):
             self._slide_cancel()
         self.current = key
-        page = self.pages[key]
+        names = {k: t for _s, items in SECTIONS for k, _i, t in items}
+        if licencia.locked(key):                    # función PRO sin clave: se enseña la pantalla de bloqueo
+            self.pages["locked"].set(names.get(key, key))
+            page = self.pages["locked"]
+        else:
+            page = self.pages[key]
         if first or not anim.ENABLED:
             page.place(x=0, y=0, relwidth=1, relheight=1)
         else:                                     # entra deslizando suavemente desde la derecha
