@@ -6,6 +6,7 @@ from tkinter import messagebox, ttk
 
 import cleanup
 from util import DEMO, fmt_bytes, is_admin
+from widgets import PANEL2
 from widgets import (BG, CYAN, F, FG, GREEN, MUTED, PANEL, PINK, RED, VIOLET, YELLOW, Card, NeonButton,
                      ScrollFrame, WrapLabel, badge, checkbox, page_title)
 
@@ -204,17 +205,17 @@ class CleanPage(tk.Frame):
         self.dup_msg.config(text=f"{len(groups)} grupos de duplicados · {fmt_bytes(waste)} recuperables. "
                                  "Marcado = irá a la Papelera (se conserva siempre el más antiguo).", fg=YELLOW)
         for gi, g in enumerate(groups[:60]):
-            f = tk.Frame(self.dup_box, bg="#10201a")
+            f = tk.Frame(self.dup_box, bg=PANEL2)
             f.pack(fill="x", pady=4)
-            tk.Label(f, text=f"{fmt_bytes(g['size'])} × {len(g['files'])} copias", font=F(10, True), fg=PINK, bg="#10201a",
+            tk.Label(f, text=f"{fmt_bytes(g['size'])} × {len(g['files'])} copias", font=F(10, True), fg=PINK, bg=PANEL2,
                      anchor="w").pack(fill="x", padx=8, pady=(6, 2))
             for fi, (path, mtime) in enumerate(g["files"]):
                 v = tk.BooleanVar(value=fi > 0)
                 self.dup_vars[(gi, fi)] = v
                 label = f"{path}   ·   {time.strftime('%d/%m/%Y', time.localtime(mtime))}" + ("   ← se conserva" if fi == 0 else "")
-                cb = checkbox(f, label, v, bg="#10201a", font=("Consolas", 9))
+                cb = checkbox(f, label, v, bg=PANEL2, font=("Consolas", 9))
                 cb.pack(fill="x", padx=8)
-            tk.Frame(f, bg="#10201a", height=4).pack()
+            tk.Frame(f, bg=PANEL2, height=4).pack()
         bar = tk.Frame(self.dup_box, bg=PANEL)
         bar.pack(fill="x", pady=(8, 0))
         NeonButton(bar, "Enviar marcados a la Papelera", self.trash_dups, color=PINK, filled=True, padx=16, pady=8).pack(side="left")

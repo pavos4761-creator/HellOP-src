@@ -6,6 +6,7 @@ from tkinter import messagebox, ttk
 import updater
 import version
 from util import DEMO
+from widgets import BORDER
 from widgets import (BG, CYAN, F, FG, GREEN, MUTED, PANEL, PANEL2, PINK, RED, VIOLET, YELLOW, Card, NeonButton,
                      ScrollFrame, WrapLabel, page_title)
 
@@ -59,7 +60,7 @@ class UpdatePage(tk.Frame):
         line.pack(fill="x")
         self.var_repo = tk.StringVar(value=updater.get_repo())
         e = tk.Entry(line, textvariable=self.var_repo, font=("Consolas", 11), bg=PANEL2, fg=FG, insertbackground=FG, relief="flat",
-                     highlightthickness=1, highlightbackground="#1f4a32", highlightcolor=VIOLET, width=34)
+                     highlightthickness=1, highlightbackground=BORDER, highlightcolor=VIOLET, width=34)
         e.pack(side="left", ipady=6, padx=(0, 10))
         NeonButton(line, "Guardar", self.save_repo, color=VIOLET, filled=True, padx=16, pady=7, font=F(10, True)).pack(side="left")
         self.repo_msg = tk.Label(r.body, text="", font=F(9), fg=MUTED, bg=PANEL, anchor="w")

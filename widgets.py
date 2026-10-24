@@ -1,24 +1,38 @@
 """Piezas visuales con estilo oscuro «gamer»: tarjetas redondeadas, botones con brillo,
 insignias, medidores circulares, degradados."""
+import os
 import sys
 import tkinter as tk
 import tkinter.font as tkfont
 from tkinter import ttk
 
 # ---------------------------------------------------------------- paleta
-BG = "#040a07"
-SIDE = "#07120c"
-PANEL = "#0c1a12"
-PANEL2 = "#132a1d"
-BORDER = "#1f4a32"
-FG = "#eafff2"
-MUTED = "#8fb8a0"
-CYAN = "#19e68c"
-PINK = "#b6ff3c"
-GREEN = "#5bff9a"
+def _es_pro():
+    """¿Con clave PRO (o creador)? Entonces la app se ve en morado. HELLOP_THEME=pro|green fuerza uno (pruebas)."""
+    forzado = os.environ.get("HELLOP_THEME", "").strip().lower()
+    if forzado in ("pro", "green"):
+        return forzado == "pro"
+    try:
+        import licencia
+        return licencia.status()["level"] in ("owner", "pro")
+    except Exception:  # noqa: BLE001
+        return False
+
+
+PRO_THEME = _es_pro()
+
+if PRO_THEME:      # PRO: morado
+    BG, SIDE, PANEL, PANEL2, BORDER = "#08040f", "#0e0818", "#150d24", "#1f1336", "#43296f"
+    FG, MUTED = "#f3eaff", "#a894c8"
+    CYAN, PINK, VIOLET = "#a855f7", "#e879f9", "#7c5cff"
+    GREEN = "#5bff9a"            # el verde queda solo para «correcto / ok»
+else:              # GRATIS: verde
+    BG, SIDE, PANEL, PANEL2, BORDER = "#040a07", "#07120c", "#0c1a12", "#132a1d", "#1f4a32"
+    FG, MUTED = "#eafff2", "#8fb8a0"
+    CYAN, PINK, VIOLET = "#19e68c", "#b6ff3c", "#00c2a8"
+    GREEN = "#5bff9a"
 YELLOW = "#ffd23f"
 RED = "#ff4d5e"
-VIOLET = "#00c2a8"
 
 FONT = "Segoe UI"
 MONO = "Consolas"
@@ -515,3 +529,25 @@ class PulseLogo(tk.Canvas):
             self._job = self.after(50, self._tick)
         except tk.TclError:
             pass
+
+
+# ---------------------------------------------------------------- logo en el color del tema
+def themed_logo(img, force=False):
+    """En PRO pasa el logo (verde) a morado girando el tono de cada pixel. En GRATIS lo deja igual."""
+    if not (PRO_THEME or force):
+        return img
+    import colorsys
+    out = img.copy()
+    w, h = img.width(), img.height()
+    for y in range(h):
+        row = []
+        for x in range(w):
+            if img.transparency_get(x, y):
+                row.append("{}")
+                continue
+            r, g, b = img.get(x, y)
+            hh, ss, vv = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+            r2, g2, b2 = colorsys.hsv_to_rgb((hh + 0.33) % 1.0, ss, vv)
+            row.append("#%02x%02x%02x" % (int(r2 * 255), int(g2 * 255), int(b2 * 255)))
+        out.put("{" + " ".join(row) + "}", to=(0, y))
+    return out

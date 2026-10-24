@@ -8,6 +8,7 @@ import logo_data
 import updater
 import version
 from util import DEMO, is_admin
+from widgets import themed_logo
 from widgets import (BG, CYAN, F, FG, GREEN, MUTED, PANEL, PINK, RED, VIOLET, YELLOW, Card, NeonButton, ScrollFrame,
                      SparkField, WrapLabel, mix)
 
@@ -37,7 +38,7 @@ class HomePage(tk.Frame):
         hero.pack(fill="x", pady=(0, 14))
         row = tk.Frame(hero.body, bg=PANEL)
         row.pack(fill="x")
-        self._logo = tk.PhotoImage(data=logo_data.LOGO_128)
+        self._logo = themed_logo(tk.PhotoImage(data=logo_data.LOGO_128))
         glow = SparkField(row, logo=self._logo, bg=PANEL, n=22)
         glow.configure(width=200, height=150)
         glow.pack(side="left")

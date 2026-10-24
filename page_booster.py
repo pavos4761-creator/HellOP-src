@@ -3,6 +3,7 @@ import tkinter as tk
 
 import booster
 from util import DEMO, fmt_bytes, is_admin
+from widgets import BORDER, mix
 from widgets import (BG, CYAN, F, FG, GREEN, MUTED, PANEL, PANEL2, PINK, RED, VIOLET, YELLOW, Card, NeonButton,
                      ScrollFrame, WrapLabel, checkbox, page_title)
 
@@ -45,8 +46,8 @@ class BoosterPage(tk.Frame):
         c1.pack(fill="x", pady=(0, 12))
         WrapLabel(c1.body, fg=MUTED, font=F(9),
                   text="Abre tu juego primero y pulsa «Actualizar». Si no aparece, escríbeme su nombre de proceso en el Administrador de tareas.").pack(fill="x", pady=(0, 6))
-        self.lb = tk.Listbox(c1.body, height=7, bg=PANEL2, fg=FG, selectbackground="#1d6b45", selectforeground="#ffffff",
-                             highlightthickness=1, highlightbackground="#1f4a32", highlightcolor=CYAN, bd=0,
+        self.lb = tk.Listbox(c1.body, height=7, bg=PANEL2, fg=FG, selectbackground=mix(BORDER, CYAN, 0.45), selectforeground="#ffffff",
+                             highlightthickness=1, highlightbackground=BORDER, highlightcolor=CYAN, bd=0,
                              font=("Consolas", 10), activestyle="none", exportselection=False)
         self.lb.pack(fill="x")
         row = tk.Frame(c1.body, bg=PANEL)
@@ -82,8 +83,8 @@ class BoosterPage(tk.Frame):
             v.pack(anchor="w", padx=10, pady=(0, 8))
             self.tiles[key] = v
 
-        self.log = tk.Text(c3.body, height=8, bg="#050d09", fg=FG, font=("Consolas", 9), bd=0, highlightthickness=1,
-                           highlightbackground="#1f4a32", wrap="word", state="disabled")
+        self.log = tk.Text(c3.body, height=8, bg=BG, fg=FG, font=("Consolas", 9), bd=0, highlightthickness=1,
+                           highlightbackground=BORDER, wrap="word", state="disabled")
         self.log.pack(fill="x", pady=(12, 0))
         self._log("Listo. Elige tu juego y pulsa ACTIVAR.")
 

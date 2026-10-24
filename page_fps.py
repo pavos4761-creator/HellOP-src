@@ -5,6 +5,7 @@ from tkinter import messagebox, ttk
 
 import fps
 from util import DEMO
+from widgets import BORDER
 from widgets import (BG, CYAN, F, FG, GREEN, MUTED, PANEL, PANEL2, PINK, RED, YELLOW, Card, NeonButton, ScrollFrame, WrapLabel,
                      kv_rows, page_title)
 
@@ -44,7 +45,7 @@ class FpsPage(tk.Frame):
         row.pack(fill="x")
         self.var = tk.StringVar(value=fps.KNOWN_GAMES[0])
         tk.Entry(row, textvariable=self.var, font=("Consolas", 11), bg=PANEL2, fg=FG, insertbackground=FG, relief="flat",
-                 highlightthickness=1, highlightbackground="#1f4a32", highlightcolor=CYAN, width=38).pack(side="left", ipady=6, padx=(0, 10))
+                 highlightthickness=1, highlightbackground=BORDER, highlightcolor=CYAN, width=38).pack(side="left", ipady=6, padx=(0, 10))
         NeonButton(row, "↻  Juegos abiertos", self.refresh_candidates, color=CYAN, padx=14, pady=6, font=F(10, True)).pack(side="left")
         self.chips = tk.Frame(sel.body, bg=PANEL)
         self.chips.pack(fill="x", pady=(8, 0))

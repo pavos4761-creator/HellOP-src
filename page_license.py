@@ -4,16 +4,17 @@ import tkinter as tk
 
 import licencia as lic
 from util import DEMO
+from widgets import BORDER
 from widgets import (BG, CYAN, F, FG, GREEN, MUTED, PANEL, PANEL2, PINK, RED, YELLOW, Card, NeonButton, ScrollFrame, WrapLabel,
                      badge, page_title)
 
-LEVEL_COL = {"owner": PINK, "pro": GREEN, "free": MUTED, "expired": YELLOW, "invalid": RED}
+LEVEL_COL = {"owner": PINK, "pro": CYAN, "free": MUTED, "expired": YELLOW, "invalid": RED}
 LEVEL_TXT = {"owner": "CREADOR", "pro": "PRO", "free": "GRATIS", "expired": "CADUCADA", "invalid": "NO VÁLIDA"}
 
 
 def _entry(parent, var, width=60, readonly=False):
     return tk.Entry(parent, textvariable=var, font=("Consolas", 10), bg=PANEL2, fg=FG, insertbackground=FG, relief="flat",
-                    highlightthickness=1, highlightbackground="#1f4a32", highlightcolor=CYAN, width=width,
+                    highlightthickness=1, highlightbackground=BORDER, highlightcolor=CYAN, width=width,
                     readonlybackground=PANEL2, state="readonly" if readonly else "normal")
 
 
@@ -142,3 +143,4 @@ class LicensePage(tk.Frame):
         if ok:
             self.app.refresh_license()
             self.after(900, self.build)
+            self.app.pro_welcome()

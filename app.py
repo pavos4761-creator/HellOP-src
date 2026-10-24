@@ -14,6 +14,7 @@ import logo_data
 import updater
 import version
 
+from widgets import BORDER, themed_logo
 from widgets import (BG, CYAN, F, FG, GREEN, MUTED, PANEL2, PINK, RED, SIDE, VIOLET, YELLOW, GradientBar, MiniBar,
                      NeonButton, PulseLogo, SparkField, badge, install_mousewheel, mix, round_rect, setup_styles)
 
@@ -139,7 +140,7 @@ class App(tk.Tk):
         side = tk.Frame(body, bg=SIDE, width=230)
         side.pack(side="left", fill="y")
         side.pack_propagate(False)
-        tk.Frame(body, bg="#16301f", width=1).pack(side="left", fill="y")
+        tk.Frame(body, bg=BORDER, width=1).pack(side="left", fill="y")
         self.content = tk.Frame(body, bg=BG)
         self.content.pack(side="left", fill="both", expand=True)
 
@@ -248,8 +249,8 @@ class App(tk.Tk):
     def _build_header(self):
         h = tk.Frame(self, bg=SIDE)
         h.pack(fill="x")
-        self._logo = tk.PhotoImage(data=logo_data.LOGO_64)
-        self._logo_big = tk.PhotoImage(data=logo_data.LOGO_128)
+        self._logo = themed_logo(tk.PhotoImage(data=logo_data.LOGO_64))
+        self._logo_big = themed_logo(tk.PhotoImage(data=logo_data.LOGO_128))
         self._set_window_icon()
         PulseLogo(h, self._logo, size=74, bg=SIDE).pack(side="left", padx=(14, 6), pady=2)
         tk.Label(h, text="Hell", font=F(20, True), fg=FG, bg=SIDE).pack(side="left")
@@ -275,7 +276,7 @@ class App(tk.Tk):
         st = licencia.status()
         txt = {"owner": "CREADOR", "pro": "PRO" + (f" · {st['days']} d" if st["days"] is not None else ""), "free": "GRATIS",
                "expired": "CLAVE CADUCADA", "invalid": "CLAVE NO VÁLIDA"}[st["level"]]
-        col = {"owner": PINK, "pro": GREEN, "free": MUTED, "expired": YELLOW, "invalid": RED}[st["level"]]
+        col = {"owner": PINK, "pro": CYAN, "free": MUTED, "expired": YELLOW, "invalid": RED}[st["level"]]
         if getattr(self, "lic_badge", None):
             self.lic_badge.destroy()
         self.lic_badge = badge(self.hdr_right, txt, col)
@@ -340,6 +341,34 @@ class App(tk.Tk):
         except Exception:  # noqa: BLE001
             pass
         self.destroy()
+
+    def pro_welcome(self):
+        """Animación «Bienvenido a Pro». Si la app estaba en verde, se reabre sola en morado al terminar."""
+        from bienvenida import Bienvenida
+        from widgets import PRO_THEME
+        logo = themed_logo(tk.PhotoImage(data=logo_data.LOGO_128), force=True)
+        self._pro_logo = logo
+
+        def fin():
+            if PRO_THEME:
+                ov.destroy()
+                return
+            if DEMO or not IS_WIN:
+                ov.destroy()
+                self.status("PRO activado. Cierra y abre HellOP para verlo en morado.")
+                return
+            try:
+                self.pages["games"].shutdown()
+                self.pages["monitor"].shutdown()
+                self.pages["booster"].shutdown()
+            except Exception:  # noqa: BLE001
+                pass
+            if relaunch_as_admin():
+                self.destroy()
+                sys.exit(0)
+            ov.destroy()
+            self.status("PRO activado. Cierra y abre HellOP para verlo en morado.")
+        ov = Bienvenida(self, logo, fin, bg0=BG)
 
     def restart_admin(self):
         if relaunch_as_admin():
