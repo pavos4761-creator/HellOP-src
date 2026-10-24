@@ -99,3 +99,9 @@ RENDIMIENTO OCULTO (v1.7.0)
 ---------------------------
 Busca en tu PC lo que más FPS cuesta: monitor a menos Hz de los que soporta, RAM en canal único o sin XMP/EXPO, juegos en HDD, PCIe, VBS, plan de energía.
 La frecuencia del monitor solo se cambia en el monitor principal y se puede deshacer desde Historial.
+
+
+FPS REALES (v1.8.0)
+-------------------
+Usa PresentMon (Intel, gratis) para medir FPS, 1 % low y tirones. Se descarga una vez y se verifica. Ejecuta HellOP como administrador.
+Para comparar, mide dos veces en la MISMA situación; menos de ~4 % de diferencia es ruido.

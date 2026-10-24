@@ -20,7 +20,7 @@ SECTIONS = [
     ("INICIO", [("home", "⌂", "Inicio"), ("analysis", "◎", "Análisis de PC")]),
     ("OPTIMIZAR", [("hidden", "⌕", "Rendimiento oculto"), ("optimize", "⚡", "Optimizar"), ("clean", "✦", "Limpieza"), ("bench", "▲", "Antes y después")]),
     ("GAMING", [("games", "▣", "Mis juegos"), ("gameprof", "✧", "Ajustes de juego"), ("booster", "☢", "Modo Extremo"),
-                ("monitor", "≈", "Monitor"), ("diag", "◈", "Diagnóstico")]),
+                ("monitor", "≈", "Monitor"), ("diag", "◈", "Diagnóstico"), ("fps", "▤", "FPS reales")]),
     ("AVANZADO", [("tweaks", "☄", "Tweaks"), ("bios", "◉", "BIOS"), ("oc", "⚙", "Overclock")]),
     ("SISTEMA", [("health", "♥", "Salud del PC"), ("debloat", "✖", "Quitar bloatware"),
                 ("history", "↺", "Historial / Deshacer"), ("update", "⟳", "Actualizaciones")]),
@@ -166,6 +166,7 @@ class App(tk.Tk):
         from page_diag import DiagPage
         from page_debloat import DebloatPage
         from page_gameprof import GameProfilePage
+        from page_fps import FpsPage
         from page_games import GamesPage
         from page_health import HealthPage
         from page_hidden import HiddenPage
@@ -191,6 +192,7 @@ class App(tk.Tk):
             "history": HistoryPage(self.content, self),
             "gameprof": GameProfilePage(self.content, self),
             "tweaks": TweaksPage(self.content, self),
+            "fps": FpsPage(self.content, self),
             "hidden": HiddenPage(self.content, self),
             "health": HealthPage(self.content, self),
             "debloat": DebloatPage(self.content, self),

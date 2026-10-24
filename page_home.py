@@ -16,6 +16,7 @@ TILES = [
     ("analysis", "◎", "Analizar mi PC", "Procesador, placa, RAM, gráfica y discos, con consejos para tu equipo.", CYAN),
     ("optimize", "⚡", "Optimizar", "Gaming, Trabajo, Extremo o Limpieza profunda. Tú decides cada ajuste.", PINK),
     ("games", "▣", "Mis juegos", "Biblioteca y modo automático: se optimiza solo al abrir tu juego.", GREEN),
+    ("fps", "▤", "FPS reales", "Mide FPS, 1 % low y tirones de tu juego y comprueba con números si un cambio ayudó.", CYAN),
     ("diag", "◈", "Diagnóstico", "Mide mientras juegas y te dice qué te frena y qué causa los tirones.", VIOLET),
     ("gameprof", "✧", "Ajustes de juego", "Baja sombras y efectos en Fortnite, VALORANT, LoL, Minecraft y CS2 con copia y deshacer.", PINK),
     ("tweaks", "☄", "Tweaks", "Ajustes de latencia y rendimiento en tres niveles de riesgo: tú eliges cuáles.", YELLOW),
