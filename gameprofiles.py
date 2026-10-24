@@ -59,10 +59,10 @@ GAMES = {
         "name": "Minecraft (Java)", "sep": ":",
         "presets": {
             "max": {"renderDistance": 8, "graphics": "fast", "fancyGraphics": False, "particles": 2,
-                    "entityShadows": False, "enableVsync": False, "maxFps": 260, "ao": False,
+                    "entityShadows": False, "enableVsync": False, "maxFps": 255, "ao": False,
                     "biomeBlendRadius": 0, "clouds": "off"},
             "balanced": {"renderDistance": 12, "graphics": "fancy", "fancyGraphics": True, "particles": 1,
-                         "entityShadows": True, "enableVsync": False, "maxFps": 260, "ao": True,
+                         "entityShadows": True, "enableVsync": False, "maxFps": 255, "ao": True,
                          "biomeBlendRadius": 2, "clouds": "fast"},
         },
         "note": "Cierra Minecraft antes de aplicar. Mods como Sodium suben mucho más los FPS.",

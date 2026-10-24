@@ -87,3 +87,9 @@ AJUSTES DE JUEGO, SALUD DEL PC Y BLOATWARE (v1.5.0)
 Ajustes de juego: cierra el juego antes de aplicar un perfil; «Restaurar» devuelve el archivo como estaba.
 Salud del PC: la temperatura del procesador solo aparece si Windows la da; si no, usa HWiNFO.
 Quitar bloatware: las apps de Windows se pueden reinstalar desde la Microsoft Store.
+
+
+TWEAKS (v1.6.0)
+---------------
+Página «Tweaks»: elige tú qué aplicar, en tres niveles (Seguros / Medios / Extremos). Todo se deshace desde Historial.
+Prioridad alta permanente: no se ofrece para VALORANT ni Fortnite por su anti-cheat; para ellos usa el Modo juego automático.

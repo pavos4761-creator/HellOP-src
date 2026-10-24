@@ -21,7 +21,7 @@ SECTIONS = [
     ("OPTIMIZAR", [("optimize", "⚡", "Optimizar"), ("clean", "✦", "Limpieza"), ("bench", "▲", "Antes y después")]),
     ("GAMING", [("games", "▣", "Mis juegos"), ("gameprof", "✧", "Ajustes de juego"), ("booster", "☢", "Modo Extremo"),
                 ("monitor", "≈", "Monitor"), ("diag", "◈", "Diagnóstico")]),
-    ("AVANZADO", [("bios", "◉", "BIOS"), ("oc", "⚙", "Overclock")]),
+    ("AVANZADO", [("tweaks", "☄", "Tweaks"), ("bios", "◉", "BIOS"), ("oc", "⚙", "Overclock")]),
     ("SISTEMA", [("health", "♥", "Salud del PC"), ("debloat", "✖", "Quitar bloatware"),
                 ("history", "↺", "Historial / Deshacer"), ("update", "⟳", "Actualizaciones")]),
 ]
@@ -31,7 +31,7 @@ PAGES = [item for _title, items in SECTIONS for item in items]
 class NavItem(tk.Canvas):
     """Entrada del menú: el fondo y el color se funden suavemente, la barra lateral «crece» al activarse
     y puede llevar un punto que late (p. ej. modo automático activo)."""
-    H = 25
+    H = 23
 
     def __init__(self, parent, icon, text, command):
         super().__init__(parent, bg=SIDE, height=self.H, highlightthickness=0, bd=0, cursor="hand2")
@@ -175,6 +175,7 @@ class App(tk.Tk):
         from page_oc import OcPage
         from page_history import HistoryPage
         from page_optimize import OptimizePage
+        from page_tweaks import TweaksPage
         from page_update import UpdatePage
         self.pages = {
             "home": HomePage(self.content, self),
@@ -190,6 +191,7 @@ class App(tk.Tk):
             "bench": BenchPage(self.content, self),
             "history": HistoryPage(self.content, self),
             "gameprof": GameProfilePage(self.content, self),
+            "tweaks": TweaksPage(self.content, self),
             "health": HealthPage(self.content, self),
             "debloat": DebloatPage(self.content, self),
             "update": UpdatePage(self.content, self),
