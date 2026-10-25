@@ -1,1 +1,2 @@
-• Modo creador: botón para ver la animación «Bienvenido a Pro» sin activar una clave (Licencia > generador).
+• La barra de título de Windows 11 toma el color del tema (verde gratis, morado PRO) y pulsa suavemente.
+• El icono de la ventana y de la barra de tareas es morado para los PRO.

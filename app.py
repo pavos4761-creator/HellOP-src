@@ -14,7 +14,7 @@ import logo_data
 import updater
 import version
 
-from widgets import BORDER, themed_logo
+from widgets import BORDER, PRO_THEME, themed_logo
 from widgets import (BG, CYAN, F, FG, GREEN, MUTED, PANEL2, PINK, RED, SIDE, VIOLET, YELLOW, GradientBar, MiniBar,
                      NeonButton, PulseLogo, SparkField, badge, install_mousewheel, mix, round_rect, setup_styles)
 
@@ -124,7 +124,7 @@ class NavItem(tk.Canvas):
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title(f"HellOP v{version.__version__}" + ("  ·  MODO DEMO" if DEMO else ""))
+        self.title(f"HellOP v{version.__version__}" + ("  ·  PRO" if PRO_THEME else "") + ("  ·  MODO DEMO" if DEMO else ""))
         self.geometry("1140x840")
         self.minsize(980, 640)
         self.configure(bg=BG)
@@ -224,6 +224,7 @@ class App(tk.Tk):
         self.after(4000, self._auto_check)
         self.after(1500, self.pages["games"].boot)
         self.after(600, self._admin_prompt)
+        self.after(300, self._titlebar_start)
 
     def _set_window_icon(self):
         """Icono de la ventana y de la barra de tareas (en vez del plumín por defecto de Tk)."""
@@ -240,10 +241,64 @@ class App(tk.Tk):
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("HellOP.App")
             APP_DIR.mkdir(parents=True, exist_ok=True)
             ico = APP_DIR / "hellop.ico"
-            ico.write_bytes(base64.b64decode(logo_data.ICO))
+            ico.write_bytes(self._pro_ico() if PRO_THEME else base64.b64decode(logo_data.ICO))
             self.iconbitmap(default=str(ico))
         except Exception:  # noqa: BLE001
             pass
+
+    def _pro_ico(self):
+        """Icono .ico morado (PNG dentro del contenedor ICO) para la ventana y la barra de tareas de los PRO."""
+        import struct
+        import tempfile
+        from pathlib import Path
+        imgs = []
+        for data in (logo_data.LOGO_64, logo_data.LOGO_128):
+            im = themed_logo(tk.PhotoImage(data=data), force=True)
+            f = Path(tempfile.gettempdir()) / "hellop_pro_icon.png"
+            im.write(str(f), format="png")
+            imgs.append((im.width(), f.read_bytes()))
+            f.unlink(missing_ok=True)
+        out = struct.pack("<HHH", 0, 1, len(imgs))
+        off = 6 + 16 * len(imgs)
+        body = b""
+        for w, png in imgs:
+            out += struct.pack("<BBBBHHII", w % 256, w % 256, 0, 0, 1, 32, len(png), off + len(body))
+            body += png
+        return out + body
+
+    # ---- barra de título de Windows: del color del tema, con un pulso suave -----------
+    def _titlebar_start(self):
+        """Windows 11: pinta la barra de título (y su borde) con el color del tema y la hace «respirar».
+        En Windows 10 o anteriores no hace nada (la barra queda como siempre)."""
+        if not IS_WIN or DEMO:
+            return
+        try:
+            import ctypes
+            from ctypes import byref, c_int
+            hwnd = ctypes.windll.user32.GetParent(self.winfo_id()) or self.winfo_id()
+            dwm = ctypes.windll.dwmapi.DwmSetWindowAttribute
+
+            def rgb(c):                                               # COLORREF = 0x00BBGGRR
+                r, g, b = int(c[1:3], 16), int(c[3:5], 16), int(c[5:7], 16)
+                return (b << 16) | (g << 8) | r
+            dwm(hwnd, 20, byref(c_int(1)), 4)                         # botones claros sobre fondo oscuro
+            dwm(hwnd, 36, byref(c_int(rgb(FG))), 4)                   # texto del título
+        except Exception:  # noqa: BLE001
+            return
+        import math
+        import time as _t
+        t0 = _t.time()
+
+        def tick():
+            try:
+                k = 0.5 + 0.5 * math.sin((_t.time() - t0) * 1.6)
+                col = rgb(mix(SIDE, CYAN, 0.10 + 0.28 * k))
+                dwm(hwnd, 35, byref(c_int(col)), 4)                   # color de la barra
+                dwm(hwnd, 34, byref(c_int(rgb(mix(BORDER, CYAN, 0.2 + 0.6 * k)))), 4)   # borde
+                self.after(70, tick)
+            except Exception:  # noqa: BLE001
+                pass
+        tick()
 
     # ---- cabecera -------------------------------------------------------
     def _build_header(self):
