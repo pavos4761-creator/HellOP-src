@@ -77,7 +77,10 @@ def calcular(progress=lambda s: None):
     for f in found:
         lost = PESO[f["key"]] * (1 - FACTOR[f["sev"]]) / total * 100
         if lost >= 1:
-            perdidos.append((f["title"], round(lost), f.get("fix")))
+            fix = f.get("fix")
+            if fix and fix[0] == "action":
+                fix = ("goto", "tweaks", "Ir a Tweaks")        # el arreglo con un clic vive ahora en Tweaks
+            perdidos.append((f["title"], round(lost), fix))
     perdidos.sort(key=lambda x: -x[1])
     ctx = {"score": score, "found": found, "startup": n_start}
     logros, nuevos = evaluar(ctx)

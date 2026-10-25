@@ -83,12 +83,16 @@ class RefreshRateAction(Action):
     id, group = "refresh_rate", "gaming"
     reversible = True
     effect = "real"
+    risk, reboot, needs_admin, profiles = "bajo", False, False, ("gaming",)
 
     def __init__(self, current, best):
         self.cur, self.best = current, best
         self.title = f"Poner el monitor a {best} Hz (ahora va a {current} Hz)"
         self.desc = ("Windows deja a veces el monitor a una frecuencia menor de la que soporta. Con más Hz ves el juego más fluido "
                      "y el ratón responde antes. Si la pantalla se queda en negro, espera 15 s: Windows vuelve solo.")
+
+    def check(self):
+        return f"Ahora {self.cur} Hz  →  {self.best} Hz" if self.best - self.cur >= 5 else None
 
     def apply(self):
         if DEMO:

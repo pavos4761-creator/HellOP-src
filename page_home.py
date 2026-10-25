@@ -13,7 +13,6 @@ from widgets import (BG, CYAN, F, FG, GREEN, MUTED, PANEL, PINK, RED, VIOLET, YE
                      SparkField, WrapLabel, mix)
 
 TILES = [
-    ("hidden", "⌕", "Rendimiento oculto", "Encuentra lo que más FPS te cuesta: monitor a menos Hz, RAM, HDD, VBS…", PINK),
     ("analysis", "◎", "Analizar mi PC", "Procesador, placa, RAM, gráfica y discos, con consejos para tu equipo.", CYAN),
     ("optimize", "⚡", "Optimizar", "Gaming, Trabajo, Extremo o Limpieza profunda. Tú decides cada ajuste.", PINK),
     ("games", "▣", "Mis juegos", "Biblioteca y modo automático: se optimiza solo al abrir tu juego.", GREEN),

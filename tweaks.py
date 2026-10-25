@@ -46,6 +46,15 @@ def priority_actions():
     return acts
 
 
+def refresh_action():
+    """Poner el monitor a su máxima frecuencia (si Windows lo tiene a menos Hz de los que soporta)."""
+    import hidden
+    di = hidden.display_info()
+    if di and di[3] - di[2] >= 5:
+        return [hidden.RefreshRateAction(di[2], di[3])]
+    return []
+
+
 def collect(progress=None):
     """Lista de acciones aplicables en ESTE equipo (ya filtradas), con .status."""
     if DEMO:
@@ -60,7 +69,8 @@ def collect(progress=None):
                          ("Revisando tarjeta de red y gráfica…", extreme.hardware_actions),
                          ("Revisando ajustes de juego…", actions.reg_tweaks),
                          ("Revisando Windows Defender y servicios…", deepclean.extra_gaming_actions),
-                         ("Buscando tus juegos…", priority_actions)):
+                         ("Buscando tus juegos…", priority_actions),
+                         ("Mirando la frecuencia de tu monitor…", refresh_action)):
             if progress:
                 progress(step)
             try:

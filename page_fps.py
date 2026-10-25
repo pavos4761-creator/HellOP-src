@@ -91,7 +91,7 @@ class FpsPage(tk.Frame):
         go = tk.Frame(self.f_ab, bg=BG)
         go.pack(fill="x", pady=(8, 0))
         tk.Label(go, text="2) Cambiar algo:", font=F(10), fg=MUTED, bg=BG).pack(side="left", padx=(0, 8))
-        for k, label in (("tweaks", "Tweaks"), ("gameprof", "Ajustes de juego"), ("hidden", "Rendimiento oculto")):
+        for k, label in (("tweaks", "Tweaks"), ("gameprof", "Ajustes de juego")):
             NeonButton(go, label, lambda k_=k: self.app.show(k_), color=CYAN, padx=12, pady=5, font=F(9, True)).pack(side="left", padx=3)
         self.ab_res = tk.Frame(self.f_ab, bg=BG)
         self.ab_res.pack(fill="x", pady=(8, 0))

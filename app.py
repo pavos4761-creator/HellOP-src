@@ -22,7 +22,7 @@ from widgets import (BG, CYAN, F, FG, GREEN, MUTED, PANEL2, PINK, RED, SIDE, VIO
 
 SECTIONS = [
     ("INICIO", [("home", "⌂", "Inicio"), ("analysis", "◎", "Análisis de PC"), ("score", "★", "Puntuación")]),
-    ("OPTIMIZAR", [("hidden", "⌕", "Rendimiento oculto"), ("optimize", "⚡", "Optimizar"), ("clean", "✦", "Limpieza"), ("shaders", "❖", "Limpiar shaders"),
+    ("OPTIMIZAR", [("optimize", "⚡", "Optimizar"), ("clean", "✦", "Limpieza"), ("shaders", "❖", "Limpiar shaders"),
                    ("arranque", "⏻", "Gestor de arranque"), ("bench", "▲", "Antes y después")]),
     ("GAMING", [("games", "▣", "Mis juegos"), ("gameprof", "✧", "Ajustes de juego"), ("booster", "☢", "Modo Extremo"),
                 ("monitor", "≈", "Monitor"), ("diag", "◈", "Diagnóstico"), ("fps", "▤", "FPS reales")]),
@@ -189,7 +189,6 @@ class App(tk.Tk):
         from page_license import LicensePage
         from page_locked import LockedPage
         from page_health import HealthPage
-        from page_hidden import HiddenPage
         from page_home import HomePage
         from page_monitor import MonitorPage
         from page_oc import OcPage
@@ -217,7 +216,6 @@ class App(tk.Tk):
             "gameprof": GameProfilePage(self.content, self),
             "tweaks": TweaksPage(self.content, self),
             "fps": FpsPage(self.content, self),
-            "hidden": HiddenPage(self.content, self),
             "health": HealthPage(self.content, self),
             "debloat": DebloatPage(self.content, self),
             "update": UpdatePage(self.content, self),
