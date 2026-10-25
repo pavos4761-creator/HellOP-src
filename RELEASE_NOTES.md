@@ -1,3 +1,1 @@
-• Tweaks: 8 tweaks nuevos de registro con efecto real (sin avisos de teclas especiales, sin ventanas de la Game Bar, teclado más rápido, sin reinicios solos de Windows Update, sin cambio de driver de gráfica por Windows Update, sin Widgets, temporizador de Windows 11 y nombres 8.3).
-• Tweaks: lista de los «tweaks famosos» que NO se ofrecen por ser mito, con el motivo.
-• Tweaks: indica cuántos más ya están aplicados o no aplican a tu equipo.
+• El icono de la ventana y de la barra de tareas ahora sigue el color que elijas (morado, azul, rojo o dorado), y se pone directamente en la ventana para que Windows no se quede con el verde.

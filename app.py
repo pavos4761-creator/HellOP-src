@@ -240,6 +240,8 @@ class App(tk.Tk):
         self.after(1500, self.pages["games"].boot)
         self.after(600, self._admin_prompt)
         self.after(300, self._titlebar_start)
+        self.after(450, self._poner_icono_windows)
+        self.after(2500, self._poner_icono_windows)
         if _show_at:
             try:
                 espera = max(0, int((float(_show_at) - time.time()) * 1000))
@@ -263,29 +265,63 @@ class App(tk.Tk):
             APP_DIR.mkdir(parents=True, exist_ok=True)
             ico = APP_DIR / "hellop.ico"
             ico.write_bytes(self._pro_ico() if PRO_THEME else base64.b64decode(logo_data.ICO))
+            self._ico_path = str(ico)
             self.iconbitmap(default=str(ico))
         except Exception:  # noqa: BLE001
             pass
 
     def _pro_ico(self):
-        """Icono .ico morado (PNG dentro del contenedor ICO) para la ventana y la barra de tareas de los PRO."""
+        """Icono .ico del color elegido, en el formato clásico (BMP de 32 bits) que entiende cualquier Windows y Tk.
+        Lleva 4 tamaños: 128, 64, 32 y 16."""
         import struct
-        import tempfile
-        from pathlib import Path
-        imgs = []
-        for data in (logo_data.LOGO_64, logo_data.LOGO_128):
-            im = themed_logo(tk.PhotoImage(data=data), force=True)
-            f = Path(tempfile.gettempdir()) / "hellop_pro_icon.png"
-            im.write(str(f), format="png")
-            imgs.append((im.width(), f.read_bytes()))
-            f.unlink(missing_ok=True)
-        out = struct.pack("<HHH", 0, 1, len(imgs))
-        off = 6 + 16 * len(imgs)
-        body = b""
-        for w, png in imgs:
-            out += struct.pack("<BBBBHHII", w % 256, w % 256, 0, 0, 1, 32, len(png), off + len(body))
-            body += png
-        return out + body
+        fuentes = [themed_logo(tk.PhotoImage(data=logo_data.LOGO_128), force=True),
+                   themed_logo(tk.PhotoImage(data=logo_data.LOGO_64), force=True)]
+        imgs = [fuentes[0], fuentes[1], fuentes[1].subsample(2, 2), fuentes[0].subsample(8, 8)]
+        entradas = []
+        for im in imgs:
+            w, h = im.width(), im.height()
+            filas, mascara = [], []
+            for y in range(h - 1, -1, -1):                            # los .ico guardan las filas de abajo arriba
+                px, bits = bytearray(), [0] * (((w + 31) // 32) * 32)
+                for x in range(w):
+                    if im.transparency_get(x, y):
+                        px += b"\x00\x00\x00\x00"
+                        bits[x] = 1
+                    else:
+                        r, g, b = im.get(x, y)
+                        px += bytes((b, g, r, 255))
+                filas.append(bytes(px))
+                mascara.append(bytes(int("".join(map(str, bits[k:k + 8])), 2) for k in range(0, len(bits), 8)))
+            cab = struct.pack("<IiiHHIIiiII", 40, w, h * 2, 1, 32, 0, 0, 0, 0, 0, 0)
+            entradas.append((w, h, cab + b"".join(filas) + b"".join(mascara)))
+        out = struct.pack("<HHH", 0, 1, len(entradas))
+        off = 6 + 16 * len(entradas)
+        cuerpo = b""
+        for w, h, data in entradas:
+            out += struct.pack("<BBBBHHII", w % 256, h % 256, 0, 0, 1, 32, len(data), off + len(cuerpo))
+            cuerpo += data
+        return out + cuerpo
+
+    def _poner_icono_windows(self):
+        """Pone el icono directamente en la ventana (título y barra de tareas) sin depender del análisis de Tk."""
+        if not IS_WIN or DEMO or not getattr(self, "_ico_path", None):
+            return
+        try:
+            import ctypes
+            u = ctypes.windll.user32
+            u.LoadImageW.restype = ctypes.c_void_p
+            u.LoadImageW.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p, ctypes.c_uint, ctypes.c_int, ctypes.c_int, ctypes.c_uint]
+            u.SendMessageW.argtypes = [ctypes.c_void_p, ctypes.c_uint, ctypes.c_size_t, ctypes.c_void_p]
+            u.GetParent.restype = ctypes.c_void_p
+            u.GetParent.argtypes = [ctypes.c_void_p]
+            hwnd = u.GetParent(self.winfo_id()) or self.winfo_id()
+            for metrica, cual in ((11, 1), (49, 0)):                  # SM_CXICON→ICON_BIG, SM_CXSMICON→ICON_SMALL
+                s = u.GetSystemMetrics(metrica)
+                h = u.LoadImageW(None, self._ico_path, 1, s, s, 0x10)   # IMAGE_ICON, LR_LOADFROMFILE
+                if h:
+                    u.SendMessageW(hwnd, 0x80, cual, h)               # WM_SETICON
+        except Exception:  # noqa: BLE001
+            pass
 
     # ---- barra de título de Windows: del color del tema, con un pulso suave -----------
     def _titlebar_start(self):
