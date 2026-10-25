@@ -1,2 +1,3 @@
-• La barra de título de Windows 11 toma el color del tema (verde gratis, morado PRO) y pulsa suavemente.
-• El icono de la ventana y de la barra de tareas es morado para los PRO.
+• Animación PRO más larga: el texto aparece letra a letra con un brillo que lo recorre, halo, chispas y puntos girando.
+• Sin pantalla negra: la app morada se abre en segundo plano y aparece justo al terminar la animación.
+• El título de la ventana ahora es «HellOP · PRO» o «HellOP · FREE», sin versión.

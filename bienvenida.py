@@ -8,6 +8,7 @@ import os
 import random
 import time
 import tkinter as tk
+import tkinter.font as tkfont
 
 from util import IS_WIN
 from widgets import F, mix
@@ -67,7 +68,8 @@ def textos():
 # Colores propios (la app sigue en verde mientras suena la animación)
 NEGRO, PUR, MAG, IND, BLANCO, VERDE = "#07030f", "#a855f7", "#e879f9", "#7c5cff", "#ffffff", "#19e68c"
 PURO = "#2a1052"          # morado oscuro del interior de la onda
-DURACION = 6.0
+DURACION = 8.0
+LANZAR = 1.0          # a los 1,0 s se empieza a abrir en segundo plano la app morada
 
 
 def _ease(t):
@@ -78,11 +80,11 @@ def _ease(t):
 class Bienvenida(tk.Canvas):
     """Explosión que tiñe la pantalla de verde a morado poco a poco, el fondo se difumina y aparece «Bienvenido a PRO»."""
 
-    def __init__(self, parent, logo, on_done, bg0="#000000"):
+    def __init__(self, parent, logo, on_done, bg0="#000000", on_launch=None):
         super().__init__(parent, bg=bg0, highlightthickness=0, bd=0)
         self.place(x=0, y=0, relwidth=1, relheight=1)
         tk.Misc.lift(self)
-        self.on_done, self.bg0 = on_done, bg0
+        self.on_done, self.bg0, self.on_launch, self._launched = on_done, bg0, on_launch, False
         self.t0, self.done, self.parts = time.time(), False, []
         self.titulo = textos()[0].replace("Pro", "PRO")
         self._burst = False
@@ -91,7 +93,7 @@ class Bienvenida(tk.Canvas):
 
     def _skip(self):
         if time.time() - self.t0 > 1.5 and not self.done:
-            self.t0 = min(self.t0, time.time() - (DURACION - 0.8))
+            self.t0 = min(self.t0, time.time() - (DURACION - 1.2))
 
     def _nacer(self, cx, cy):
         for _ in range(150):
@@ -109,10 +111,14 @@ class Bienvenida(tk.Canvas):
                 self.after(16, self._tick)
                 return
             cx, cy = w / 2, h / 2
-            fo = max(0.0, min(1.0, (t - (DURACION - 0.7)) / 0.7))        # fundido a negro al final
+            fo = max(0.0, min(1.0, (t - (DURACION - 0.5)) / 0.5))        # al final se funde con el fondo de la app morada
 
             def m(a, b, x):
-                return mix(mix(a, b, x), "#000000", fo)
+                return mix(mix(a, b, x), NEGRO, fo)
+            if not self._launched and t >= LANZAR:
+                self._launched = True
+                if self.on_launch:
+                    self.on_launch()
             if not self._burst and t > 0.35:
                 self._burst = True
                 self._nacer(cx, cy)
@@ -153,13 +159,48 @@ class Bienvenida(tk.Canvas):
                 vida, r = min(1.0, q[5]), q[4] * (0.5 + 0.5 * min(1.0, q[5]))
                 self.create_oval(q[0] - r, q[1] - r, q[0] + r, q[1] + r, fill=m(inner, q[6], vida), outline="")
             self.parts = [q for q in self.parts if q[5] > 0]
-            # el mensaje
-            a1 = _ease((t - 3.0) / 1.0)
-            if a1 > 0:
-                for i in range(5, 0, -1):                                 # halo suave detrás del texto
-                    self.create_text(cx, cy + 14 * (1 - a1), text=self.titulo, fill=m(inner, PUR, a1 * 0.10 * (6 - i)),
-                                     font=F(40 + i * 2, True))
-                self.create_text(cx, cy + 14 * (1 - a1), text=self.titulo, fill=m(inner, BLANCO, a1), font=F(40, True))
+            # el mensaje, letra a letra, con brillo que lo recorre y puntos que giran
+            if t > 2.9:
+                fnt = tkfont.Font(font=F(40, True))
+                total = fnt.measure(self.titulo)
+                x0 = cx - total / 2
+                pro_i = self.titulo.find("PRO")
+                if t > 3.2:                                               # halo que respira detrás del texto
+                    ha = _ease((t - 3.2) / 1.2)
+                    for i in range(6):
+                        rx, ry = total / 2 + 30 + i * 16 + 6 * math.sin(t * 2), 46 + i * 11
+                        self.create_oval(cx - rx, cy - ry, cx + rx, cy + ry, outline=m(inner, PUR, ha * max(0.0, 0.34 - 0.05 * i)))
+                ciclo = (t - 4.6) % 2.6
+                sx = x0 - 80 + (ciclo / 1.1) * (total + 160) if t > 4.6 and ciclo < 1.1 else -9999
+                for i, ch in enumerate(self.titulo):
+                    if ch == " ":
+                        continue
+                    ai = _ease((t - 3.0 - i * 0.045) / 0.55)
+                    if ai <= 0:
+                        continue
+                    x = x0 + fnt.measure(self.titulo[:i])
+                    es_pro = pro_i >= 0 and pro_i <= i < pro_i + 3
+                    col = m(inner, mix(MAG, BLANCO, 0.25) if es_pro else BLANCO, ai)
+                    k = max(0.0, 1 - abs(x + 14 - sx) / 80)
+                    if k > 0:
+                        col = m(inner, "#f5d0fe", min(1.0, ai) * (0.55 + 0.45 * k)) if k > 0.05 else col
+                    self.create_text(x, cy + 22 * (1 - ai), anchor="w", text=ch, fill=col, font=F(40, True))
+                a3 = _ease((t - 4.2) / 0.9)
+                if a3 > 0:                                                # línea con degradado que se abre desde el centro
+                    ancho = (total / 2 + 20) * a3
+                    for i in range(48):
+                        xa = cx - ancho + 2 * ancho * i / 48
+                        c = mix(IND, MAG, i / 23) if i < 24 else mix(MAG, IND, (i - 24) / 23)
+                        self.create_rectangle(xa, cy + 52, xa + 2 * ancho / 48 + 1, cy + 56, fill=m(inner, c, a3), outline="")
+                if t > 5.0:                                               # tres puntos que giran
+                    la = _ease((t - 5.0) / 0.6)
+                    for d in range(3):
+                        ang = t * 4.2 + d * 2.094
+                        px, py = cx + 15 * math.cos(ang), cy + 92 + 15 * math.sin(ang)
+                        self.create_oval(px - 3.2, py - 3.2, px + 3.2, py + 3.2, fill=m(inner, (PUR, MAG, IND)[d], la), outline="")
+                if t > 3.4 and random.random() < 0.5:                     # chispas que suben desde el texto
+                    self.parts.append([cx + random.uniform(-total / 2, total / 2), cy + 20, random.uniform(-0.3, 0.3), random.uniform(-2.2, -0.8),
+                                       random.uniform(1.2, 2.6), random.uniform(0.9, 1.6), random.choice((PUR, MAG, BLANCO))])
             if t >= DURACION:
                 self.done = True
                 self.on_done()

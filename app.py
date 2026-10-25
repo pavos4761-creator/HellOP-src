@@ -1,7 +1,9 @@
 """Ventana principal: cabecera, menú lateral, hilos de trabajo y páginas."""
+import os
 import queue
 import sys
 import threading
+import time
 import tkinter as tk
 from tkinter import messagebox, ttk  # noqa: F401
 
@@ -124,7 +126,11 @@ class NavItem(tk.Canvas):
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title(f"HellOP v{version.__version__}" + ("  ·  PRO" if PRO_THEME else "") + ("  ·  MODO DEMO" if DEMO else ""))
+        # Tras la animación «Bienvenido a PRO» la app nueva carga en segundo plano y aparece justo cuando la animación acaba.
+        _show_at = os.environ.pop("HELLOP_SHOW_AT", None)
+        if _show_at:
+            self.withdraw()
+        self.title("HellOP  ·  " + ("PRO" if PRO_THEME else "FREE") + ("  ·  MODO DEMO" if DEMO else ""))
         self.geometry("1140x840")
         self.minsize(980, 640)
         self.configure(bg=BG)
@@ -225,6 +231,12 @@ class App(tk.Tk):
         self.after(1500, self.pages["games"].boot)
         self.after(600, self._admin_prompt)
         self.after(300, self._titlebar_start)
+        if _show_at:
+            try:
+                espera = max(0, int((float(_show_at) - time.time()) * 1000))
+            except ValueError:
+                espera = 0
+            self.after(espera, self.deiconify)
 
     def _set_window_icon(self):
         """Icono de la ventana y de la barra de tareas (en vez del plumín por defecto de Tk)."""
@@ -398,19 +410,15 @@ class App(tk.Tk):
         self.destroy()
 
     def pro_welcome(self):
-        """Animación «Bienvenido a Pro». Si la app estaba en verde, se reabre sola en morado al terminar."""
-        from bienvenida import Bienvenida
-        from widgets import PRO_THEME
+        """Animación «Bienvenido a PRO». Si la app estaba en verde, la versión morada se abre sola mientras suena
+        la animación y aparece justo cuando termina (sin pantalla negra)."""
+        from bienvenida import DURACION, LANZAR, Bienvenida
         logo = themed_logo(tk.PhotoImage(data=logo_data.LOGO_128), force=True)
         self._pro_logo = logo
+        self._relanzada = False
 
-        def fin():
-            if PRO_THEME:
-                ov.destroy()
-                return
-            if DEMO or not IS_WIN:
-                ov.destroy()
-                self.status("PRO activado. Cierra y abre HellOP para verlo en morado.")
+        def lanzar():
+            if PRO_THEME or DEMO or not IS_WIN:
                 return
             try:
                 self.pages["games"].shutdown()
@@ -418,12 +426,18 @@ class App(tk.Tk):
                 self.pages["booster"].shutdown()
             except Exception:  # noqa: BLE001
                 pass
-            if relaunch_as_admin():
+            os.environ["HELLOP_SHOW_AT"] = str(time.time() + (DURACION - LANZAR) - 0.15)
+            self._relanzada = relaunch_as_admin()
+            os.environ.pop("HELLOP_SHOW_AT", None)
+
+        def fin():
+            if self._relanzada:
                 self.destroy()
                 sys.exit(0)
             ov.destroy()
-            self.status("PRO activado. Cierra y abre HellOP para verlo en morado.")
-        ov = Bienvenida(self, logo, fin, bg0=BG)
+            if not PRO_THEME:
+                self.status("PRO activado. Cierra y abre HellOP para verlo en morado.")
+        ov = Bienvenida(self, logo, fin, bg0=BG, on_launch=lanzar)
 
     def restart_admin(self):
         if relaunch_as_admin():
