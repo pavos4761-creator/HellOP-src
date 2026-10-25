@@ -55,12 +55,24 @@ def refresh_action():
     return []
 
 
+def _extra():
+    import tweaks_extra
+    return tweaks_extra.extra_actions()
+
+
+SKIPPED = 0      # cuántos tweaks NO se muestran porque ya están aplicados (o no aplican a este equipo)
+
+
 def collect(progress=None):
+    global SKIPPED
+    SKIPPED = 0
     """Lista de acciones aplicables en ESTE equipo (ya filtradas), con .status."""
     if DEMO:
         import time
         time.sleep(1.2)
         pool = [a for a in actions.demo_actions() if a.group in ("latency", "gpu", "tradeoff", "gaming", "speed", "power")]
+        import tweaks_extra
+        pool += tweaks_extra.extra_actions()
     else:
         import deepclean
         import extreme
@@ -70,7 +82,8 @@ def collect(progress=None):
                          ("Revisando ajustes de juego…", actions.reg_tweaks),
                          ("Revisando Windows Defender y servicios…", deepclean.extra_gaming_actions),
                          ("Buscando tus juegos…", priority_actions),
-                         ("Mirando la frecuencia de tu monitor…", refresh_action)):
+                         ("Mirando la frecuencia de tu monitor…", refresh_action),
+                         ("Revisando teclado, avisos y actualizaciones…", _extra)):
             if progress:
                 progress(step)
             try:
@@ -87,6 +100,7 @@ def collect(progress=None):
         except Exception:  # noqa: BLE001
             continue
         if st is None:
+            SKIPPED += 1
             continue
         seen.add(a.id)
         a.status = st

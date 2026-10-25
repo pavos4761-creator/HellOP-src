@@ -4,6 +4,7 @@ from tkinter import messagebox
 
 import actions
 import tweaks
+import tweaks_extra
 from util import DEMO, is_admin
 from widgets import (BG, CYAN, F, FG, GREEN, MUTED, PANEL, PINK, RED, YELLOW, Card, NeonButton, ScrollFrame, WrapLabel,
                      badge, checkbox, page_title)
@@ -42,6 +43,16 @@ class TweaksPage(tk.Frame):
         self.body.pack(fill="x")
         self.foot = tk.Frame(root, bg=BG)
         self.foot.pack(fill="x", pady=(4, 14))
+        m = Card(root, accent=MUTED, title="Tweaks famosos que NO incluyo (y por qué)")
+        m.pack(fill="x", pady=(0, 14))
+        WrapLabel(m.body, text="Hay listas enormes de «tweaks de regedit» en vídeos y foros. Casi todos vienen de guías antiguas o se copian "
+                               "sin probar. Según la documentación de Microsoft y pruebas públicas, estos no hacen lo que prometen, "
+                               "así que HellOP no te los ofrece:", font=F(9), fg=MUTED).pack(fill="x", pady=(0, 6))
+        for name, why in tweaks_extra.MITOS:
+            r = tk.Frame(m.body, bg=PANEL)
+            r.pack(fill="x", pady=2)
+            tk.Label(r, text="✗", font=F(10, True), fg=RED, bg=PANEL).pack(side="left", anchor="n")
+            WrapLabel(r, text=f"{name}: {why}", font=F(9), fg=MUTED).pack(side="left", fill="x", expand=True, padx=(8, 0))
         self._loaded = False
 
     def on_show(self):
@@ -70,7 +81,8 @@ class TweaksPage(tk.Frame):
         self.busy = False
         self.b_scan.set_enabled(True)
         self.acts = acts
-        self.msg.config(text=f"{len(acts)} tweaks disponibles en tu equipo" if acts else "No queda ningún tweak por aplicar. ¡Todo hecho!",
+        ya = f"  ·  otros {tweaks.SKIPPED} ya están aplicados o no aplican a tu equipo" if tweaks.SKIPPED else ""
+        self.msg.config(text=(f"{len(acts)} tweaks disponibles en tu equipo" if acts else "No queda ningún tweak por aplicar. ¡Todo hecho!") + ya,
                         fg=GREEN)
         self.render()
 
