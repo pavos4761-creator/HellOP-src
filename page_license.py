@@ -1,9 +1,10 @@
 """Página «Licencia»: activar tu clave y, si eres el creador, generar claves para otras personas."""
 import sys
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import filedialog, messagebox
 
 import actions
+import claves
 import config_io
 import licencia as lic
 import widgets
@@ -14,6 +15,11 @@ from widgets import (BG, CYAN, F, FG, GREEN, MUTED, PANEL, PANEL2, PINK, RED, YE
 
 LEVEL_COL = {"owner": PINK, "pro": CYAN, "free": MUTED, "expired": YELLOW, "invalid": RED}
 LEVEL_TXT = {"owner": "CREADOR", "pro": "PRO", "free": "GRATIS", "expired": "CADUCADA", "invalid": "NO VÁLIDA"}
+
+
+def date_es(iso):
+    y, m, d = iso.split("-")
+    return f"{d}/{m}/{y}"
 
 
 def _entry(parent, var, width=60, readonly=False):
@@ -80,6 +86,7 @@ class LicensePage(tk.Frame):
             self.build_config(root)
         if lic.owner_secret() or DEMO:
             self.build_generator(root)
+            self.build_registry(root)
 
     # ------------------------------------------------------------------
     def build_color(self, root):
@@ -200,6 +207,12 @@ class LicensePage(tk.Frame):
         g.pack(fill="x", pady=(0, 12))
         WrapLabel(g.body, text="Crea una clave con caducidad. Si pegas el ID del PC de la otra persona, la clave solo funcionará en su PC; "
                                "si lo dejas vacío, valdrá en cualquier PC.", font=F(9), fg=MUTED).pack(fill="x")
+        rn = tk.Frame(g.body, bg=PANEL)
+        rn.pack(fill="x", pady=(8, 0))
+        tk.Label(rn, text="¿Para quién es?", font=F(10), fg=MUTED, bg=PANEL).pack(side="left", padx=(0, 8))
+        self.v_gname = tk.StringVar()
+        _entry(rn, self.v_gname, 30).pack(side="left", ipady=4)
+        tk.Label(rn, text="  (un nombre o nota, para tu lista)", font=F(9), fg=MUTED, bg=PANEL).pack(side="left")
         r = tk.Frame(g.body, bg=PANEL)
         r.pack(fill="x", pady=(8, 0))
         tk.Label(r, text="ID del PC:", font=F(10), fg=MUTED, bg=PANEL).pack(side="left", padx=(0, 8))
@@ -228,6 +241,116 @@ class LicensePage(tk.Frame):
         self.gmsg = tk.Label(r3, text="", font=F(10, True), fg=MUTED, bg=PANEL)
         self.gmsg.pack(side="left", padx=12)
 
+    # ------------------------------------------------------------------
+    def build_registry(self, root):
+        self.reg_card = Card(root, accent=YELLOW, title="Claves que has dado (puedes anularlas aquí)")
+        self.reg_card.pack(fill="x", pady=(0, 12))
+        self.build_registry_body()
+
+    def build_registry_body(self):
+        card = getattr(self, "reg_card", None)
+        if card is None or not card.winfo_exists():
+            return
+        for w in card.body.winfo_children():
+            w.destroy()
+        b = card.body
+        items = sorted(claves.load(), key=lambda e: e["caduca"])
+        if not claves.token():
+            WrapLabel(b, text="Para poder ANULAR claves necesito un token de GitHub (solo la primera vez). Créalo en GitHub: tu foto → Settings → "
+                              "Developer settings → Personal access tokens → Fine-grained tokens → Generate new token. Elige solo el repositorio "
+                              "PCOptimizer (el público) y en Permissions → Contents: Read and write. Se guarda solo en tu PC.",
+                      font=F(9), fg=MUTED).pack(fill="x", pady=(0, 6))
+            tr = tk.Frame(b, bg=PANEL)
+            tr.pack(fill="x", pady=(0, 8))
+            self.v_tok = tk.StringVar()
+            _entry(tr, self.v_tok, 46).pack(side="left", ipady=4)
+            NeonButton(tr, "Guardar token", self.save_token, color=YELLOW, filled=True, padx=14, pady=5, font=F(9, True)).pack(side="left", padx=8)
+        else:
+            tr = tk.Frame(b, bg=PANEL)
+            tr.pack(fill="x", pady=(0, 8))
+            tk.Label(tr, text="✓ Token guardado: puedes anular claves.", font=F(9, True), fg=GREEN, bg=PANEL).pack(side="left")
+            pend = [e for e in items if e.get("anulada") and not e.get("publicada")]
+            if pend:
+                NeonButton(tr, f"Publicar {len(pend)} anulación(es) pendiente(s)", self.publish_pending, color=YELLOW, filled=True,
+                           padx=12, pady=4, font=F(9, True)).pack(side="left", padx=10)
+        pronto = claves.por_vencer()
+        if pronto:
+            WrapLabel(b, text="⚠ Vencen pronto: " + ", ".join(f"{e['nombre']} ({claves.estado(e)[1]} d)" for e in pronto) + ".",
+                      font=F(10, True), fg=YELLOW).pack(fill="x", pady=(0, 6))
+        self.rmsg = tk.Label(b, text="", font=F(10, True), fg=MUTED, bg=PANEL, anchor="w", justify="left", wraplength=760)
+        self.rmsg.pack(fill="x", pady=(0, 4))
+        if not items:
+            WrapLabel(b, text="Aún no has generado ninguna clave desde esta versión. Cada clave nueva aparecerá aquí.",
+                      font=F(9), fg=MUTED).pack(fill="x")
+            return
+        col = {"activa": GREEN, "pronto": YELLOW, "caducada": MUTED, "anulada": RED, "pendiente": YELLOW}
+        txt = {"activa": "ACTIVA", "pronto": "VENCE PRONTO", "caducada": "CADUCADA", "anulada": "ANULADA", "pendiente": "ANULACIÓN PENDIENTE"}
+        for e in items:
+            est, dias = claves.estado(e)
+            row = tk.Frame(b, bg=PANEL)
+            row.pack(fill="x", pady=4)
+            tx = tk.Frame(row, bg=PANEL)
+            tx.pack(side="left", fill="x", expand=True)
+            head = tk.Frame(tx, bg=PANEL)
+            head.pack(fill="x")
+            tk.Label(head, text=e["nombre"], font=F(10, True), fg=FG, bg=PANEL).pack(side="left")
+            badge(head, txt[est], col[est]).pack(side="left", padx=8)
+            cad = date_es(e["caduca"])
+            tk.Label(tx, text=f"Caduca el {cad}" + (f" · quedan {dias} días" if dias >= 0 else " · ya caducó")
+                     + (f" · atada a un PC" if e.get("pc") else " · vale en cualquier PC"), font=F(9), fg=MUTED, bg=PANEL, anchor="w").pack(fill="x")
+            btns = tk.Frame(row, bg=PANEL)
+            btns.pack(side="right")
+            NeonButton(btns, "Copiar", lambda k=e["key"]: self.copy(k, "Clave copiada"), color=CYAN, padx=10, pady=4, font=F(9, True)).pack(side="left", padx=3)
+            if e.get("anulada"):
+                NeonButton(btns, "Reactivar", lambda i=e["id"]: self.reactivate(i), color=GREEN, padx=10, pady=4, font=F(9, True)).pack(side="left", padx=3)
+            elif est != "caducada":
+                NeonButton(btns, "Anular", lambda i=e["id"], n=e["nombre"]: self.revoke(i, n), color=RED, filled=True, padx=12, pady=4,
+                           font=F(9, True)).pack(side="left", padx=3)
+            if est in ("caducada", "anulada"):
+                NeonButton(btns, "Quitar", lambda i=e["id"]: self.drop(i), color=MUTED, padx=10, pady=4, font=F(9, True)).pack(side="left", padx=3)
+
+    def save_token(self):
+        try:
+            claves.guardar_token(self.v_tok.get())
+        except (OSError, claves.ClavesError) as e:
+            self.rmsg.config(text=f"✗ {e}", fg=RED)
+            return
+        self.build_registry_body()
+        self.rmsg.config(text="✓ Token guardado.", fg=GREEN)
+        if any(e.get("anulada") and not e.get("publicada") for e in claves.load()):
+            self.publish_pending()
+
+    def _run_reg(self, work, ok_text=None):
+        """Ejecuta una operación de red del registro en segundo plano y vuelve a pintar la lista."""
+        self.rmsg.config(text="Un momento…", fg=CYAN)
+
+        def done(res):
+            self.build_registry_body()
+            okf, msg = res if isinstance(res, tuple) else (True, res)
+            self.rmsg.config(text=("✓ " if okf else "⚠ ") + msg, fg=GREEN if okf else YELLOW)
+        self.app.bg(work, done, lambda e: self.rmsg.config(text=f"✗ {e}", fg=RED))
+
+    def revoke(self, kid, nombre):
+        if not DEMO and not messagebox.askyesno("Anular clave", f"Vas a anular la clave de «{nombre}».\n\nSe quedará sin PRO en cuanto su "
+                                                "HellOP se conecte a internet. ¿Seguro?"):
+            return
+        if DEMO:
+            self.rmsg.config(text="(Demo) aquí se anularía la clave.", fg=YELLOW)
+            return
+        self._run_reg(lambda: claves.anular(kid))
+
+    def publish_pending(self):
+        self._run_reg(claves.publicar_pendientes)
+
+    def reactivate(self, kid):
+        if DEMO:
+            return
+        self._run_reg(lambda: claves.reactivar(kid))
+
+    def drop(self, kid):
+        claves.borrar(kid)
+        self.build_registry_body()
+
     def set_days(self, n):
         self.days = n
         for k, b in self.dbtn.items():
@@ -244,7 +367,13 @@ class LicensePage(tk.Frame):
             self.gmsg.config(text=str(e), fg=RED)
             return
         self.v_out.set(key)
-        self.gmsg.config(text=f"Lista · caduca el {exp.strftime('%d/%m/%Y')}", fg=GREEN)
+        try:
+            claves.add(self.v_gname.get(), key, exp, self.v_gpc.get())
+            self.gmsg.config(text=f"Lista y apuntada en tu lista · caduca el {exp.strftime('%d/%m/%Y')}", fg=GREEN)
+            self.v_gname.set("")
+            self.build_registry_body()
+        except (OSError, claves.ClavesError) as e:
+            self.gmsg.config(text=f"Lista (pero no pude apuntarla: {e})", fg=YELLOW)
 
     # ------------------------------------------------------------------
     def copy(self, text, ok):
@@ -262,9 +391,19 @@ class LicensePage(tk.Frame):
             pass
 
     def activate(self):
-        ok, m = lic.activate(self.v_key.get())
-        self.msg.config(text=("✓ " if ok else "✗ ") + m, fg=GREEN if ok else RED)
-        if ok:
-            self.app.refresh_license()
-            self.after(900, self.build)
-            self.app.pro_welcome()
+        key = self.v_key.get()
+        self.msg.config(text="Comprobando la clave…", fg=CYAN)
+
+        def work():
+            if not DEMO:
+                lic.refresh_revoked(timeout=5)          # por si esa clave ya la anularon
+            return lic.activate(key)
+
+        def done(res):
+            ok, m = res
+            self.msg.config(text=("✓ " if ok else "✗ ") + m, fg=GREEN if ok else RED)
+            if ok:
+                self.app.refresh_license()
+                self.after(900, self.build)
+                self.app.pro_welcome()
+        self.app.bg(work, done, lambda e: self.msg.config(text=f"✗ {e}", fg=RED))

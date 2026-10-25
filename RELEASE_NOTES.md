@@ -1,1 +1,3 @@
-• El icono de la ventana y de la barra de tareas ahora sigue el color que elijas (morado, azul, rojo o dorado), y se pone directamente en la ventana para que Windows no se quede con el verde.
+• Asistente de primera vez: 5 pasos (bienvenida, tu PC, lo que más te cuesta, limpieza y ajustes sin riesgo, resumen). Se abre solo la primera vez y desde Inicio > Asistente.
+• Registro de claves (creador): lista de a quién das cada clave, cuándo caduca y botón para anularla desde la misma lista.
+• Las claves anuladas se bloquean en cuanto el HellOP de esa persona se conecta a internet.

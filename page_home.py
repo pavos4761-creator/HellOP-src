@@ -56,6 +56,7 @@ class HomePage(tk.Frame):
         btns.pack(anchor="w")
         NeonButton(btns, "◎   ANALIZAR MI PC", lambda: app.show("analysis"), color=CYAN, filled=True, font=F(12, True), padx=24, pady=10).pack(side="left")
         NeonButton(btns, "▣   MIS JUEGOS", lambda: app.show("games"), color=GREEN, font=F(12, True), padx=22, pady=10).pack(side="left", padx=10)
+        NeonButton(btns, "✧   ASISTENTE", app.abrir_asistente, color=PINK, font=F(12, True), padx=22, pady=10).pack(side="left")
 
         tk.Label(root, text="Qué quieres hacer", font=F(14, True), fg=FG, bg=BG, anchor="w").pack(fill="x", pady=(2, 8))
         grid = tk.Frame(root, bg=BG)

@@ -20,6 +20,8 @@ PUBLIC_KEY = bytes.fromhex("a4d7673bed9a8a8f525a159820e87bf28f77fa06ef10da11ddfc
 PRIVATE_FILE = APP_DIR / "hellop_privada.key"
 STATE_FILE = APP_DIR / "licencia.json"
 CLOCK_FILE = APP_DIR / "reloj.json"
+REVOKED_FILE = APP_DIR / "revocadas_cache.json"       # copia local de la lista de claves anuladas
+REVOKED_URL = "https://raw.githubusercontent.com/{repo}/main/revocadas.json"
 EPOCH = date(2024, 1, 1)
 VERSION = 1
 
@@ -89,6 +91,52 @@ def make_key(secret, pc_text, days):
     return _encode(payload, ed25519.sign(secret, payload)), date.today() + timedelta(days=int(days))
 
 
+def key_id(key):
+    """Identificador corto y público de una clave (no sirve para reconstruirla). None si no tiene formato válido."""
+    d = _decode(key)
+    return hashlib.sha256(d[0] + d[1]).hexdigest()[:20] if d else None
+
+
+def revoked_ids():
+    """Claves anuladas según la última copia descargada (no usa la red)."""
+    try:
+        ids = json.loads(REVOKED_FILE.read_text("utf-8")).get("ids", [])
+        return {str(i) for i in ids if isinstance(i, str)}
+    except Exception:  # noqa: BLE001
+        return set()
+
+
+def refresh_revoked(timeout=6):
+    """Descarga la lista de claves anuladas y guarda una copia. Devuelve el conjunto, o None si no hubo red.
+    Un 404 (aún no existe la lista) cuenta como lista vacía."""
+    import urllib.error
+    import urllib.request
+    try:
+        import version
+        repo = version.UPDATE_REPO or "pavos4761-creator/PCOptimizer"
+    except Exception:  # noqa: BLE001
+        repo = "pavos4761-creator/PCOptimizer"
+    url = REVOKED_URL.format(repo=repo) + f"?t={int(time.time())}"
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "HellOP-Licencia"})
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            raw = r.read(200_000).decode("utf-8", "replace")
+        data = json.loads(raw)
+        ids = {i for i in data.get("ids", []) if isinstance(i, str) and re.fullmatch(r"[0-9a-f]{20}", i)} if isinstance(data, dict) else set()
+    except urllib.error.HTTPError as e:
+        if e.code != 404:
+            return None
+        ids = set()
+    except Exception:  # noqa: BLE001
+        return None
+    try:
+        APP_DIR.mkdir(parents=True, exist_ok=True)
+        REVOKED_FILE.write_text(json.dumps({"ids": sorted(ids), "ts": int(time.time())}), "utf-8")
+    except OSError:
+        pass
+    return ids
+
+
 def inspect(key):
     """Comprueba una clave. Devuelve dict: ok, motivo, caduca (date), pc (bytes)."""
     d = _decode(key)
@@ -152,6 +200,8 @@ def status():
     zero = b"\x00" * 8
     if info["pc"] != zero and info["pc"] != _pc_hash(_machine_guid()):
         return {"level": "invalid", "msg": "Esta clave es de otro PC. Pide una para el ID de este equipo.", "exp": None, "days": None}
+    if key_id(key) in revoked_ids():
+        return {"level": "invalid", "msg": "Esta clave fue anulada por quien te la dio. Pídele una nueva.", "exp": None, "days": None}
     if not _clock_ok():
         return {"level": "invalid", "msg": "La fecha del PC es anterior a la última vez que usaste HellOP. Corrígela.", "exp": None, "days": None}
     left = (info["exp"] - date.today()).days
@@ -167,6 +217,8 @@ def activate(key):
         return False, info["why"]
     if info["pc"] != b"\x00" * 8 and info["pc"] != _pc_hash(_machine_guid()):
         return False, "Esta clave es de otro PC. Pide una para el ID de este equipo."
+    if key_id(key) in revoked_ids():
+        return False, "Esa clave fue anulada. Pide una nueva a quien te la dio."
     if info["exp"] < date.today():
         return False, f"Esa clave caducó el {info['exp'].strftime('%d/%m/%Y')}."
     STATE_FILE.write_text(json.dumps({"key": key.strip(), "ts": int(time.time())}), "utf-8")

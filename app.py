@@ -237,6 +237,8 @@ class App(tk.Tk):
             self.status("Se reanudaron servicios que el Modo Extremo había pausado: " + ", ".join(rec))
         self.after(50, self._pump)
         self.after(4000, self._auto_check)
+        self.after(6000, self._check_revoked)
+        self.after(1500, self._asistente_primera_vez)
         self.after(1500, self.pages["games"].boot)
         self.after(600, self._admin_prompt)
         self.after(300, self._titlebar_start)
@@ -405,6 +407,39 @@ class App(tk.Tk):
                                   color=GREEN, filled=True, padx=10, pady=4, font=F(9, True))
         self.upd_btn.pack(side="left", padx=6)
         self.status(f"Hay una versión nueva: v{latest}")
+
+    def abrir_asistente(self):
+        """Abre el asistente de primera vez (también desde el botón de Inicio)."""
+        import asistente
+        ya = getattr(self, "_asistente", None)
+        if ya is not None and ya.winfo_exists():
+            return
+        self._asistente = asistente.Asistente(self, lambda destino: self.show(destino) if destino else None)
+
+    def _asistente_primera_vez(self):
+        import asistente
+        if os.environ.get("HELLOP_ASISTENTE") == "1" or (not DEMO and not asistente.visto()):
+            self.abrir_asistente()
+
+    def _check_revoked(self):
+        """Descarga la lista de claves anuladas (al abrir y cada 3 horas). Si la tuya está, se bloquean las funciones PRO."""
+        if DEMO:
+            return
+        antes = licencia.status()["level"]
+
+        def trabajo():
+            licencia.refresh_revoked()
+            return licencia.status()
+
+        def hecho(st):
+            if antes in ("pro",) and st["level"] == "invalid":
+                self.refresh_license()
+                self.show("license")
+                messagebox.showinfo("Clave anulada", st["msg"] + "\n\nHellOP vuelve al modo gratis. Se verá en verde al reiniciar.")
+            elif antes != st["level"]:
+                self.refresh_license()
+        self.bg(trabajo, hecho, lambda e: None)
+        self.after(3 * 3600 * 1000, self._check_revoked)
 
     def _auto_check(self):
         if DEMO or not updater.get_repo():
