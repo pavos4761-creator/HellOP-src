@@ -95,7 +95,11 @@ class LicensePage(tk.Frame):
             b.pack(side="left", padx=3)
             self.dbtn[n] = b
         self.set_days(30)
-        NeonButton(g.body, "✦  GENERAR CLAVE", self.generate, color=PINK, filled=True, padx=22, pady=7, font=F(10, True)).pack(anchor="w", pady=(10, 0))
+        fila = tk.Frame(g.body, bg=PANEL)
+        fila.pack(anchor="w", pady=(10, 0))
+        NeonButton(fila, "✦  GENERAR CLAVE", self.generate, color=PINK, filled=True, padx=22, pady=7, font=F(10, True)).pack(side="left")
+        NeonButton(fila, "▶  Ver animación «Bienvenido a Pro»", lambda: self.app.pro_welcome(), color=CYAN, padx=16, pady=7,
+                   font=F(10, True)).pack(side="left", padx=10)
         self.v_out = tk.StringVar()
         _entry(g.body, self.v_out, 70, readonly=True).pack(fill="x", ipady=6, pady=(10, 0))
         r3 = tk.Frame(g.body, bg=PANEL)

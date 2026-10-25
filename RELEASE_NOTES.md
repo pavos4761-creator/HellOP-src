@@ -1,1 +1,1 @@
-• Nueva animación al activar PRO: una explosión tiñe la pantalla de verde a morado, el fondo se difumina y aparece «Bienvenido a PRO» en tu idioma.
+• Modo creador: botón para ver la animación «Bienvenido a Pro» sin activar una clave (Licencia > generador).
