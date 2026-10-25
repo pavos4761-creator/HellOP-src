@@ -1,3 +1,5 @@
-• Animación PRO más larga: el texto aparece letra a letra con un brillo que lo recorre, halo, chispas y puntos girando.
-• Sin pantalla negra: la app morada se abre en segundo plano y aparece justo al terminar la animación.
-• El título de la ventana ahora es «HellOP · PRO» o «HellOP · FREE», sin versión.
+• Puntuación HellOP: nota de tu PC con medalla y logros.
+• Qué pieza mejorar: detecta si te limita la gráfica o el procesador.
+• Limpiar shaders: borra las cachés de gráficos (DirectX, NVIDIA, AMD, Intel, Steam).
+• Gestor de arranque: qué se abre con Windows y cuánto retrasa cada programa; desactivar con deshacer.
+• Tu color PRO (morado, azul, rojo, dorado) y exportar/importar tu configuración.

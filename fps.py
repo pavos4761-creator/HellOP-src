@@ -212,6 +212,7 @@ def analyze(ft, gpu=None, cpu=None):
     m["verdict"] = None
     if gpu and cpu:
         g, c = statistics.mean(gpu), statistics.mean(cpu)
+        m["gpu_pct"], m["cpu_pct"] = round(g / mean * 100), round(c / mean * 100)     # % del tiempo de cada fotograma
         if g >= 0.9 * mean:
             m["verdict"] = "Tu gráfica va al límite: baja sombras/efectos o la resolución para ganar FPS."
         elif g <= 0.65 * mean:

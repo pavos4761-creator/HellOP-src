@@ -22,6 +22,8 @@ TILES = [
     ("gameprof", "✧", "Ajustes de juego", "Baja sombras y efectos en Fortnite, VALORANT, LoL, Minecraft y CS2 con copia y deshacer.", PINK),
     ("tweaks", "☄", "Tweaks", "Ajustes de latencia y rendimiento en tres niveles de riesgo: tú eliges cuáles.", YELLOW),
     ("health", "♥", "Salud del PC", "Temperaturas, drivers y ping: lo que frena tus FPS sin que lo sepas.", GREEN),
+    ("score", "★", "Puntuación HellOP", "La nota de tu PC con medalla y logros: te dice cuánto te falta para el oro.", YELLOW),
+    ("cuello", "⬆", "Qué pieza mejorar", "Detecta qué te frena de verdad y te dice si te compensa gastar dinero.", PINK),
     ("bios", "◉", "BIOS y overclock", "Lo que no se puede cambiar desde Windows, explicado paso a paso.", YELLOW),
 ]
 

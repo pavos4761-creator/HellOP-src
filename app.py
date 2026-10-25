@@ -18,14 +18,15 @@ import version
 
 from widgets import BORDER, PRO_THEME, themed_logo
 from widgets import (BG, CYAN, F, FG, GREEN, MUTED, PANEL2, PINK, RED, SIDE, VIOLET, YELLOW, GradientBar, MiniBar,
-                     NeonButton, PulseLogo, SparkField, badge, install_mousewheel, mix, round_rect, setup_styles)
+                     NeonButton, PulseLogo, ScrollFrame, SparkField, badge, install_mousewheel, mix, round_rect, setup_styles)
 
 SECTIONS = [
-    ("INICIO", [("home", "⌂", "Inicio"), ("analysis", "◎", "Análisis de PC")]),
-    ("OPTIMIZAR", [("hidden", "⌕", "Rendimiento oculto"), ("optimize", "⚡", "Optimizar"), ("clean", "✦", "Limpieza"), ("bench", "▲", "Antes y después")]),
+    ("INICIO", [("home", "⌂", "Inicio"), ("analysis", "◎", "Análisis de PC"), ("score", "★", "Puntuación")]),
+    ("OPTIMIZAR", [("hidden", "⌕", "Rendimiento oculto"), ("optimize", "⚡", "Optimizar"), ("clean", "✦", "Limpieza"), ("shaders", "❖", "Limpiar shaders"),
+                   ("arranque", "⏻", "Gestor de arranque"), ("bench", "▲", "Antes y después")]),
     ("GAMING", [("games", "▣", "Mis juegos"), ("gameprof", "✧", "Ajustes de juego"), ("booster", "☢", "Modo Extremo"),
                 ("monitor", "≈", "Monitor"), ("diag", "◈", "Diagnóstico"), ("fps", "▤", "FPS reales")]),
-    ("AVANZADO", [("tweaks", "☄", "Tweaks"), ("bios", "◉", "BIOS"), ("oc", "⚙", "Overclock")]),
+    ("AVANZADO", [("tweaks", "☄", "Tweaks"), ("cuello", "⬆", "Qué pieza mejorar"), ("bios", "◉", "BIOS"), ("oc", "⚙", "Overclock")]),
     ("SISTEMA", [("health", "♥", "Salud del PC"), ("debloat", "✖", "Quitar bloatware"),
                 ("history", "↺", "Historial / Deshacer"), ("update", "⟳", "Actualizaciones"), ("license", "★", "Licencia")]),
 ]
@@ -153,13 +154,6 @@ class App(tk.Tk):
         spark = SparkField(side, bg=SIDE, n=14)
         spark.configure(height=30)
         spark.pack(fill="x")
-        self.nav = {}
-        for title, items in SECTIONS:
-            tk.Label(side, text=title, font=F(8, True), fg=MUTED, bg=SIDE, anchor="w").pack(fill="x", padx=20, pady=(6, 0))
-            for key, icon, text in items:
-                n = NavItem(side, icon, text, lambda k=key: self.show(k))
-                n.pack(fill="x")
-                self.nav[key] = n
         live = tk.Frame(side, bg=SIDE)
         live.pack(side="bottom", fill="x", padx=18, pady=(0, 6))
         self.live_lbl = tk.Label(live, text="●  EN VIVO", font=F(8, True), fg=MUTED, bg=SIDE, anchor="w")
@@ -169,6 +163,15 @@ class App(tk.Tk):
         self.bar_cpu.pack(pady=1)
         self.bar_ram.pack(pady=1)
         self._tick_live()
+        navhost = ScrollFrame(side, bg=SIDE)
+        navhost.pack(fill="both", expand=True)
+        self.nav = {}
+        for title, items in SECTIONS:
+            tk.Label(navhost.inner, text=title, font=F(8, True), fg=MUTED, bg=SIDE, anchor="w").pack(fill="x", padx=20, pady=(6, 0))
+            for key, icon, text in items:
+                n = NavItem(navhost.inner, icon, text, lambda k=key: self.show(k))
+                n.pack(fill="x")
+                self.nav[key] = n
 
         self.statusbar = tk.Label(self, text="Listo", font=F(9), fg=MUTED, bg=SIDE, anchor="w", padx=14, pady=5)
         self.statusbar.pack(fill="x", side="bottom")
@@ -194,6 +197,10 @@ class App(tk.Tk):
         from page_optimize import OptimizePage
         from page_tweaks import TweaksPage
         from page_update import UpdatePage
+        from page_arranque import ArranquePage
+        from page_cuello import CuelloPage
+        from page_puntuacion import ScorePage
+        from page_shaders import ShadersPage
         self.pages = {
             "home": HomePage(self.content, self),
             "analysis": AnalysisPage(self.content, self),
@@ -214,6 +221,10 @@ class App(tk.Tk):
             "health": HealthPage(self.content, self),
             "debloat": DebloatPage(self.content, self),
             "update": UpdatePage(self.content, self),
+            "arranque": ArranquePage(self.content, self),
+            "cuello": CuelloPage(self.content, self),
+            "score": ScorePage(self.content, self),
+            "shaders": ShadersPage(self.content, self),
             "license": LicensePage(self.content, self),
             "locked": LockedPage(self.content, self),
         }
@@ -438,6 +449,22 @@ class App(tk.Tk):
             if not PRO_THEME:
                 self.status("PRO activado. Cierra y abre HellOP para verlo en morado.")
         ov = Bienvenida(self, logo, fin, bg0=BG, on_launch=lanzar)
+
+    def restart_now(self):
+        """Reinicia HellOP (por ejemplo, para aplicar un color nuevo)."""
+        if DEMO or not IS_WIN:
+            self.status("Reinicio no disponible en este modo: cierra y abre HellOP.")
+            return
+        try:
+            self.pages["games"].shutdown()
+            self.pages["monitor"].shutdown()
+            self.pages["booster"].shutdown()
+        except Exception:  # noqa: BLE001
+            pass
+        if relaunch_as_admin():
+            self.destroy()
+            sys.exit(0)
+        self.status("No pude reiniciar solo: cierra y abre HellOP.")
 
     def restart_admin(self):
         if relaunch_as_admin():

@@ -21,16 +21,54 @@ def _es_pro():
 
 PRO_THEME = _es_pro()
 
-if PRO_THEME:      # PRO: morado
-    BG, SIDE, PANEL, PANEL2, BORDER = "#08040f", "#0e0818", "#150d24", "#1f1336", "#43296f"
-    FG, MUTED = "#f3eaff", "#a894c8"
-    CYAN, PINK, VIOLET = "#a855f7", "#e879f9", "#7c5cff"
+# colores del tema PRO que se pueden elegir: (BG, SIDE, PANEL, PANEL2, BORDER, FG, MUTED, principal, secundario, terciario)
+ACENTOS = {
+    "morado": ("#08040f", "#0e0818", "#150d24", "#1f1336", "#43296f", "#f3eaff", "#a894c8", "#a855f7", "#e879f9", "#7c5cff"),
+    "azul":   ("#040a14", "#07101e", "#0c1830", "#132446", "#254a80", "#eaf3ff", "#8fa8c8", "#3b9eff", "#38e1ff", "#6c7bff"),
+    "rojo":   ("#0f0405", "#190709", "#240c0f", "#361318", "#6f2a30", "#ffecee", "#c89499", "#ff3b5c", "#ff8a3d", "#ff6b9a"),
+    "dorado": ("#0d0902", "#171004", "#211707", "#33240b", "#6e5320", "#fff6e0", "#c8b48a", "#ffc233", "#ffe08a", "#ff9f1c"),
+}
+
+
+def acento_actual():
+    """Color elegido por el usuario PRO (tema.json). HELLOP_ACCENT lo fuerza en pruebas."""
+    nombre = os.environ.get("HELLOP_ACCENT", "").strip().lower()
+    if nombre not in ACENTOS:
+        try:
+            import json
+            from util import APP_DIR
+            nombre = str(json.loads((APP_DIR / "tema.json").read_text("utf-8")).get("acento", "")).lower()
+        except Exception:  # noqa: BLE001
+            nombre = ""
+    return nombre if nombre in ACENTOS else "morado"
+
+
+def guardar_acento(nombre):
+    import json
+    from util import APP_DIR
+    if nombre not in ACENTOS:
+        raise ValueError("Color desconocido")
+    APP_DIR.mkdir(parents=True, exist_ok=True)
+    (APP_DIR / "tema.json").write_text(json.dumps({"acento": nombre}), "utf-8")
+
+
+def _hue(c):
+    import colorsys
+    r, g, b = int(c[1:3], 16) / 255, int(c[3:5], 16) / 255, int(c[5:7], 16) / 255
+    return colorsys.rgb_to_hsv(r, g, b)[0]
+
+
+ACENTO = acento_actual() if PRO_THEME else "verde"
+if PRO_THEME:      # PRO: el color que haya elegido (morado por defecto)
+    BG, SIDE, PANEL, PANEL2, BORDER, FG, MUTED, CYAN, PINK, VIOLET = ACENTOS[ACENTO]
     GREEN = "#5bff9a"            # el verde queda solo para «correcto / ok»
+    HUE_SHIFT = (_hue(CYAN) - 0.42) % 1.0       # cuánto girar el tono del logo (verde ≈ 0,42)
 else:              # GRATIS: verde
     BG, SIDE, PANEL, PANEL2, BORDER = "#040a07", "#07120c", "#0c1a12", "#132a1d", "#1f4a32"
     FG, MUTED = "#eafff2", "#8fb8a0"
     CYAN, PINK, VIOLET = "#19e68c", "#b6ff3c", "#00c2a8"
     GREEN = "#5bff9a"
+    HUE_SHIFT = 0.0
 YELLOW = "#ffd23f"
 RED = "#ff4d5e"
 
@@ -552,7 +590,7 @@ def themed_logo(img, force=False):
                 while x < w and not img.transparency_get(x, y):
                     r, g, b = img.get(x, y)
                     hh, ss, vv = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
-                    r2, g2, b2 = colorsys.hsv_to_rgb((hh + 0.33) % 1.0, ss, vv)
+                    r2, g2, b2 = colorsys.hsv_to_rgb((hh + (HUE_SHIFT if PRO_THEME else 0.33)) % 1.0, ss, vv)
                     run.append("#%02x%02x%02x" % (int(r2 * 255), int(g2 * 255), int(b2 * 255)))
                     x += 1
                 out.put("{" + " ".join(run) + "}", to=(x0, y))

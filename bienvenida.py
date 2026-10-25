@@ -66,8 +66,12 @@ def textos():
 
 
 # Colores propios (la app sigue en verde mientras suena la animación)
+import widgets
+
 NEGRO, PUR, MAG, IND, BLANCO, VERDE = "#07030f", "#a855f7", "#e879f9", "#7c5cff", "#ffffff", "#19e68c"
-PURO = "#2a1052"          # morado oscuro del interior de la onda
+if widgets.PRO_THEME:     # si ya eres PRO, la animación usa el color que elegiste
+    NEGRO, PUR, MAG, IND = widgets.BG, widgets.CYAN, widgets.PINK, widgets.VIOLET
+PURO = mix(NEGRO, PUR, 0.28)          # color oscuro del interior de la onda
 DURACION = 8.0
 LANZAR = 1.0          # a los 1,0 s se empieza a abrir en segundo plano la app morada
 

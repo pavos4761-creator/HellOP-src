@@ -1,8 +1,12 @@
 """Página «Licencia»: activar tu clave y, si eres el creador, generar claves para otras personas."""
 import sys
 import tkinter as tk
+from tkinter import filedialog
 
+import actions
+import config_io
 import licencia as lic
+import widgets
 from util import DEMO
 from widgets import BORDER
 from widgets import (BG, CYAN, F, FG, GREEN, MUTED, PANEL, PANEL2, PINK, RED, YELLOW, Card, NeonButton, ScrollFrame, WrapLabel,
@@ -71,8 +75,124 @@ class LicensePage(tk.Frame):
                   font=F(10), fg=FG).pack(fill="x")
         WrapLabel(inc.body, text="GRATIS incluye solo: análisis de tu PC, limpieza, monitor, historial y actualizaciones.", font=F(9), fg=MUTED).pack(fill="x", pady=(6, 0))
 
+        if lic.is_pro():
+            self.build_color(root)
+            self.build_config(root)
         if lic.owner_secret() or DEMO:
             self.build_generator(root)
+
+    # ------------------------------------------------------------------
+    def build_color(self, root):
+        c = Card(root, accent=CYAN, title="Tu color PRO")
+        c.pack(fill="x", pady=(0, 12))
+        WrapLabel(c.body, text="Elige el color de HellOP. Se aplica al reiniciar la app.", font=F(9), fg=MUTED).pack(fill="x", pady=(0, 8))
+        row = tk.Frame(c.body, bg=PANEL)
+        row.pack(fill="x")
+        self.cur_color = widgets.ACENTO
+        for name, pal in widgets.ACENTOS.items():
+            NeonButton(row, name.capitalize() + ("  ✓" if name == self.cur_color else ""), lambda n=name: self.pick_color(n), color=pal[7],
+                       filled=(name == self.cur_color), padx=18, pady=7, font=F(10, True)).pack(side="left", padx=(0, 8))
+        self.cmsg = tk.Label(c.body, text="", font=F(10, True), fg=MUTED, bg=PANEL, anchor="w")
+        self.cmsg.pack(fill="x", pady=(8, 0))
+        self.crow = tk.Frame(c.body, bg=PANEL)
+        self.crow.pack(fill="x")
+
+    def pick_color(self, name):
+        try:
+            widgets.guardar_acento(name)
+        except (OSError, ValueError) as e:
+            self.cmsg.config(text=f"✗ {e}", fg=RED)
+            return
+        self.cmsg.config(text=f"✓ Color «{name}» guardado. Reinicia para verlo.", fg=GREEN)
+        for w in self.crow.winfo_children():
+            w.destroy()
+        NeonButton(self.crow, "↻  Reiniciar ahora", self.app.restart_now, color=CYAN, filled=True, padx=16, pady=6,
+                   font=F(10, True)).pack(side="left", pady=(8, 0))
+
+    # ------------------------------------------------------------------
+    def build_config(self, root):
+        c = Card(root, accent=PINK, title="Mi configuración (exportar / importar)")
+        c.pack(fill="x", pady=(0, 12))
+        WrapLabel(c.body, text="Guarda tus ajustes en un archivo para llevarlos a otro PC o pasárselos a un amigo. No incluye tu clave, "
+                               "tu ID de PC ni rutas de tu equipo. Al importar no se aplica nada solo: tú marcas qué quieres.",
+                  font=F(9), fg=MUTED).pack(fill="x", pady=(0, 8))
+        row = tk.Frame(c.body, bg=PANEL)
+        row.pack(fill="x")
+        NeonButton(row, "⇪  Exportar a archivo…", self.export_cfg, color=PINK, filled=True, padx=18, pady=7, font=F(10, True)).pack(side="left")
+        NeonButton(row, "⇩  Importar archivo…", self.import_cfg, color=CYAN, padx=18, pady=7, font=F(10, True)).pack(side="left", padx=8)
+        self.kmsg = tk.Label(c.body, text="", font=F(10, True), fg=MUTED, bg=PANEL, anchor="w", justify="left")
+        self.kmsg.pack(fill="x", pady=(8, 0))
+        self.kbox = tk.Frame(c.body, bg=PANEL)
+        self.kbox.pack(fill="x")
+
+    def export_cfg(self):
+        path = filedialog.asksaveasfilename(title="Guardar mi configuración", defaultextension=".json", initialfile="mi-configuracion-hellop.json",
+                                            filetypes=[("Configuración de HellOP", "*.json")])
+        if not path:
+            return
+        try:
+            nt, ng = config_io.export(path)
+        except OSError as e:
+            self.kmsg.config(text=f"✗ No pude guardar: {e}", fg=RED)
+            return
+        self.kmsg.config(text=f"✓ Guardado: {nt} tweaks y {ng} juegos.", fg=GREEN)
+
+    def import_cfg(self):
+        path = filedialog.askopenfilename(title="Abrir una configuración de HellOP", filetypes=[("Configuración de HellOP", "*.json")])
+        if not path:
+            return
+        try:
+            cfg = config_io.read(path)
+        except (ValueError, OSError) as e:
+            self.kmsg.config(text=f"✗ {e}", fg=RED)
+            return
+        self.kmsg.config(text="Mirando qué se puede aplicar en este PC…", fg=CYAN)
+        self.app.bg(lambda: config_io.applicable_tweaks(cfg), lambda acts: self._show_import(cfg, acts),
+                    lambda e: self.kmsg.config(text=f"✗ {e}", fg=RED))
+
+    def _show_import(self, cfg, acts):
+        for w in self.kbox.winfo_children():
+            w.destroy()
+        self.kmsg.config(text=f"Configuración de HellOP v{cfg['version']} ({cfg['created'] or 'sin fecha'}). Marca lo que quieras aplicar:", fg=FG)
+        from widgets import checkbox
+        self.k_t = []
+        for a in acts:
+            v = tk.BooleanVar(value=False)
+            self.k_t.append((a, v))
+            checkbox(self.kbox, f"{a.title}   [riesgo {a.risk}]", v, bg=PANEL, font=F(9)).pack(anchor="w", pady=1)
+        skipped = len(cfg["tweaks"]) - len(acts)
+        if skipped > 0:
+            WrapLabel(self.kbox, text=f"{skipped} tweak(s) no se ofrecen: ya están aplicados o no corresponden a este equipo.", font=F(9), fg=MUTED).pack(fill="x")
+        self.k_g = tk.BooleanVar(value=False)
+        if cfg["games"]:
+            checkbox(self.kbox, f"Usar sus perfiles de juego ({len(cfg['games'])}; solo en los juegos que tú también tengas)", self.k_g, bg=PANEL, font=F(9)).pack(anchor="w", pady=1)
+        self.k_c = tk.BooleanVar(value=False)
+        if cfg["acento"]:
+            checkbox(self.kbox, f"Usar su color ({cfg['acento']})", self.k_c, bg=PANEL, font=F(9)).pack(anchor="w", pady=1)
+        NeonButton(self.kbox, "APLICAR LO MARCADO", lambda: self.apply_import(cfg), color=GREEN, filled=True, padx=18, pady=7,
+                   font=F(10, True)).pack(anchor="w", pady=(8, 0))
+
+    def apply_import(self, cfg):
+        chosen = [a for a, v in self.k_t if v.get()]
+        want_g, want_c = self.k_g.get(), self.k_c.get()
+
+        def work():
+            ok = fail = 0
+            for a in chosen:
+                r = actions.execute(a)
+                ok += r.ok
+                fail += (not r.ok)
+            g = config_io.apply_games(cfg) if want_g else (0, [])
+            if want_c and cfg["acento"]:
+                widgets.guardar_acento(cfg["acento"])
+            return ok, fail, g
+
+        def done(res):
+            ok, fail, (gn, missing) = res
+            parts = [f"{ok} tweaks aplicados"] + ([f"{fail} fallaron"] if fail else []) + ([f"perfiles en {gn} juegos"] if want_g else []) \
+                + (["color guardado: reinicia para verlo"] if want_c and cfg["acento"] else [])
+            self.kmsg.config(text="✓ " + " · ".join(parts), fg=GREEN if not fail else YELLOW)
+        self.app.bg(work, done, lambda e: self.kmsg.config(text=f"✗ {e}", fg=RED))
 
     # ------------------------------------------------------------------
     def build_generator(self, root):

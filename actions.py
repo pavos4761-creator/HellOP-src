@@ -157,7 +157,7 @@ def log_action(action, data):
     entries = load_log()
     entries.append({"id": int(time.time() * 1000) + random.randint(0, 999),
                     "ts": time.strftime("%Y-%m-%d %H:%M:%S"),
-                    "cls": type(action).__name__, "title": action.title,
+                    "cls": type(action).__name__, "aid": getattr(action, "id", ""), "title": action.title,
                     "reversible": action.reversible, "reboot": action.reboot,
                     "data": data, "undone": False})
     save_log(entries)
@@ -181,6 +181,8 @@ def _load_registry():
         import extreme  # noqa: F401
         import gameprofiles  # noqa: F401
         import hidden  # noqa: F401
+        import arranque  # noqa: F401
+        import shaders  # noqa: F401
     except Exception:  # noqa: BLE001
         pass
 

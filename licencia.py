@@ -25,7 +25,7 @@ VERSION = 1
 
 # Páginas GRATIS: todo lo demás necesita clave. (Cámbialo aquí cuando quieras mover algo entre GRATIS y PRO)
 FREE_PAGES = {"home", "analysis", "clean", "monitor", "history", "update", "license"}
-PRO_PAGES = {"optimize", "bench", "games", "booster", "diag", "fps", "gameprof", "hidden", "tweaks", "bios", "oc", "health", "debloat"}
+PRO_PAGES = {"optimize", "bench", "games", "booster", "diag", "fps", "gameprof", "hidden", "tweaks", "bios", "oc", "health", "debloat", "score", "arranque", "shaders", "cuello"}
 
 
 # --------------------------------------------------------------------------
