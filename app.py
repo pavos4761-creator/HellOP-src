@@ -33,89 +33,6 @@ SECTIONS = [
 PAGES = [item for _title, items in SECTIONS for item in items]
 
 
-class _CajaRedonda(tk.Canvas):
-    """Cuadro redondeado de la barra lateral (fondo suave del color de acento)."""
-    ALTO = 70
-
-    def __init__(self, parent, command):
-        super().__init__(parent, bg=SIDE, height=self.ALTO, highlightthickness=0, bd=0, cursor="hand2")
-        self.command, self.hov = command, False
-        self.bind("<Configure>", lambda e: self._draw())
-        self.bind("<Enter>", lambda e: self._h(True))
-        self.bind("<Leave>", lambda e: self._h(False))
-        self.bind("<Button-1>", lambda e: self.command())
-
-    def _h(self, on):
-        self.hov = on
-        self._draw()
-
-    def _contenido(self, w):
-        pass
-
-    def _col(self):
-        return CYAN
-
-    def _draw(self):
-        try:
-            self.delete("all")
-            w = max(40, self.winfo_width())
-            c = self._col()
-            round_rect(self, 1, 1, w - 1, self.ALTO - 1, 20, fill=mix(SIDE, c, 0.22 if self.hov else 0.14),
-                       outline=mix(SIDE, c, 0.55 if self.hov else 0.32))
-            self._contenido(w)
-        except tk.TclError:
-            pass
-
-
-class CajaLicencia(_CajaRedonda):
-    """«PRO ACTIVO · quedan N días» (o plan gratis / creador / caducada), con barra de días que quedan."""
-    ALTO = 76
-
-    def __init__(self, parent, command):
-        super().__init__(parent, command)
-        self.st = {"level": "free", "days": None}
-
-    def set(self, st):
-        self.st = st
-        self._draw()
-
-    def textos(self):
-        lv, d = self.st.get("level"), self.st.get("days")
-        if lv == "owner":
-            return "CREADOR", "Modo creador: sin límites", None
-        if lv == "pro":
-            return "PRO ACTIVO", ("Quedan %d %s" % (d, "día" if d == 1 else "días")), min(100.0, d / 30 * 100)
-        if lv == "expired":
-            return "CLAVE CADUCADA", "Pulsa para poner una nueva", 0
-        if lv == "invalid":
-            return "CLAVE NO VÁLIDA", "Pulsa para revisarla", 0
-        return "PLAN GRATIS", "Desbloquea todo con una clave", None
-
-    def _col(self):
-        return {"owner": PINK, "pro": CYAN, "expired": YELLOW, "invalid": RED}.get(self.st.get("level"), CYAN)
-
-    def _contenido(self, w):
-        t, sub, pct = self.textos()
-        c = self._col()
-        self.create_oval(16, 15, 24, 23, fill=c, outline="")
-        self.create_oval(13, 12, 27, 26, outline=mix(SIDE, c, 0.4))
-        self.create_text(34, 19, text=t, anchor="w", fill=c, font=F(9, True))
-        self.create_text(16, 40, text=sub, anchor="w", fill=FG, font=F(9))
-        by = 58
-        round_rect(self, 16, by, w - 16, by + 6, 3, fill=mix(SIDE, "#ffffff", 0.12), outline="")
-        if pct:
-            round_rect(self, 16, by, 16 + max(6, (w - 32) * pct / 100), by + 6, 3, fill=c, outline="")
-
-
-class CajaAsistente(_CajaRedonda):
-    ALTO = 68
-
-    def _contenido(self, w):
-        self.create_text(16, 17, text="Hazlo en 1 minuto", anchor="w", fill=FG, font=F(10, True))
-        self.create_text(16, 36, text="Te guía paso a paso.", anchor="w", fill=MUTED, font=F(8))
-        self.create_text(16, 54, text="✧  Abrir asistente", anchor="w", fill=CYAN, font=F(9, True))
-
-
 class NavItem(tk.Canvas):
     """Entrada del menú: el fondo y el color se funden suavemente, la barra lateral «crece» al activarse
     y puede llevar un punto que late (p. ej. modo automático activo)."""
@@ -246,13 +163,6 @@ class App(tk.Tk):
         self.bar_cpu.pack(pady=1)
         self.bar_ram.pack(pady=1)
         self._tick_live()
-        self.cajas = tk.Frame(side, bg=SIDE)
-        self.cajas.pack(side="bottom", fill="x", padx=10, pady=(4, 8))
-        self.caja_lic = CajaLicencia(self.cajas, lambda: self.show("license"))
-        self.caja_lic.pack(fill="x", pady=(0, 6))
-        self.caja_lic.set(licencia.status())
-        self.caja_asist = CajaAsistente(self.cajas, self.abrir_asistente)
-        self.caja_asist.pack(fill="x")
         navhost = ScrollFrame(side, bg=SIDE)
         navhost.pack(fill="both", expand=True)
         self.nav = {}
@@ -488,8 +398,9 @@ class App(tk.Tk):
         self.lic_badge.bind("<Button-1>", lambda e: self.show("license"))
         for k, n in self.nav.items():
             n.set_pro(licencia.locked(k))
-        if getattr(self, "caja_lic", None):
-            self.caja_lic.set(st)
+        home = getattr(self, "pages", {}).get("home")
+        if home is not None and getattr(home, "caja_lic", None):
+            home.caja_lic.set(st)
 
     def mark_update_available(self, latest):
         """Muestra en la cabecera un botón verde cuando hay una versión nueva."""

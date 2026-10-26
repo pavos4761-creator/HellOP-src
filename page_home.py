@@ -136,7 +136,13 @@ class HomePage(tk.Frame):
         tk.Label(top, text=self._saludo(), font=F(22, True), fg=FG, bg=BG).pack(side="left")
         ok = is_admin() or DEMO
         badge(top, "● Administrador" if ok else "● Sin administrador", GREEN if ok else RED, bg=BG).pack(side="left", padx=14, pady=(8, 0))
-        NeonButton(top, "✧  Asistente", app.abrir_asistente, color=MUTED, font=F(10, True), padx=16, pady=7).pack(side="right")
+        import licencia
+        from cajas import CajaAsistente, CajaLicencia
+        self.caja_asist = CajaAsistente(top, app.abrir_asistente, fondo=BG, ancho=190)
+        self.caja_asist.pack(side="right")
+        self.caja_lic = CajaLicencia(top, lambda: app.show("license"), fondo=BG, ancho=230)
+        self.caja_lic.pack(side="right", padx=(0, 10))
+        self.caja_lic.set(licencia.status())
 
         # ---- tarjeta principal: anillo + mensaje + datos en vivo ----
         fill = mix(PANEL, CYAN, 0.07)
