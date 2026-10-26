@@ -605,7 +605,7 @@ class PillBar(tk.Canvas):
     """Barra fina con extremos redondeados (0-100 %)."""
 
     def __init__(self, parent, color=CYAN, pct=0.0, bg=None, height=7):
-        super().__init__(parent, bg=bg or _bg_of(parent), height=height, highlightthickness=0, bd=0)
+        super().__init__(parent, bg=bg or _bg_of(parent), width=10, height=height, highlightthickness=0, bd=0)
         self.color, self.pct, self._h = color, pct, height
         self.bind("<Configure>", lambda e: self._draw())
 

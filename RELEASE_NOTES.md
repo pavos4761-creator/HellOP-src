@@ -1,3 +1,3 @@
-• Diseño nuevo de «centro de mando»: tarjetas e interfaz más redondeadas en toda la app.
-• Inicio renovado: saludo y nota de tu PC, 4 datos en vivo (procesos, RAM libre, temperatura CPU, espacio libre), ajustes seguros recomendados con botón «Aplicar», rango y avisos.
-• Barra lateral: cuadro de licencia («PRO ACTIVO · quedan N días», plan gratis, creador o caducada) y cuadro «Abrir asistente».
+• Inicio con diseño «neón cristal»: anillo con la nota de tu PC y su medalla, datos en vivo (procesador, RAM, disco libre, temperatura) y 4 accesos grandes con color.
+• Tarjetas y botones más redondeados en toda la app.
+• Barra lateral: cuadro de licencia («PRO ACTIVO · quedan N días») y cuadro «Abrir asistente».

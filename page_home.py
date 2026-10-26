@@ -1,30 +1,125 @@
-"""Página «Inicio»: panel de bienvenida con accesos rápidos y el estado de HellOP de un vistazo."""
+"""Página «Inicio» (diseño «neón cristal»): saludo, anillo con la nota de tu PC, datos en vivo y accesos rápidos."""
+import math
 import time
 import tkinter as tk
 
 import actions
 import games
-import logo_data
 import updater
 import version
 from util import DEMO, is_admin
-from widgets import badge, themed_logo
 from widgets import (BG, BORDER, CYAN, F, FG, GREEN, MUTED, PANEL, PINK, RED, VIOLET, YELLOW, Card, NeonButton, PillBar,
-                     ScrollFrame, SparkField, WrapLabel, mix)
+                     ScrollFrame, WrapLabel, badge, mix, round_rect)
 
-TILES = [
+MAS = [
     ("analysis", "◎", "Analizar mi PC", "Procesador, placa, RAM, gráfica y discos, con consejos para tu equipo.", CYAN),
-    ("optimize", "⚡", "Optimizar", "Gaming, Trabajo, Extremo o Limpieza profunda. Tú decides cada ajuste.", PINK),
-    ("games", "▣", "Mis juegos", "Biblioteca y modo automático: se optimiza solo al abrir tu juego.", GREEN),
-    ("fps", "▤", "FPS reales", "Mide FPS, 1 % low y tirones de tu juego y comprueba con números si un cambio ayudó.", CYAN),
     ("diag", "◈", "Diagnóstico", "Mide mientras juegas y te dice qué te frena y qué causa los tirones.", VIOLET),
     ("gameprof", "✧", "Ajustes de juego", "Baja sombras y efectos en Fortnite, VALORANT, LoL, Minecraft y CS2 con copia y deshacer.", PINK),
-    ("tweaks", "☄", "Tweaks", "Ajustes de latencia y rendimiento en tres niveles de riesgo: tú eliges cuáles.", YELLOW),
     ("health", "♥", "Salud del PC", "Temperaturas, drivers y ping: lo que frena tus FPS sin que lo sepas.", GREEN),
     ("score", "★", "Puntuación HellOP", "La nota de tu PC con medalla y logros: te dice cuánto te falta para el oro.", YELLOW),
     ("cuello", "⬆", "Qué pieza mejorar", "Detecta qué te frena de verdad y te dice si te compensa gastar dinero.", PINK),
     ("bios", "◉", "BIOS y overclock", "Lo que no se puede cambiar desde Windows, explicado paso a paso.", YELLOW),
 ]
+
+
+
+GRANDES = [   # (página, símbolo, título, texto, color 1, color 2)
+    ("optimize", "⚡", "Optimizar", "Gaming, Trabajo o Extremo. Tú decides cada ajuste.", CYAN, PINK),
+    ("games", "▣", "Mis juegos", "Se optimiza solo al abrir tu juego.", "#3b9eff", "#38e1ff"),
+    ("fps", "▤", "FPS reales", "Mide FPS y tirones y comprueba si un cambio ayudó.", "#ff8a3d", "#ff3b5c"),
+    ("tweaks", "☄", "Tweaks", "Ajustes de latencia en tres niveles de riesgo.", "#ffc233", "#ff9f1c"),
+]
+
+
+class Anillo(tk.Canvas):
+    """Anillo con degradado que se llena hasta la nota (0-100); en el centro, la nota y la medalla."""
+    D = 170
+
+    def __init__(self, parent, bg):
+        super().__init__(parent, width=self.D, height=self.D, bg=bg, highlightthickness=0, bd=0)
+        self.bg0, self.valor, self.mostrado, self.medalla, self._job = bg, 0, 0.0, "", None
+        self._draw()
+
+    def poner(self, valor, medalla):
+        self.valor, self.medalla = valor, medalla
+        if self._job is None:
+            self._job = self.after(16, self._anima)
+
+    def _anima(self):
+        self._job = None
+        try:
+            self.mostrado += (self.valor - self.mostrado) * 0.12
+            if abs(self.valor - self.mostrado) < 0.4:
+                self.mostrado = float(self.valor)
+            else:
+                self._job = self.after(16, self._anima)
+            self._draw()
+        except tk.TclError:
+            pass
+
+    def _draw(self):
+        self.delete("all")
+        d, g, r = self.D, 13, self.D / 2 - 14
+        c = d / 2
+        self.create_oval(c - r, c - r, c + r, c + r, outline=mix(self.bg0, "#ffffff", 0.09), width=g)
+        n = int(self.mostrado / 100 * 72)
+        for i in range(n):
+            col = mix(CYAN, PINK, i / 72)
+            self.create_arc(c - r, c - r, c + r, c + r, start=90 - i * 5 - 5.6, extent=5.6, style="arc", outline=col, width=g)
+        if n:
+            for ang, col in ((90, CYAN), (90 - n * 5, mix(CYAN, PINK, n / 72))):
+                x, y = c + r * math.cos(math.radians(ang)), c - r * math.sin(math.radians(ang))
+                self.create_oval(x - g / 2, y - g / 2, x + g / 2, y + g / 2, fill=col, outline="")
+        shown = round(self.mostrado) if self.medalla else "—"
+        self.create_text(c, c - 6, text=str(shown), fill=FG, font=F(32, True))
+        self.create_text(c, c + 26, text=self.medalla.upper(), fill=CYAN, font=F(9, True))
+
+
+class Tarjeta(tk.Canvas):
+    """Tarjeta grande clicable: icono con color, título y texto. Se ilumina al pasar el ratón."""
+    H = 150
+
+    def __init__(self, parent, simbolo, titulo, texto, c1, c2, command):
+        super().__init__(parent, bg=BG, height=self.H, highlightthickness=0, bd=0, cursor="hand2")
+        self.d = (simbolo, titulo, texto, c1, c2)
+        self.hov = False
+        self.bind("<Configure>", lambda e: self._draw())
+        self.bind("<Enter>", lambda e: self._h(True))
+        self.bind("<Leave>", lambda e: self._h(False))
+        self.bind("<Button-1>", lambda e: command())
+
+    def _h(self, on):
+        self.hov = on
+        self._draw()
+
+    def _draw(self):
+        try:
+            self.delete("all")
+            w = max(80, self.winfo_width())
+            simbolo, titulo, texto, c1, c2 = self.d
+            col = mix(c1, c2, 0.5)
+            round_rect(self, 1, 1, w - 1, self.H - 1, 24, fill=mix(PANEL, col, 0.12 if self.hov else 0.0),
+                       outline=mix(BORDER, col, 0.7 if self.hov else 0.0))
+            round_rect(self, 14, 14, 62, 62, 17, fill=mix(PANEL, col, 0.28), outline="")           # brillo
+            round_rect(self, 18, 18, 58, 58, 14, fill=col, outline="")
+            round_rect(self, 18, 18, 58, 38, 12, fill=mix(c1, "#ffffff", 0.18), outline="")         # reflejo
+            self.create_text(38, 38, text=simbolo, fill="#ffffff", font=F(16, True))
+            self.create_text(18, 82, text=titulo, anchor="w", fill=FG, font=F(12, True))
+            fnt = F(9)
+            import tkinter.font as tkfont
+            f = tkfont.Font(font=fnt)
+            lineas, linea = [], ""
+            for p in texto.split():
+                if f.measure((linea + " " + p).strip()) > w - 36:
+                    lineas.append(linea)
+                    linea = p
+                else:
+                    linea = (linea + " " + p).strip()
+            lineas.append(linea)
+            for i, l in enumerate(lineas[:3]):
+                self.create_text(18, 104 + i * 15, text=l, anchor="w", fill=MUTED, font=fnt)
+        except tk.TclError:
+            pass
 
 
 class HomePage(tk.Frame):
@@ -35,80 +130,63 @@ class HomePage(tk.Frame):
         self.scroll.pack(fill="both", expand=True, padx=(26, 10), pady=(18, 10))
         root = self.scroll.inner
 
-        # ---- cabecera estilo «centro de mando»: saludo, nota de tu PC y dos botones ----
+        # ---- saludo, estado de administrador y asistente ----
         top = tk.Frame(root, bg=BG)
         top.pack(fill="x", pady=(0, 14))
-        izq = tk.Frame(top, bg=BG)
-        izq.pack(side="left")
-        tk.Label(izq, text=self._saludo(), font=F(10), fg=MUTED, bg=BG, anchor="w").pack(anchor="w")
-        self.lbl_nota = tk.Label(izq, text="Tu PC: midiendo…", font=F(24, True), fg=FG, bg=BG, anchor="w")
-        self.lbl_nota.pack(anchor="w")
-        der = tk.Frame(top, bg=BG)
-        der.pack(side="right")
-        NeonButton(der, "Ver informe", lambda: app.show("score"), color=MUTED, font=F(10, True), padx=18, pady=8).pack(side="left", padx=(0, 8))
-        NeonButton(der, "Optimizar ahora", lambda: app.show("optimize"), color=CYAN, filled=True, font=F(10, True), padx=20, pady=8).pack(side="left")
+        tk.Label(top, text=self._saludo(), font=F(22, True), fg=FG, bg=BG).pack(side="left")
+        ok = is_admin() or DEMO
+        badge(top, "● Administrador" if ok else "● Sin administrador", GREEN if ok else RED, bg=BG).pack(side="left", padx=14, pady=(8, 0))
+        NeonButton(top, "✧  Asistente", app.abrir_asistente, color=MUTED, font=F(10, True), padx=16, pady=7).pack(side="right")
 
-        # ---- 4 datos en vivo ----
-        kp = tk.Frame(root, bg=BG)
-        kp.pack(fill="x", pady=(0, 14))
+        # ---- tarjeta principal: anillo + mensaje + datos en vivo ----
+        fill = mix(PANEL, CYAN, 0.07)
+        hero = Card(root, strip=False, radius=30, pad=22, fill=fill, line=mix(BORDER, CYAN, 0.65))
+        hero.pack(fill="x", pady=(0, 14))
+        fila = tk.Frame(hero.body, bg=fill)
+        fila.pack(fill="x")
+        self.anillo = Anillo(fila, fill)
+        self.anillo.pack(side="left", padx=(4, 24))
+        datos = tk.Frame(fila, bg=fill)
+        datos.pack(side="right", padx=(20, 4), anchor="center")
+        self.stat = {}
+        for key, label in (("cpu", "Procesador"), ("ram", "Memoria RAM"), ("disk", "Disco libre"), ("temp", "Temperatura")):
+            f = tk.Frame(datos, bg=fill)
+            f.pack(fill="x", pady=5)
+            r = tk.Frame(f, bg=fill)
+            r.pack(fill="x")
+            tk.Label(r, text=label, font=F(9, True), fg=MUTED, bg=fill).pack(side="left")
+            v = tk.Label(r, text="—", font=F(9, True), fg=FG, bg=fill)
+            v.pack(side="right")
+            bar = PillBar(f, color=CYAN, bg=fill, height=6)
+            bar.pack(fill="x", pady=(4, 0))
+            self.stat[key] = (v, bar)
+        tk.Frame(datos, bg=fill, width=210, height=1).pack()
+
+        centro = tk.Frame(fila, bg=fill)
+        centro.pack(side="left", fill="x", expand=True)
+        tk.Label(centro, text="PUNTUACIÓN HELLOP", font=F(9, True), fg=CYAN, bg=fill, anchor="w").pack(fill="x")
+        self.lbl_nota = tk.Label(centro, text="Midiendo tu PC…", font=F(20, True), fg=FG, bg=fill, anchor="w", justify="left")
+        self.lbl_nota.pack(fill="x", pady=(4, 0))
+        self.lbl_desc = WrapLabel(centro, text="Esto tarda unos segundos: miro tu monitor, la RAM, el arranque y el espacio.", bg=fill, font=F(10), fg=MUTED)
+        self.lbl_desc.pack(fill="x", pady=(6, 12))
+        bt = tk.Frame(centro, bg=fill)
+        bt.pack(anchor="w")
+        NeonButton(bt, "Mejorar ahora", lambda: app.show("optimize"), color=CYAN, filled=True, font=F(11, True), padx=22, pady=9).pack(side="left")
+        NeonButton(bt, "Ver qué me falta", lambda: app.show("score"), color=MUTED, font=F(11, True), padx=18, pady=9).pack(side="left", padx=10)
+        # ---- 4 accesos grandes ----
+        gr = tk.Frame(root, bg=BG)
+        gr.pack(fill="x", pady=(0, 18))
         for c in range(4):
-            kp.columnconfigure(c, weight=1, uniform="k")
-        self.kpi = {}
-        for i, (key, label, color) in enumerate((("proc", "Procesos en segundo plano", CYAN), ("ram", "RAM libre", PINK),
-                                                 ("temp", "Temperatura CPU", YELLOW), ("disk", "Espacio libre (peor disco)", VIOLET))):
-            c = Card(kp, strip=False, radius=20, pad=14, fill=PANEL)
-            c.grid(row=0, column=i, sticky="nsew", padx=(0, 10) if i < 3 else 0)
-            tk.Label(c.body, text=label, font=F(9), fg=MUTED, bg=PANEL, anchor="w").pack(fill="x")
-            v = tk.Label(c.body, text="—", font=F(18, True), fg=FG, bg=PANEL, anchor="w")
-            v.pack(fill="x", pady=(2, 6))
-            bar = PillBar(c.body, color=color, bg=PANEL)
-            bar.pack(fill="x")
-            self.kpi[key] = (v, bar)
+            gr.columnconfigure(c, weight=1, uniform="g")
+        for i, (key, sim, tit, txt, c1, c2) in enumerate(GRANDES):
+            Tarjeta(gr, sim, tit, txt, c1, c2, lambda k=key: app.show(k)).grid(row=0, column=i, sticky="nsew", padx=(0, 12) if i < 3 else 0)
 
-        # ---- recomendado + rango y avisos ----
-        mid = tk.Frame(root, bg=BG)
-        mid.pack(fill="x", pady=(0, 14))
-        mid.columnconfigure(0, weight=3, uniform="m")
-        mid.columnconfigure(1, weight=2, uniform="m")
-        self.rec = Card(mid, strip=False, radius=24, pad=16)
-        self.rec.grid(row=0, column=0, sticky="nsew", padx=(0, 12))
-        cab = tk.Frame(self.rec.body, bg=PANEL)
-        cab.pack(fill="x")
-        tk.Label(cab, text="Recomendado para ti", font=F(12, True), fg=FG, bg=PANEL).pack(side="left")
-        ver = tk.Label(cab, text="Ver todo", font=F(9, True), fg=CYAN, bg=PANEL, cursor="hand2")
-        ver.pack(side="right")
-        ver.bind("<Button-1>", lambda e: app.show("tweaks"))
-        self.rec_list = tk.Frame(self.rec.body, bg=PANEL)
-        self.rec_list.pack(fill="x", pady=(8, 0))
-        self.rec_msg = tk.Label(self.rec_list, text="Buscando ajustes seguros para tu equipo…", font=F(10), fg=MUTED, bg=PANEL, anchor="w")
-        self.rec_msg.pack(fill="x", pady=6)
-        der2 = tk.Frame(mid, bg=BG)
-        der2.grid(row=0, column=1, sticky="nsew")
-        self.rango = Card(der2, strip=False, radius=24, pad=16, fill=mix(PANEL, CYAN, 0.16), line=mix(BORDER, CYAN, 0.5))
-        self.rango.pack(fill="x", pady=(0, 12))
-        rf = mix(PANEL, CYAN, 0.16)
-        tk.Label(self.rango.body, text="RANGO", font=F(9, True), fg=CYAN, bg=rf, anchor="w").pack(fill="x")
-        self.lbl_rango = tk.Label(self.rango.body, text="—", font=F(26, True), fg=FG, bg=rf, anchor="w")
-        self.lbl_rango.pack(fill="x")
-        self.lbl_rango2 = WrapLabel(self.rango.body, text="Calculando tu puntuación…", font=F(9), fg=MUTED, bg=rf)
-        self.lbl_rango2.pack(fill="x", pady=(2, 8))
-        self.bar_rango = PillBar(self.rango.body, color=CYAN, bg=rf, height=8)
-        self.bar_rango.pack(fill="x")
-        self.avisos = Card(der2, strip=False, radius=24, pad=16)
-        self.avisos.pack(fill="x")
-        tk.Label(self.avisos.body, text="Avisos", font=F(12, True), fg=FG, bg=PANEL, anchor="w").pack(fill="x", pady=(0, 6))
-        self.av_list = tk.Frame(self.avisos.body, bg=PANEL)
-        self.av_list.pack(fill="x")
-        self._nota = None
-        self._recs_t = 0
-        self._cargando = set()
-
-        tk.Label(root, text="Qué quieres hacer", font=F(14, True), fg=FG, bg=BG, anchor="w").pack(fill="x", pady=(2, 8))
+        tk.Label(root, text="Más herramientas", font=F(13, True), fg=FG, bg=BG, anchor="w").pack(fill="x", pady=(0, 8))
         grid = tk.Frame(root, bg=BG)
         grid.pack(fill="x")
         for c in range(3):
             grid.columnconfigure(c, weight=1, uniform="t")
-        for i, (key, icon, name, desc, color) in enumerate(TILES):
+        for i, (key, icon, name, desc, color) in enumerate(MAS):
             c = Card(grid, accent=color)
             c.grid(row=i // 3, column=i % 3, sticky="nsew", padx=(0, 12) if i % 3 < 2 else 0, pady=(0, 12))
             tk.Label(c.body, text=icon, font=F(24, True), fg=color, bg=PANEL).pack(anchor="w")
@@ -129,6 +207,10 @@ class HomePage(tk.Frame):
             val = tk.Label(r, text="—", font=F(10, True), fg=FG, bg=PANEL, anchor="w")
             val.pack(side="left", fill="x", expand=True)
             self.rows[key] = (dot, val)
+        self._nota = None
+        self._cargando = set()
+        self._temp_ok = False
+        self._nota_t = 0
 
     # ------------------------------------------------------------------
     @staticmethod
@@ -137,30 +219,25 @@ class HomePage(tk.Frame):
         return "Buenos días" if 6 <= hr < 13 else "Buenas tardes" if 13 <= hr < 21 else "Buenas noches"
 
     def _live(self):
-        """Procesos, RAM y disco (rápidos). La temperatura y la nota van aparte, en segundo plano."""
         import psutil
         import sysinfo
-        vm = psutil.virtual_memory()
-        vols = [(f / t * 100, f) for _m, f, t in sysinfo.volumes() if t]
-        low = min(vols) if vols else None
-        return len(psutil.pids()), vm.available / 1024 ** 3, vm.percent, low
+        vols = [(f / t * 100) for _m, f, t in sysinfo.volumes() if t]
+        return psutil.cpu_percent(interval=0.3), psutil.virtual_memory().percent, (min(vols) if vols else None)
 
     def _live_done(self, r):
-        n, libre, usado, low = r
-        v, b = self.kpi["proc"]
-        v.config(text=str(n))
-        b.set(min(100, n / 3))
-        v, b = self.kpi["ram"]
-        v.config(text=f"{libre:.1f} GB".replace(".", ","))
-        b.set(100 - usado)
-        v, b = self.kpi["disk"]
-        if low:
-            v.config(text=f"{low[0]:.0f} %")
-            b.set(low[0], RED if low[0] < 15 else YELLOW if low[0] < 25 else VIOLET)
+        cpu, ram, low = r
+        for key, val in (("cpu", cpu), ("ram", ram)):
+            v, b = self.stat[key]
+            v.config(text=f"{val:.0f} %")
+            b.set(val, RED if val >= 90 else YELLOW if val >= 75 else CYAN)
+        if low is not None:
+            v, b = self.stat["disk"]
+            v.config(text=f"{low:.0f} %")
+            b.set(low, RED if low < 15 else YELLOW if low < 25 else CYAN)
 
     def _temp_done(self, rows):
         cpu = [x["value"] for x in rows if x.get("kind") == "cpu"]
-        v, b = self.kpi["temp"]
+        v, b = self.stat["temp"]
         if cpu:
             t = max(cpu)
             v.config(text=f"{t:.0f} °C")
@@ -173,71 +250,13 @@ class HomePage(tk.Frame):
         import puntuacion
         self._nota = res
         sc = res["score"]
-        nombre, col = res["medal"]
-        self.lbl_nota.config(text=f"Tu PC está al {sc} %")
-        self.lbl_rango.config(text=nombre)
+        nombre, _col = res["medal"]
         sig = next(((lim, n) for lim, n, _c in reversed(puntuacion.MEDALLAS) if lim > sc), None)
-        p = len(res["perdidos"])
-        if sig:
-            self.lbl_rango2.config(text=f"Te faltan {sig[0] - sc} puntos para {sig[1]}." + (f" Hay {p} cosas que mejorar." if p else ""))
-        else:
-            self.lbl_rango2.config(text="¡Máximo rango! Tu PC está al tope.")
-        self.bar_rango.set(sc)
-        for w in self.av_list.winfo_children():
-            w.destroy()
-        for titulo, pts, fix in res["perdidos"][:3]:
-            fila = tk.Frame(self.av_list, bg=PANEL, cursor="hand2" if fix else "")
-            fila.pack(fill="x", pady=2)
-            tk.Label(fila, text="▲", font=F(9), fg=YELLOW, bg=PANEL).pack(side="left", anchor="n")
-            WrapLabel(fila, text=f"{titulo} (−{pts})", font=F(9), fg=MUTED).pack(side="left", fill="x", expand=True, padx=(6, 0))
-            if fix and fix[0] == "goto":
-                fila.bind("<Button-1>", lambda e, d=fix[1]: self.app.show(d))
-        if not res["perdidos"]:
-            tk.Label(self.av_list, text="●  Todo en orden, no hay avisos.", font=F(9), fg=GREEN, bg=PANEL, anchor="w").pack(fill="x")
-
-    def _recs_done(self, acts):
-        self._cargando.discard("recs")
-        self._recs_t = time.time()
-        for w in self.rec_list.winfo_children():
-            w.destroy()
-        seguros = [a for a in acts if a.risk == "bajo" and a.reversible][:4]
-        if not seguros:
-            tk.Label(self.rec_list, text="●  No te queda ningún ajuste seguro por aplicar.", font=F(10), fg=GREEN, bg=PANEL,
-                     anchor="w").pack(fill="x", pady=6)
-            return
-        for a in seguros:
-            fila = tk.Frame(self.rec_list, bg=PANEL)
-            fila.pack(fill="x", pady=4)
-            tk.Label(fila, text="⚡", font=F(13, True), fg=CYAN, bg=PANEL, width=2).pack(side="left")
-            col = tk.Frame(fila, bg=PANEL)
-            col.pack(side="left", fill="x", expand=True, padx=(4, 8))
-            tk.Label(col, text=a.title, font=F(10, True), fg=FG, bg=PANEL, anchor="w").pack(fill="x")
-            WrapLabel(col, text=a.desc, font=F(8), fg=MUTED).pack(fill="x")
-            badge(fila, "SEGURO", GREEN, bg=PANEL).pack(side="left", padx=6)
-            NeonButton(fila, "Aplicar", lambda x=a, f=fila: self._aplicar(x, f), color=CYAN, padx=12, pady=4, font=F(9, True)).pack(side="left")
-
-    def _aplicar(self, a, fila):
-        if a.needs_admin and not (is_admin() or DEMO):
-            self.app.status("Ese ajuste necesita administrador: pulsa «Reabrir como administrador» arriba.")
-            return
-        for w in fila.winfo_children():
-            if isinstance(w, tk.Canvas):
-                w.destroy()
-        tk.Label(fila, text="Aplicando…", font=F(9), fg=CYAN, bg=PANEL).pack(side="left", padx=8)
-
-        def listo(r):
-            self.app.status(("✓ Aplicado: " if r.ok else "No se pudo: ") + a.title + ("" if r.ok else f" ({r.msg[:60]})") +
-                            ("  ·  se puede deshacer en el Historial" if r.ok else ""))
-            self._recs_t = 0
-            self._pedir_recs()
-        self.app.bg(lambda: actions.execute(a), listo, lambda e: self.app.status(f"Error: {e}"))
-
-    def _pedir_recs(self):
-        if "recs" in self._cargando:
-            return
-        self._cargando.add("recs")
-        import tweaks
-        self.app.bg(lambda: tweaks.collect(), self._recs_done, lambda e: (self._cargando.discard("recs"), self._recs_done([])))
+        self.anillo.poner(sc, nombre)
+        self.lbl_nota.config(text=f"Tu PC está al {sc} %." + (f"\nA {sig[0] - sc} puntos de {sig[1]}." if sig else "\n¡Máximo rango!"))
+        top = [t for t, _p, _f in res["perdidos"][:2]]
+        self.lbl_desc.config(text=("Lo que más te frena: " + "; ".join(top) + ". Se arregla en un par de minutos.") if top
+                             else "Todo está en orden. No hay nada que te frene ahora mismo.")
 
     def _set(self, key, text, color):
         dot, val = self.rows[key]
@@ -246,20 +265,18 @@ class HomePage(tk.Frame):
 
     def on_show(self):
         self.app.bg(self._live, self._live_done, lambda e: None)
-        if "temp" not in self._cargando and not getattr(self, "_temp_ok", False):
+        if not self._temp_ok and "temp" not in self._cargando:
             self._cargando.add("temp")
-            import sysinfo
             self._temp_ok = True
+            import sysinfo
             self.app.bg(sysinfo.read_temps, lambda r: (self._cargando.discard("temp"), self._temp_done(r)),
                         lambda e: (self._cargando.discard("temp"), self._temp_done([])))
-        if "nota" not in self._cargando and (self._nota is None or time.time() - getattr(self, "_nota_t", 0) > 600):
+        if "nota" not in self._cargando and (self._nota is None or time.time() - self._nota_t > 600):
             self._cargando.add("nota")
-            import puntuacion
             self._nota_t = time.time()
+            import puntuacion
             self.app.bg(lambda: puntuacion.calcular(), lambda r: (self._cargando.discard("nota"), self._nota_done(r)),
                         lambda e: self._cargando.discard("nota"))
-        if time.time() - self._recs_t > 600:
-            self._pedir_recs()
         w = self.app.pages["games"].watcher
         if w and w.running:
             self._set("auto", w.status()[0], GREEN)
