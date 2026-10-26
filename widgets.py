@@ -248,14 +248,15 @@ class Card(tk.Canvas):
     """Tarjeta con esquinas redondeadas, borde sutil y marca de color a la izquierda.
     El contenido va en `.body`."""
 
-    def __init__(self, parent, accent=CYAN, title=None, pad=14, radius=14):
+    def __init__(self, parent, accent=CYAN, title=None, pad=14, radius=22, strip=True, fill=None, line=None):
         super().__init__(parent, bg=_bg_of(parent), highlightthickness=0, bd=0, height=40)
-        self.accent, self.pad, self.radius = accent, pad, radius
-        self._inset = pad + 8
-        self.body = tk.Frame(self, bg=PANEL)
+        self.accent, self.pad, self.radius, self.strip = accent, pad, radius, strip
+        self.fill, self.line = fill or PANEL, line or BORDER
+        self._inset = pad + (8 if strip else 0)
+        self.body = tk.Frame(self, bg=self.fill)
         self._win = self.create_window(self._inset, pad, window=self.body, anchor="nw")
         if title:
-            tk.Label(self.body, text=title, font=F(11, True), fg=accent, bg=PANEL).pack(anchor="w", pady=(0, 8))
+            tk.Label(self.body, text=title, font=F(11, True), fg=accent, bg=self.fill).pack(anchor="w", pady=(0, 8))
         self.bind("<Configure>", self._redraw)
         self.body.bind("<Configure>", self._fit)
 
@@ -268,9 +269,10 @@ class Card(tk.Canvas):
         w, h = e.width, e.height
         self.itemconfigure(self._win, width=max(20, w - self._inset - self.pad))
         self.delete("bg")
-        round_rect(self, 1, 1, w - 1, h - 1, self.radius, fill=PANEL, outline=BORDER, tags="bg")
+        round_rect(self, 1, 1, w - 1, h - 1, self.radius, fill=self.fill, outline=self.line, tags="bg")
         r = self.radius
-        self.create_line(7, r, 7, h - r, fill=self.accent, width=3, capstyle="round", tags="bg")
+        if self.strip:
+            self.create_line(9, r, 9, h - r, fill=self.accent, width=3, capstyle="round", tags="bg")
         self.tag_lower("bg")
 
 
@@ -597,3 +599,25 @@ def themed_logo(img, force=False):
         return out
     except Exception:  # noqa: BLE001
         return img
+
+
+class PillBar(tk.Canvas):
+    """Barra fina con extremos redondeados (0-100 %)."""
+
+    def __init__(self, parent, color=CYAN, pct=0.0, bg=None, height=7):
+        super().__init__(parent, bg=bg or _bg_of(parent), height=height, highlightthickness=0, bd=0)
+        self.color, self.pct, self._h = color, pct, height
+        self.bind("<Configure>", lambda e: self._draw())
+
+    def set(self, pct, color=None):
+        self.pct = max(0.0, min(100.0, float(pct)))
+        if color:
+            self.color = color
+        self._draw()
+
+    def _draw(self):
+        self.delete("all")
+        w, h = max(10, self.winfo_width()), self._h
+        round_rect(self, 0, 0, w, h, h / 2, fill=mix(_bg_of(self), "#ffffff", 0.10), outline="")
+        if self.pct > 0:
+            round_rect(self, 0, 0, max(h, w * self.pct / 100), h, h / 2, fill=self.color, outline="")

@@ -1,3 +1,3 @@
-• Asistente de primera vez: 5 pasos (bienvenida, tu PC, lo que más te cuesta, limpieza y ajustes sin riesgo, resumen). Se abre solo la primera vez y desde Inicio > Asistente.
-• Registro de claves (creador): lista de a quién das cada clave, cuándo caduca y botón para anularla desde la misma lista.
-• Las claves anuladas se bloquean en cuanto el HellOP de esa persona se conecta a internet.
+• Diseño nuevo de «centro de mando»: tarjetas e interfaz más redondeadas en toda la app.
+• Inicio renovado: saludo y nota de tu PC, 4 datos en vivo (procesos, RAM libre, temperatura CPU, espacio libre), ajustes seguros recomendados con botón «Aplicar», rango y avisos.
+• Barra lateral: cuadro de licencia («PRO ACTIVO · quedan N días», plan gratis, creador o caducada) y cuadro «Abrir asistente».
