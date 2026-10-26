@@ -1,2 +1,1 @@
-• Los cuadros de «PRO ACTIVO · quedan N días» y «Abrir asistente» pasan de la barra lateral a la parte de arriba a la derecha de Inicio.
-• La barra lateral queda más despejada.
+• La barra lateral ahora es un panel flotante con bordes redondeados y un borde de color suave, como en el diseño «neón cristal».

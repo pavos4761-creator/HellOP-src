@@ -18,7 +18,7 @@ import version
 
 from widgets import BORDER, PRO_THEME, themed_logo
 from widgets import (BG, CYAN, F, FG, GREEN, MUTED, PANEL2, PINK, RED, SIDE, VIOLET, YELLOW, GradientBar, MiniBar,
-                     NeonButton, PulseLogo, ScrollFrame, SparkField, badge, install_mousewheel, mix, round_rect, setup_styles)
+                     NeonButton, PanelRedondo, PulseLogo, ScrollFrame, SparkField, badge, install_mousewheel, mix, round_rect, setup_styles)
 
 SECTIONS = [
     ("INICIO", [("home", "⌂", "Inicio"), ("analysis", "◎", "Análisis de PC"), ("score", "★", "Puntuación")]),
@@ -144,10 +144,12 @@ class App(tk.Tk):
 
         body = tk.Frame(self, bg=BG)
         body.pack(fill="both", expand=True)
-        side = tk.Frame(body, bg=SIDE, width=230)
-        side.pack(side="left", fill="y")
-        side.pack_propagate(False)
-        tk.Frame(body, bg=BORDER, width=1).pack(side="left", fill="y")
+        sidehost = tk.Frame(body, bg=BG, width=252)
+        sidehost.pack(side="left", fill="y", padx=(12, 0), pady=12)
+        sidehost.pack_propagate(False)
+        panel = PanelRedondo(sidehost, fill=SIDE, line=mix(BORDER, CYAN, 0.35))
+        panel.pack(fill="both", expand=True)
+        side = panel.body
         self.content = tk.Frame(body, bg=BG)
         self.content.pack(side="left", fill="both", expand=True)
 

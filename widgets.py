@@ -621,3 +621,21 @@ class PillBar(tk.Canvas):
         round_rect(self, 0, 0, w, h, h / 2, fill=mix(_bg_of(self), "#ffffff", 0.10), outline="")
         if self.pct > 0:
             round_rect(self, 0, 0, max(h, w * self.pct / 100), h, h / 2, fill=self.color, outline="")
+
+
+class PanelRedondo(tk.Canvas):
+    """Panel que llena todo el alto, con esquinas redondeadas y borde de color suave (la barra lateral). El contenido va en `.body`."""
+
+    def __init__(self, parent, fill=None, line=None, radius=26, margen=8):
+        super().__init__(parent, bg=_bg_of(parent), highlightthickness=0, bd=0)
+        self.fill, self.line, self.radius, self.margen = fill or SIDE, line or BORDER, radius, margen
+        self.body = tk.Frame(self, bg=self.fill)
+        self._win = self.create_window(margen + 2, margen + 2, window=self.body, anchor="nw")
+        self.bind("<Configure>", self._redraw)
+
+    def _redraw(self, e):
+        w, h, m = e.width, e.height, self.margen
+        self.delete("bg")
+        round_rect(self, 1, 1, w - 1, h - 1, self.radius, fill=self.fill, outline=self.line, tags="bg")
+        self.itemconfigure(self._win, width=max(20, w - 2 * m - 4), height=max(20, h - 2 * m - 4))
+        self.tag_lower("bg")
