@@ -140,8 +140,8 @@ class Hero(tk.Canvas):
             w = self.winfo_width()
             if w < 300:
                 return
-            if self._key != w:
-                self._key = w
+            if self._key != (w, self.H):
+                self._key = (w, self.H)
                 self._img = glow_image(self, w, self.H, 30, self.fill,
                                        [(0.07, 0.18, 430, CYAN, 0.46), (0.97, 0.92, 400, PINK, 0.38), (0.55, 0.45, 320, VIOLET, 0.12)], cell=6)
             self.delete("bg")
@@ -163,15 +163,28 @@ class Hero(tk.Canvas):
         self.delete("txt")
         x0, ancho = self.D + 56, max(160, w - (self.D + 56) - 270)
         self.create_text(x0, 34, text="PUNTUACIÓN HELLOP", anchor="w", fill=CYAN, font=F(9, True), tags="txt")
-        self.create_text(x0, 52, text=self.lbl_nota.texto, anchor="nw", fill=FG, font=F(20, True), width=ancho, tags="txt")
-        self.create_text(x0, 112, text=self.lbl_desc.texto, anchor="nw", fill=mix(FG, MUTED, 0.35), font=F(10), width=ancho, tags="txt")
-        y = self.H - 64
+        t1 = self.create_text(x0, 52, text=self.lbl_nota.texto, anchor="nw", fill=FG, font=F(20, True), width=ancho, tags="txt")
+        y2 = self.bbox(t1)[3] + 10                          # la descripción va justo debajo del título, sea cual sea su alto
+        t2 = self.create_text(x0, y2, text=self.lbl_desc.texto, anchor="nw", fill=mix(FG, MUTED, 0.35), font=F(10), width=ancho, tags="txt")
+        y = self.bbox(t2)[3] + 16
         x2 = x0 + self.b1.winfo_reqwidth() + 10
+        apilado = x2 + self.b2.winfo_reqwidth() > w - 262            # en ventana estrecha el 2.º botón va debajo del 1.º
+        necesario = max(250, int(y + self.b1.winfo_reqheight() + (self.b2.winfo_reqheight() + 8 if apilado else 0) + 26))
+        if necesario != self.H:                             # la tarjeta crece si el texto lo pide (otro idioma, fuente más grande…)
+            self.H = necesario
+            self.configure(height=necesario)
+            self._key = None
+            self._conf(None)
+            return
         self.coords(self._w1, x0, y)
-        self.coords(self._w2, x2, y)
+        if apilado:
+            x2, y2b = x0, y + self.b1.winfo_reqheight() + 8
+        else:
+            y2b = y
+        self.coords(self._w2, x2, y2b)
         try:                                    # que el fondo de cada botón sea del color de la luz que tiene detrás
             for b, bx in ((self.b1, x0), (self.b2, x2)):
-                p = self._img.get(int(bx + 4), int(y + 18))
+                p = self._img.get(int(bx + 4), int((y if b is self.b1 else y2b) + 18))
                 b.configure(bg="#%02x%02x%02x" % tuple(p))
         except (tk.TclError, AttributeError, ValueError, TypeError):
             pass
