@@ -9,7 +9,7 @@ import updater
 import version
 from util import DEMO, is_admin
 from widgets import (BG, BORDER, CYAN, F, FG, GREEN, MUTED, PANEL, PINK, RED, VIOLET, YELLOW, Card, NeonButton, PillBar,
-                     ScrollFrame, WrapLabel, badge, mix, round_rect)
+                     ScrollFrame, WrapLabel, badge, glow_image, mix, round_rect)
 
 MAS = [
     ("analysis", "◎", "Analizar mi PC", "Procesador, placa, RAM, gráfica y discos, con consejos para tu equipo.", CYAN),
@@ -75,6 +75,156 @@ class Anillo(tk.Canvas):
         self.create_text(c, c + 26, text=self.medalla.upper(), fill=CYAN, font=F(9, True))
 
 
+class _Txt:
+    """Texto de la tarjeta principal: se cambia con .config(text=...) como una etiqueta."""
+
+    def __init__(self, hero, texto=""):
+        self.hero, self.texto = hero, texto
+
+    def config(self, text=None, **kw):
+        if text is not None and text != self.texto:
+            self.texto = text
+            self.hero.pinta_texto()
+
+
+class _Dato:
+    """Barra de datos en vivo (valor + barra) de la tarjeta principal."""
+
+    def __init__(self, hero, nombre):
+        self.hero, self.nombre, self.valor, self.pct, self.color = hero, nombre, "—", 0.0, CYAN
+
+    def __iter__(self):                    # el resto del código lo usa como (etiqueta, barra)
+        return iter((self, self))
+
+    def config(self, text=None, **kw):
+        if text is not None:
+            self.valor = text
+            self.hero.pinta_datos()
+
+    def set(self, pct, color=None):
+        self.pct = max(0.0, min(100.0, float(pct)))
+        if color:
+            self.color = color
+        self.hero.pinta_datos()
+
+
+class Hero(tk.Canvas):
+    """Tarjeta principal de Inicio: luces de color difuminadas de fondo y, encima, anillo, mensaje, botones y datos en vivo."""
+    H = 268
+    D = 170
+
+    def __init__(self, parent, app):
+        self.fill = mix(PANEL, CYAN, 0.07)
+        super().__init__(parent, bg=BG, height=self.H, highlightthickness=0, bd=0)
+        self.app, self._key, self._img, self._job = app, None, None, None
+        self.lbl_nota = _Txt(self, "Midiendo tu PC…")
+        self.lbl_desc = _Txt(self, "Esto tarda unos segundos: miro tu monitor, la RAM, el arranque y el espacio.")
+        self.stat = {k: _Dato(self, n) for k, n in (("cpu", "Procesador"), ("ram", "Memoria RAM"), ("disk", "Disco libre"), ("temp", "Temperatura"))}
+        self.anillo = self                     # misma interfaz que el anillo suelto de antes: .poner(nota, medalla)
+        self.valor, self.mostrado, self.medalla, self._anim = 0, 0.0, "", None
+        self.b1 = NeonButton(self, "Mejorar ahora", lambda: app.show("optimize"), color=CYAN, filled=True, font=F(11, True), padx=22, pady=9)
+        self.b2 = NeonButton(self, "Ver qué me falta", lambda: app.show("score"), color=MUTED, font=F(11, True), padx=18, pady=9)
+        self._w1 = self.create_window(0, 0, window=self.b1, anchor="nw")
+        self._w2 = self.create_window(0, 0, window=self.b2, anchor="nw")
+        self.bind("<Configure>", self._conf)
+
+    # ---- fondo ----
+    def _conf(self, e):
+        if self._job:
+            self.after_cancel(self._job)
+        self._job = self.after(50, self._todo)
+
+    def _todo(self):
+        self._job = None
+        try:
+            w = self.winfo_width()
+            if w < 300:
+                return
+            if self._key != w:
+                self._key = w
+                self._img = glow_image(self, w, self.H, 30, self.fill,
+                                       [(0.07, 0.18, 430, CYAN, 0.62), (0.97, 0.92, 400, PINK, 0.52), (0.55, 0.45, 320, VIOLET, 0.20)], cell=5)
+            self.delete("bg")
+            self.create_image(0, 0, image=self._img, anchor="nw", tags="bg")
+            round_rect(self, 1, 1, w - 1, self.H - 1, 30, fill="", outline=mix(BORDER, CYAN, 0.7), tags="bg")
+            self.tag_lower("bg")
+            self.pinta_texto()
+            self.pinta_datos()
+            self._ring()
+        except tk.TclError:
+            pass
+
+    # ---- texto y botones ----
+    def pinta_texto(self):
+        w = self.winfo_width()
+        if w < 300:
+            return
+        self.delete("txt")
+        x0, ancho = self.D + 56, max(160, w - (self.D + 56) - 270)
+        self.create_text(x0, 34, text="PUNTUACIÓN HELLOP", anchor="w", fill=CYAN, font=F(9, True), tags="txt")
+        self.create_text(x0, 52, text=self.lbl_nota.texto, anchor="nw", fill=FG, font=F(20, True), width=ancho, tags="txt")
+        self.create_text(x0, 112, text=self.lbl_desc.texto, anchor="nw", fill=mix(FG, MUTED, 0.35), font=F(10), width=ancho, tags="txt")
+        y = self.H - 64
+        x2 = x0 + self.b1.winfo_reqwidth() + 10
+        self.coords(self._w1, x0, y)
+        self.coords(self._w2, x2, y)
+        try:                                    # que el fondo de cada botón sea del color de la luz que tiene detrás
+            for b, bx in ((self.b1, x0), (self.b2, x2)):
+                p = self._img.get(int(bx + 4), int(y + 18))
+                b.configure(bg="#%02x%02x%02x" % tuple(p))
+        except (tk.TclError, AttributeError, ValueError, TypeError):
+            pass
+
+    def pinta_datos(self):
+        w = self.winfo_width()
+        if w < 300:
+            return
+        self.delete("dat")
+        x1, x2 = w - 250, w - 30
+        for i, d in enumerate(self.stat.values()):
+            y = 48 + i * 42
+            self.create_text(x1, y, text=d.nombre, anchor="w", fill=mix(FG, MUTED, 0.45), font=F(9, True), tags="dat")
+            self.create_text(x2, y, text=d.valor, anchor="e", fill=FG, font=F(9, True), tags="dat")
+            round_rect(self, x1, y + 12, x2, y + 18, 3, fill=mix(self.fill, "#ffffff", 0.14), outline="", tags="dat")
+            if d.pct > 0:
+                round_rect(self, x1, y + 12, x1 + max(6, (x2 - x1) * d.pct / 100), y + 18, 3, fill=d.color, outline="", tags="dat")
+
+    # ---- anillo ----
+    def poner(self, valor, medalla):
+        self.valor, self.medalla = valor, medalla
+        if self._anim is None:
+            self._anim = self.after(16, self._paso)
+
+    def _paso(self):
+        self._anim = None
+        try:
+            self.mostrado += (self.valor - self.mostrado) * 0.12
+            if abs(self.valor - self.mostrado) < 0.4:
+                self.mostrado = float(self.valor)
+            else:
+                self._anim = self.after(16, self._paso)
+            self._ring()
+        except tk.TclError:
+            pass
+
+    def _ring(self):
+        self.delete("ring")
+        d, g = self.D, 13
+        r = d / 2 - 14
+        cx, cy = 28 + d / 2, self.H / 2
+        self.create_oval(cx - r, cy - r, cx + r, cy + r, outline=mix(self.fill, "#ffffff", 0.14), width=g, tags="ring")
+        n = int(self.mostrado / 100 * 72)
+        for i in range(n):
+            self.create_arc(cx - r, cy - r, cx + r, cy + r, start=90 - i * 5 - 5.6, extent=5.6, style="arc",
+                            outline=mix(CYAN, PINK, i / 72), width=g, tags="ring")
+        if n:
+            for ang, col in ((90, CYAN), (90 - n * 5, mix(CYAN, PINK, n / 72))):
+                x, y = cx + r * math.cos(math.radians(ang)), cy - r * math.sin(math.radians(ang))
+                self.create_oval(x - g / 2, y - g / 2, x + g / 2, y + g / 2, fill=col, outline="", tags="ring")
+        self.create_text(cx, cy - 6, text=str(round(self.mostrado) if self.medalla else "—"), fill="#ffffff", font=F(32, True), tags="ring")
+        self.create_text(cx, cy + 26, text=self.medalla.upper(), fill=CYAN, font=F(9, True), tags="ring")
+
+
 class Tarjeta(tk.Canvas):
     """Tarjeta grande clicable: icono con color, título y texto. Se ilumina al pasar el ratón."""
     H = 150
@@ -98,8 +248,11 @@ class Tarjeta(tk.Canvas):
             w = max(80, self.winfo_width())
             simbolo, titulo, texto, c1, c2 = self.d
             col = mix(c1, c2, 0.5)
-            round_rect(self, 1, 1, w - 1, self.H - 1, 24, fill=mix(PANEL, col, 0.12 if self.hov else 0.0),
-                       outline=mix(BORDER, col, 0.7 if self.hov else 0.0))
+            if getattr(self, "_gk", None) != (w, self.hov):
+                self._gk = (w, self.hov)
+                self._gimg = glow_image(self, w, self.H, 24, PANEL, [(0.1, 0.0, 190, col, 0.55 if self.hov else 0.38), (1.0, 1.0, 140, col, 0.16)], cell=5)
+            self.create_image(0, 0, image=self._gimg, anchor="nw")
+            round_rect(self, 1, 1, w - 1, self.H - 1, 24, fill="", outline=mix(BORDER, col, 0.7 if self.hov else 0.25))
             round_rect(self, 14, 14, 62, 62, 17, fill=mix(PANEL, col, 0.28), outline="")           # brillo
             round_rect(self, 18, 18, 58, 58, 14, fill=col, outline="")
             round_rect(self, 18, 18, 58, 38, 12, fill=mix(c1, "#ffffff", 0.18), outline="")         # reflejo
@@ -144,42 +297,11 @@ class HomePage(tk.Frame):
         self.caja_lic.pack(side="right", padx=(0, 10))
         self.caja_lic.set(licencia.status())
 
-        # ---- tarjeta principal: anillo + mensaje + datos en vivo ----
-        fill = mix(PANEL, CYAN, 0.07)
-        hero = Card(root, strip=False, radius=30, pad=22, fill=fill, line=mix(BORDER, CYAN, 0.65),
-                    orbs=[(0.08, 0.1, 260, CYAN, 0.30), (0.96, 0.95, 240, PINK, 0.26)])
+        # ---- tarjeta principal: todo se pinta sobre las luces difuminadas, así el texto queda nítido sobre el fondo borroso ----
+        hero = Hero(root, app)
         hero.pack(fill="x", pady=(0, 14))
-        fila = tk.Frame(hero.body, bg=fill)
-        fila.pack(fill="x")
-        self.anillo = Anillo(fila, fill)
-        self.anillo.pack(side="left", padx=(4, 24))
-        datos = tk.Frame(fila, bg=fill)
-        datos.pack(side="right", padx=(20, 4), anchor="center")
-        self.stat = {}
-        for key, label in (("cpu", "Procesador"), ("ram", "Memoria RAM"), ("disk", "Disco libre"), ("temp", "Temperatura")):
-            f = tk.Frame(datos, bg=fill)
-            f.pack(fill="x", pady=5)
-            r = tk.Frame(f, bg=fill)
-            r.pack(fill="x")
-            tk.Label(r, text=label, font=F(9, True), fg=MUTED, bg=fill).pack(side="left")
-            v = tk.Label(r, text="—", font=F(9, True), fg=FG, bg=fill)
-            v.pack(side="right")
-            bar = PillBar(f, color=CYAN, bg=fill, height=6)
-            bar.pack(fill="x", pady=(4, 0))
-            self.stat[key] = (v, bar)
-        tk.Frame(datos, bg=fill, width=210, height=1).pack()
-
-        centro = tk.Frame(fila, bg=fill)
-        centro.pack(side="left", fill="x", expand=True)
-        tk.Label(centro, text="PUNTUACIÓN HELLOP", font=F(9, True), fg=CYAN, bg=fill, anchor="w").pack(fill="x")
-        self.lbl_nota = tk.Label(centro, text="Midiendo tu PC…", font=F(20, True), fg=FG, bg=fill, anchor="w", justify="left")
-        self.lbl_nota.pack(fill="x", pady=(4, 0))
-        self.lbl_desc = WrapLabel(centro, text="Esto tarda unos segundos: miro tu monitor, la RAM, el arranque y el espacio.", bg=fill, font=F(10), fg=MUTED)
-        self.lbl_desc.pack(fill="x", pady=(6, 12))
-        bt = tk.Frame(centro, bg=fill)
-        bt.pack(anchor="w")
-        NeonButton(bt, "Mejorar ahora", lambda: app.show("optimize"), color=CYAN, filled=True, font=F(11, True), padx=22, pady=9).pack(side="left")
-        NeonButton(bt, "Ver qué me falta", lambda: app.show("score"), color=MUTED, font=F(11, True), padx=18, pady=9).pack(side="left", padx=10)
+        self.hero = hero
+        self.anillo, self.lbl_nota, self.lbl_desc, self.stat = hero.anillo, hero.lbl_nota, hero.lbl_desc, hero.stat
         # ---- 4 accesos grandes ----
         gr = tk.Frame(root, bg=BG)
         gr.pack(fill="x", pady=(0, 18))

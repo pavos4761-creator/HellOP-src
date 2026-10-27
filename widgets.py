@@ -693,7 +693,7 @@ class PanelGlow(tk.Canvas):
     def __init__(self, parent, fill=None, line=None, radius=28, margen=16, orbs=None):
         super().__init__(parent, bg=_bg_of(parent), highlightthickness=0, bd=0)
         self.fill, self.line, self.radius, self.margen = fill or BG, line or BORDER, radius, margen
-        self.orbs = orbs or [(0.12, 0.02, 460, CYAN, 0.55), (0.92, 0.99, 440, PINK, 0.42)]
+        self.orbs = orbs or [(0.12, 0.02, 520, CYAN, 0.70), (0.92, 0.99, 500, PINK, 0.55)]
         self.body = tk.Frame(self, bg=self.fill)
         self._win = self.create_window(margen, margen, window=self.body, anchor="nw")
         self._job = None

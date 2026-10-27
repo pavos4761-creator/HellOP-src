@@ -8,7 +8,7 @@ import math
 import tkinter as tk
 
 import anim
-from widgets import BORDER, CYAN, F, FG, GREEN, MUTED, PANEL2, PINK, RED, SIDE, YELLOW, _bg_of, glow_image, mix, round_rect
+from widgets import BORDER, CYAN, VIOLET, F, FG, GREEN, MUTED, PANEL2, PINK, RED, SIDE, YELLOW, _bg_of, glow_image, mix, round_rect
 
 PASO = 28          # alto de cada fila de menú
 CABECERA = 30      # alto de cada título de sección
@@ -126,7 +126,7 @@ class BarraLateral(tk.Canvas):
             if getattr(self, "_glow_key", None) != (w, h):
                 self._glow_key = (w, h)
                 self._glow_img = glow_image(self, w, h, 28, SIDE,
-                                            [(0.1, 0.04, 330, CYAN, 0.30), (0.95, 0.97, 320, PINK, 0.20), (0.55, 0.5, 220, CYAN, 0.05)], cell=5)
+                                            [(0.1, 0.04, 380, CYAN, 0.50), (0.95, 0.97, 360, PINK, 0.38), (0.55, 0.5, 260, VIOLET, 0.10)], cell=5)
             self.create_image(0, 0, image=self._glow_img, anchor="nw", tags="bg")
             round_rect(self, 1, 1, w - 1, h - 1, 28, fill="", outline=borde, tags="bg")
             self.tag_lower("bg")
