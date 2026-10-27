@@ -1,5 +1,6 @@
 """Piezas visuales con estilo oscuro «gamer»: tarjetas redondeadas, botones con brillo,
 insignias, medidores circulares, degradados."""
+import math
 import os
 import sys
 import tkinter as tk
@@ -153,13 +154,18 @@ def glow_image(cv, w, h, r, base, orbs, cell=5, hueco=None):
     chica = tk.PhotoImage(master=cv, width=cw, height=ch)
     chica.put(" ".join(filas))
     img = chica.zoom(cell, cell)
-    r = int(max(1, min(r, w / 2, h / 2)))
-    for dy in range(r):                       # esquinas: lo que cae fuera del arco se vuelve transparente
-        for dx in range(r):
-            if (r - dx - 0.5) ** 2 + (r - dy - 0.5) ** 2 > (r - 0.5) ** 2:
-                for x, y in ((dx, dy), (w - 1 - dx, dy), (dx, h - 1 - dy), (w - 1 - dx, h - 1 - dy)):
-                    img.transparency_set(x, y, True)
     return img
+
+
+def esquinas(cv, w, h, r, color, tag="bg"):
+    """Tapa las 4 esquinas de un rectángulo con el color de fondo para que parezca de esquinas redondeadas (sin tocar píxeles)."""
+    r = max(2, min(r, w / 2, h / 2))
+    arco = [(r - r * math.cos(math.radians(a)), r - r * math.sin(math.radians(a))) for a in range(0, 91, 6)]
+    for sx, sy, ox, oy in ((1, 1, 0, 0), (-1, 1, w, 0), (1, -1, 0, h), (-1, -1, w, h)):
+        pts = [ox, oy]
+        for x, y in arco:
+            pts += [ox + sx * x, oy + sy * y]
+        cv.create_polygon(pts, fill=color, outline="", tags=tag)
 
 
 # ---------------------------------------------------------------- estilos ttk

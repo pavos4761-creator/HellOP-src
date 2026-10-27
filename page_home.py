@@ -9,7 +9,7 @@ import updater
 import version
 from util import DEMO, is_admin
 from widgets import (BG, BORDER, CYAN, F, FG, GREEN, MUTED, PANEL, PINK, RED, VIOLET, YELLOW, Card, NeonButton, PillBar,
-                     ScrollFrame, WrapLabel, badge, glow_image, mix, round_rect)
+                     ScrollFrame, WrapLabel, badge, esquinas, glow_image, mix, round_rect)
 
 MAS = [
     ("analysis", "◎", "Analizar mi PC", "Procesador, placa, RAM, gráfica y discos, con consejos para tu equipo.", CYAN),
@@ -143,9 +143,10 @@ class Hero(tk.Canvas):
             if self._key != w:
                 self._key = w
                 self._img = glow_image(self, w, self.H, 30, self.fill,
-                                       [(0.07, 0.18, 430, CYAN, 0.62), (0.97, 0.92, 400, PINK, 0.52), (0.55, 0.45, 320, VIOLET, 0.20)], cell=5)
+                                       [(0.07, 0.18, 430, CYAN, 0.46), (0.97, 0.92, 400, PINK, 0.38), (0.55, 0.45, 320, VIOLET, 0.12)], cell=6)
             self.delete("bg")
             self.create_image(0, 0, image=self._img, anchor="nw", tags="bg")
+            esquinas(self, w, self.H, 30, BG, "bg")
             round_rect(self, 1, 1, w - 1, self.H - 1, 30, fill="", outline=mix(BORDER, CYAN, 0.7), tags="bg")
             self.tag_lower("bg")
             self.pinta_texto()
@@ -248,11 +249,8 @@ class Tarjeta(tk.Canvas):
             w = max(80, self.winfo_width())
             simbolo, titulo, texto, c1, c2 = self.d
             col = mix(c1, c2, 0.5)
-            if getattr(self, "_gk", None) != (w, self.hov):
-                self._gk = (w, self.hov)
-                self._gimg = glow_image(self, w, self.H, 24, PANEL, [(0.1, 0.0, 190, col, 0.55 if self.hov else 0.38), (1.0, 1.0, 140, col, 0.16)], cell=5)
-            self.create_image(0, 0, image=self._gimg, anchor="nw")
-            round_rect(self, 1, 1, w - 1, self.H - 1, 24, fill="", outline=mix(BORDER, col, 0.7 if self.hov else 0.25))
+            round_rect(self, 1, 1, w - 1, self.H - 1, 24, fill=mix(PANEL, col, 0.14 if self.hov else 0.05),
+                       outline=mix(BORDER, col, 0.7 if self.hov else 0.25))
             round_rect(self, 14, 14, 62, 62, 17, fill=mix(PANEL, col, 0.28), outline="")           # brillo
             round_rect(self, 18, 18, 58, 58, 14, fill=col, outline="")
             round_rect(self, 18, 18, 58, 38, 12, fill=mix(c1, "#ffffff", 0.18), outline="")         # reflejo

@@ -152,7 +152,7 @@ class App(tk.Tk):
         self.sidebar.pack(fill="both", expand=True)
         self.nav = self.sidebar.nav
         self.bar_cpu, self.bar_ram, self.live_lbl = self.sidebar.bar_cpu, self.sidebar.bar_ram, self.sidebar.live_lbl
-        marco = PanelGlow(body, fill=BG, line=mix(BORDER, CYAN, 0.35))
+        marco = PanelRedondo(body, fill=BG, line=mix(BORDER, CYAN, 0.35), radius=28, margen=6)
         marco.pack(side="left", fill="both", expand=True, padx=12, pady=12)
         self.content = marco.body
 
