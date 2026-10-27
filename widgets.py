@@ -113,34 +113,44 @@ def round_rect(cv, x1, y1, x2, y2, r, **kw):
     return cv.create_polygon(pts, smooth=True, **kw)
 
 
-def glow_fill(cv, x1, y1, x2, y2, r, base, orbs, cell=8, tag="bg", hueco=None):
-    """Relleno con «luces» difuminadas (como los círculos de color borrosos del diseño neón cristal).
-    Tk no tiene desenfoque, así que se pinta una cuadrícula fina de rectángulos cuyo color sube suavemente cerca de cada luz.
-    orbs: lista de (x, y, radio, color, fuerza) con x e y de 0 a 1 respecto al tamaño del cuadro."""
-    W, H = x2 - x1, y2 - y1
-    r = max(1, min(r, W / 2, H / 2))
-    luces = [(x1 + ox * W, y1 + oy * H, rad, col, fz) for ox, oy, rad, col, fz in orbs]
-    y = y1 + 2
-    while y < y2 - 2:
-        x = x1 + 2
-        while x < x2 - 2:
-            px, py = x + cell / 2, y + cell / 2
-            if hueco and hueco[0] <= px <= hueco[2] and hueco[1] <= py <= hueco[3]:      # zona tapada por el contenido: no se pinta
-                x += cell
+def glow_image(cv, w, h, r, base, orbs, cell=5, hueco=None):
+    """Fondo con «luces» difuminadas como UNA sola imagen (rápida de dibujar), con las esquinas redondeadas transparentes.
+    Tk no tiene desenfoque: se calcula una imagen pequeña, un píxel por celda, y se agranda. Antes se pintaban miles de rectángulos
+    y la ventana iba lenta; una imagen cuesta lo mismo que un solo dibujo.
+    orbs: lista de (x, y, radio, color, fuerza) con x e y de 0 a 1 respecto al tamaño. hueco: zona tapada por el contenido (se salta)."""
+    w, h = int(w), int(h)
+    cw, ch = -(-w // cell), -(-h // cell)
+    b0 = _rgb(base)
+    luces = [(ox * w, oy * h, rad, _rgb(col), fz) for ox, oy, rad, col, fz in orbs]
+    filas = []
+    for j in range(ch):
+        py = j * cell + cell / 2
+        fila = []
+        for i in range(cw):
+            px = i * cell + cell / 2
+            if hueco and hueco[0] <= px <= hueco[2] and hueco[1] <= py <= hueco[3]:
+                fila.append(base)
                 continue
-            # ¿la celda cae dentro del cuadro con esquinas redondeadas?
-            dx = max(x1 + r - px, px - (x2 - r), 0)
-            dy = max(y1 + r - py, py - (y2 - r), 0)
-            if dx * dx + dy * dy <= (r - 3) ** 2 and x + cell <= x2 - 2 and y + cell <= y2 - 2:
-                c = base
-                for lx, ly, rad, col, fz in luces:
-                    d = ((px - lx) ** 2 + (py - ly) ** 2) ** 0.5 / rad
-                    if d < 1:
-                        c = mix(c, col, fz * (1 - d) ** 2)
-                if c != base:
-                    cv.create_rectangle(x, y, x + cell, y + cell, fill=c, outline="", tags=tag)
-            x += cell
-        y += cell
+            r_, g_, b_ = b0
+            for lx, ly, rad, col, fz in luces:
+                d2 = (px - lx) ** 2 + (py - ly) ** 2
+                if d2 < rad * rad:
+                    k = fz * (1 - (d2 ** 0.5) / rad) ** 2
+                    r_ += (col[0] - r_) * k
+                    g_ += (col[1] - g_) * k
+                    b_ += (col[2] - b_) * k
+            fila.append("#%02x%02x%02x" % (int(r_), int(g_), int(b_)))
+        filas.append("{" + " ".join(fila) + "}")
+    chica = tk.PhotoImage(master=cv, width=cw, height=ch)
+    chica.put(" ".join(filas))
+    img = chica.zoom(cell, cell)
+    r = int(max(1, min(r, w / 2, h / 2)))
+    for dy in range(r):                       # esquinas: lo que cae fuera del arco se vuelve transparente
+        for dx in range(r):
+            if (r - dx - 0.5) ** 2 + (r - dy - 0.5) ** 2 > (r - 0.5) ** 2:
+                for x, y in ((dx, dy), (w - 1 - dx, dy), (dx, h - 1 - dy), (w - 1 - dx, h - 1 - dy)):
+                    img.transparency_set(x, y, True)
+    return img
 
 
 # ---------------------------------------------------------------- estilos ttk
@@ -301,8 +311,10 @@ class Card(tk.Canvas):
         self.delete("bg")
         round_rect(self, 1, 1, w - 1, h - 1, self.radius, fill=self.fill, outline=self.line, tags="bg")
         r = self.radius
-        if self.orbs:
-            glow_fill(self, 1, 1, w - 1, h - 1, r, self.fill, self.orbs)
+        if self.orbs and w > 60 and h > 40:
+            if getattr(self, "_glow_key", None) != (w, h):
+                self._glow_key, self._glow_img = (w, h), glow_image(self, w, h, r, self.fill, self.orbs, cell=6)
+            self.create_image(0, 0, image=self._glow_img, anchor="nw", tags="bg")
             round_rect(self, 1, 1, w - 1, h - 1, r, fill="", outline=self.line, tags="bg")
         if self.strip:
             self.create_line(9, r, 9, h - r, fill=self.accent, width=3, capstyle="round", tags="bg")
@@ -701,8 +713,10 @@ class PanelGlow(tk.Canvas):
             if w < 60 or h < 60:
                 return
             self.delete("bg")
-            round_rect(self, 1, 1, w - 1, h - 1, self.radius, fill=self.fill, outline=self.line, tags="bg")
-            glow_fill(self, 1, 1, w - 1, h - 1, self.radius, self.fill, self.orbs, cell=5, hueco=(m + 6, m + 6, w - m - 6, h - m - 6))
+            if getattr(self, "_glow_key", None) != (w, h):
+                self._glow_key = (w, h)
+                self._glow_img = glow_image(self, w, h, self.radius, self.fill, self.orbs, cell=5, hueco=(m + 6, m + 6, w - m - 6, h - m - 6))
+            self.create_image(0, 0, image=self._glow_img, anchor="nw", tags="bg")
             round_rect(self, 1, 1, w - 1, h - 1, self.radius, fill="", outline=self.line, tags="bg")
             self.tag_lower("bg")
         except tk.TclError:

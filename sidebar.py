@@ -8,7 +8,7 @@ import math
 import tkinter as tk
 
 import anim
-from widgets import BORDER, CYAN, F, FG, GREEN, MUTED, PANEL2, PINK, RED, SIDE, YELLOW, _bg_of, glow_fill, mix, round_rect
+from widgets import BORDER, CYAN, F, FG, GREEN, MUTED, PANEL2, PINK, RED, SIDE, YELLOW, _bg_of, glow_image, mix, round_rect
 
 PASO = 28          # alto de cada fila de menú
 CABECERA = 30      # alto de cada título de sección
@@ -77,13 +77,14 @@ class BarraLateral(tk.Canvas):
             for key, icon, text in items:
                 e = _Entrada(self, key, icon, text)
                 self.nav[key] = e
-                self.filas.append(["i", e, y])
+                e.fila = ["i", e, y]
+                self.filas.append(e.fila)
                 y += PASO
         self.alto_total = y
         self.live_lbl = _Etiqueta(self)
         self.bar_cpu = _Barra(self, "CPU", CYAN, 0)
         self.bar_ram = _Barra(self, "RAM", PINK, 1)
-        self.bind("<Configure>", self._configure)
+        self.bind("<Configure>", self._al_cambiar)
         self.bind("<Motion>", self._motion)
         self.bind("<Leave>", lambda e: self._hover(None))
         self.bind("<Button-1>", self._click)
@@ -108,7 +109,7 @@ class BarraLateral(tk.Canvas):
         return y >= a - 1 and y + alto <= b + 1
 
     # ---- fondo ----
-    def _configure(self, e):
+    def _al_cambiar(self, e):
         if self._rz:
             self.after_cancel(self._rz)
         self._rz = self.after(60, self._repinta)
@@ -122,9 +123,11 @@ class BarraLateral(tk.Canvas):
             self.off = min(self.off, self._max_off())
             self.delete("bg")
             borde = mix(BORDER, CYAN, 0.35)
-            round_rect(self, 1, 1, w - 1, h - 1, 28, fill=SIDE, outline=borde, tags="bg")
-            glow_fill(self, 1, 1, w - 1, h - 1, 28, SIDE,
-                      [(0.1, 0.04, 330, CYAN, 0.30), (0.95, 0.97, 320, PINK, 0.20), (0.55, 0.5, 220, CYAN, 0.05)], cell=5)
+            if getattr(self, "_glow_key", None) != (w, h):
+                self._glow_key = (w, h)
+                self._glow_img = glow_image(self, w, h, 28, SIDE,
+                                            [(0.1, 0.04, 330, CYAN, 0.30), (0.95, 0.97, 320, PINK, 0.20), (0.55, 0.5, 220, CYAN, 0.05)], cell=5)
+            self.create_image(0, 0, image=self._glow_img, anchor="nw", tags="bg")
             round_rect(self, 1, 1, w - 1, h - 1, 28, fill="", outline=borde, tags="bg")
             self.tag_lower("bg")
             self._dibuja_todo()
@@ -156,9 +159,7 @@ class BarraLateral(tk.Canvas):
             self.create_text(26, y + 17, text=f[1], anchor="w", fill=mix(SIDE, MUTED, 0.9), font=F(8, True), tags="fila")
 
     def _dibuja(self, e):
-        fila = next((f for f in self.filas if f[0] == "i" and f[1] is e), None)
-        if fila is None:
-            return
+        fila = e.fila
         tag = "e_" + e.key
         try:
             self.delete(tag)
@@ -256,7 +257,9 @@ class BarraLateral(tk.Canvas):
                     e.hov, e.act = gh, ga
                 else:
                     seguir = True
-            self._dibuja(e)
+            if (e.hov, e.act) != getattr(e, "_pint", None):
+                e._pint = (e.hov, e.act)
+                self._dibuja(e)
         if seguir and self._job is None:
             self._job = self.after(16, self._paso)
 
