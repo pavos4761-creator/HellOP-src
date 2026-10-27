@@ -69,6 +69,15 @@ else:              # GRATIS: verde
     CYAN, PINK, VIOLET = "#19e68c", "#b6ff3c", "#00c2a8"
     GREEN = "#5bff9a"
     HUE_SHIFT = 0.0
+# Fondo con color (no casi negro): se mezcla un poco del color de acento, como el fondo morado del diseño «neón cristal».
+# Así las zonas con luz difuminada y las de fondo liso se funden y no se ve un cuadro negro detrás.
+def _mix_hex(a, b, t):
+    ra, rb = [int(a[i:i + 2], 16) for i in (1, 3, 5)], [int(b[i:i + 2], 16) for i in (1, 3, 5)]
+    return "#%02x%02x%02x" % tuple(int(ra[i] + (rb[i] - ra[i]) * t) for i in range(3))
+
+
+BG, SIDE, PANEL, PANEL2 = (_mix_hex(BG, CYAN, 0.13), _mix_hex(SIDE, CYAN, 0.13), _mix_hex(PANEL, CYAN, 0.11), _mix_hex(PANEL2, CYAN, 0.09))
+BORDER = _mix_hex(BORDER, CYAN, 0.08)
 YELLOW = "#ffd23f"
 RED = "#ff4d5e"
 
@@ -690,10 +699,10 @@ class PanelGlow(tk.Canvas):
     """Cuadro de esquinas redondeadas con luces de color difuminadas en el borde (el contenido va en `.body`).
     Como el contenido tapa el centro, la luz se ve como un resplandor suave alrededor."""
 
-    def __init__(self, parent, fill=None, line=None, radius=28, margen=16, orbs=None):
+    def __init__(self, parent, fill=None, line=None, radius=28, margen=9, orbs=None):
         super().__init__(parent, bg=_bg_of(parent), highlightthickness=0, bd=0)
         self.fill, self.line, self.radius, self.margen = fill or BG, line or BORDER, radius, margen
-        self.orbs = orbs or [(0.12, 0.02, 520, CYAN, 0.70), (0.92, 0.99, 500, PINK, 0.55)]
+        self.orbs = orbs or [(0.12, 0.02, 620, CYAN, 0.45), (0.92, 0.99, 600, PINK, 0.36)]
         self.body = tk.Frame(self, bg=self.fill)
         self._win = self.create_window(margen, margen, window=self.body, anchor="nw")
         self._job = None
