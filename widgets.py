@@ -113,6 +113,36 @@ def round_rect(cv, x1, y1, x2, y2, r, **kw):
     return cv.create_polygon(pts, smooth=True, **kw)
 
 
+def glow_fill(cv, x1, y1, x2, y2, r, base, orbs, cell=8, tag="bg", hueco=None):
+    """Relleno con «luces» difuminadas (como los círculos de color borrosos del diseño neón cristal).
+    Tk no tiene desenfoque, así que se pinta una cuadrícula fina de rectángulos cuyo color sube suavemente cerca de cada luz.
+    orbs: lista de (x, y, radio, color, fuerza) con x e y de 0 a 1 respecto al tamaño del cuadro."""
+    W, H = x2 - x1, y2 - y1
+    r = max(1, min(r, W / 2, H / 2))
+    luces = [(x1 + ox * W, y1 + oy * H, rad, col, fz) for ox, oy, rad, col, fz in orbs]
+    y = y1 + 2
+    while y < y2 - 2:
+        x = x1 + 2
+        while x < x2 - 2:
+            px, py = x + cell / 2, y + cell / 2
+            if hueco and hueco[0] <= px <= hueco[2] and hueco[1] <= py <= hueco[3]:      # zona tapada por el contenido: no se pinta
+                x += cell
+                continue
+            # ¿la celda cae dentro del cuadro con esquinas redondeadas?
+            dx = max(x1 + r - px, px - (x2 - r), 0)
+            dy = max(y1 + r - py, py - (y2 - r), 0)
+            if dx * dx + dy * dy <= (r - 3) ** 2 and x + cell <= x2 - 2 and y + cell <= y2 - 2:
+                c = base
+                for lx, ly, rad, col, fz in luces:
+                    d = ((px - lx) ** 2 + (py - ly) ** 2) ** 0.5 / rad
+                    if d < 1:
+                        c = mix(c, col, fz * (1 - d) ** 2)
+                if c != base:
+                    cv.create_rectangle(x, y, x + cell, y + cell, fill=c, outline="", tags=tag)
+            x += cell
+        y += cell
+
+
 # ---------------------------------------------------------------- estilos ttk
 def setup_styles(root):
     s = ttk.Style(root)
@@ -248,10 +278,10 @@ class Card(tk.Canvas):
     """Tarjeta con esquinas redondeadas, borde sutil y marca de color a la izquierda.
     El contenido va en `.body`."""
 
-    def __init__(self, parent, accent=CYAN, title=None, pad=14, radius=22, strip=True, fill=None, line=None):
+    def __init__(self, parent, accent=CYAN, title=None, pad=14, radius=22, strip=True, fill=None, line=None, orbs=None):
         super().__init__(parent, bg=_bg_of(parent), highlightthickness=0, bd=0, height=40)
         self.accent, self.pad, self.radius, self.strip = accent, pad, radius, strip
-        self.fill, self.line = fill or PANEL, line or BORDER
+        self.fill, self.line, self.orbs = fill or PANEL, line or BORDER, orbs
         self._inset = pad + (8 if strip else 0)
         self.body = tk.Frame(self, bg=self.fill)
         self._win = self.create_window(self._inset, pad, window=self.body, anchor="nw")
@@ -271,6 +301,9 @@ class Card(tk.Canvas):
         self.delete("bg")
         round_rect(self, 1, 1, w - 1, h - 1, self.radius, fill=self.fill, outline=self.line, tags="bg")
         r = self.radius
+        if self.orbs:
+            glow_fill(self, 1, 1, w - 1, h - 1, r, self.fill, self.orbs)
+            round_rect(self, 1, 1, w - 1, h - 1, r, fill="", outline=self.line, tags="bg")
         if self.strip:
             self.create_line(9, r, 9, h - r, fill=self.accent, width=3, capstyle="round", tags="bg")
         self.tag_lower("bg")
@@ -639,3 +672,38 @@ class PanelRedondo(tk.Canvas):
         round_rect(self, 1, 1, w - 1, h - 1, self.radius, fill=self.fill, outline=self.line, tags="bg")
         self.itemconfigure(self._win, width=max(20, w - 2 * m - 4), height=max(20, h - 2 * m - 4))
         self.tag_lower("bg")
+
+
+class PanelGlow(tk.Canvas):
+    """Cuadro de esquinas redondeadas con luces de color difuminadas en el borde (el contenido va en `.body`).
+    Como el contenido tapa el centro, la luz se ve como un resplandor suave alrededor."""
+
+    def __init__(self, parent, fill=None, line=None, radius=28, margen=16, orbs=None):
+        super().__init__(parent, bg=_bg_of(parent), highlightthickness=0, bd=0)
+        self.fill, self.line, self.radius, self.margen = fill or BG, line or BORDER, radius, margen
+        self.orbs = orbs or [(0.12, 0.02, 460, CYAN, 0.55), (0.92, 0.99, 440, PINK, 0.42)]
+        self.body = tk.Frame(self, bg=self.fill)
+        self._win = self.create_window(margen, margen, window=self.body, anchor="nw")
+        self._job = None
+        self.bind("<Configure>", self._conf)
+
+    def _conf(self, e):
+        w, h, m = e.width, e.height, self.margen
+        self.itemconfigure(self._win, width=max(20, w - 2 * m), height=max(20, h - 2 * m))
+        if self._job:
+            self.after_cancel(self._job)
+        self._job = self.after(60, self._pinta)
+
+    def _pinta(self):
+        self._job = None
+        try:
+            w, h, m = self.winfo_width(), self.winfo_height(), self.margen
+            if w < 60 or h < 60:
+                return
+            self.delete("bg")
+            round_rect(self, 1, 1, w - 1, h - 1, self.radius, fill=self.fill, outline=self.line, tags="bg")
+            glow_fill(self, 1, 1, w - 1, h - 1, self.radius, self.fill, self.orbs, cell=5, hueco=(m + 6, m + 6, w - m - 6, h - m - 6))
+            round_rect(self, 1, 1, w - 1, h - 1, self.radius, fill="", outline=self.line, tags="bg")
+            self.tag_lower("bg")
+        except tk.TclError:
+            pass

@@ -12,13 +12,14 @@ import psutil
 
 import anim
 import licencia
+from sidebar import BarraLateral
 import logo_data
 import updater
 import version
 
 from widgets import BORDER, PRO_THEME, themed_logo
 from widgets import (BG, CYAN, F, FG, GREEN, MUTED, PANEL2, PINK, RED, SIDE, VIOLET, YELLOW, GradientBar, MiniBar,
-                     NeonButton, PanelRedondo, PulseLogo, ScrollFrame, SparkField, badge, install_mousewheel, mix, round_rect, setup_styles)
+                     NeonButton, PanelGlow, PanelRedondo, PulseLogo, ScrollFrame, SparkField, badge, install_mousewheel, mix, round_rect, setup_styles)
 
 SECTIONS = [
     ("INICIO", [("home", "⌂", "Inicio"), ("analysis", "◎", "Análisis de PC"), ("score", "★", "Puntuación")]),
@@ -147,33 +148,15 @@ class App(tk.Tk):
         sidehost = tk.Frame(body, bg=BG, width=252)
         sidehost.pack(side="left", fill="y", padx=(12, 0), pady=12)
         sidehost.pack_propagate(False)
-        panel = PanelRedondo(sidehost, fill=SIDE, line=mix(BORDER, CYAN, 0.35))
-        panel.pack(fill="both", expand=True)
-        side = panel.body
-        self.content = tk.Frame(body, bg=BG)
-        self.content.pack(side="left", fill="both", expand=True)
+        self.sidebar = BarraLateral(sidehost, SECTIONS, self.show)
+        self.sidebar.pack(fill="both", expand=True)
+        self.nav = self.sidebar.nav
+        self.bar_cpu, self.bar_ram, self.live_lbl = self.sidebar.bar_cpu, self.sidebar.bar_ram, self.sidebar.live_lbl
+        marco = PanelGlow(body, fill=BG, line=mix(BORDER, CYAN, 0.35))
+        marco.pack(side="left", fill="both", expand=True, padx=12, pady=12)
+        self.content = marco.body
 
-        spark = SparkField(side, bg=SIDE, n=14)
-        spark.configure(height=30)
-        spark.pack(fill="x")
-        live = tk.Frame(side, bg=SIDE)
-        live.pack(side="bottom", fill="x", padx=18, pady=(0, 6))
-        self.live_lbl = tk.Label(live, text="●  EN VIVO", font=F(8, True), fg=MUTED, bg=SIDE, anchor="w")
-        self.live_lbl.pack(fill="x", pady=(0, 4))
-        self.bar_cpu = MiniBar(live, "CPU", CYAN)
-        self.bar_ram = MiniBar(live, "RAM", PINK)
-        self.bar_cpu.pack(pady=1)
-        self.bar_ram.pack(pady=1)
         self._tick_live()
-        navhost = ScrollFrame(side, bg=SIDE)
-        navhost.pack(fill="both", expand=True)
-        self.nav = {}
-        for title, items in SECTIONS:
-            tk.Label(navhost.inner, text=title, font=F(8, True), fg=MUTED, bg=SIDE, anchor="w").pack(fill="x", padx=20, pady=(6, 0))
-            for key, icon, text in items:
-                n = NavItem(navhost.inner, icon, text, lambda k=key: self.show(k))
-                n.pack(fill="x")
-                self.nav[key] = n
 
         self.statusbar = tk.Label(self, text="Listo", font=F(9), fg=MUTED, bg=SIDE, anchor="w", padx=14, pady=5)
         self.statusbar.pack(fill="x", side="bottom")

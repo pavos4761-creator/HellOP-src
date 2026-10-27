@@ -146,7 +146,8 @@ class HomePage(tk.Frame):
 
         # ---- tarjeta principal: anillo + mensaje + datos en vivo ----
         fill = mix(PANEL, CYAN, 0.07)
-        hero = Card(root, strip=False, radius=30, pad=22, fill=fill, line=mix(BORDER, CYAN, 0.65))
+        hero = Card(root, strip=False, radius=30, pad=22, fill=fill, line=mix(BORDER, CYAN, 0.65),
+                    orbs=[(0.08, 0.1, 260, CYAN, 0.30), (0.96, 0.95, 240, PINK, 0.26)])
         hero.pack(fill="x", pady=(0, 14))
         fila = tk.Frame(hero.body, bg=fill)
         fila.pack(fill="x")
