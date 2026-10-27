@@ -354,8 +354,6 @@ class App(tk.Tk):
         PulseLogo(h, self._logo, size=74, bg=SIDE).pack(side="left", padx=(14, 6), pady=2)
         tk.Label(h, text="Hell", font=F(20, True), fg=FG, bg=SIDE).pack(side="left")
         tk.Label(h, text="OP", font=F(20, True), fg=CYAN, bg=SIDE).pack(side="left")
-        tk.Label(h, text=f"v{version.__version__}", font=F(9, True), fg=MUTED, bg=SIDE).pack(side="left", padx=(12, 0), pady=(10, 0))
-        tk.Label(h, text="optimización extrema para gaming", font=F(9), fg=MUTED, bg=SIDE).pack(side="left", padx=16, pady=(8, 0))
         right = tk.Frame(h, bg=SIDE)
         right.pack(side="right", padx=18)
         self.hdr_right = right
