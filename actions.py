@@ -34,6 +34,7 @@ else:
 LOG_FILE = APP_DIR / ("historial_demo.json" if DEMO else "historial.json")
 
 GROUPS = [
+    ("streaming", "Streaming (OBS)"),
     ("power", "Energía"),
     ("speed", "Respuesta del sistema"),
     ("gaming", "Juegos"),
@@ -183,6 +184,7 @@ def _load_registry():
         import hidden  # noqa: F401
         import arranque  # noqa: F401
         import shaders  # noqa: F401
+        import streaming  # noqa: F401
     except Exception:  # noqa: BLE001
         pass
 
@@ -702,6 +704,8 @@ PROTECTED_PROCS = {
     "registry", "memcompression", "msmpeng.exe", "audiodg.exe", "applicationframehost.exe",
     "msedgewebview2.exe", "widgets.exe", "lockapp.exe", "dllhost.exe", "backgroundtaskhost.exe",
     "systemsettings.exe", "taskmgr.exe", "python.exe", "pythonw.exe", "pcoptimizer.exe", "hellop.exe", "wmiprvse.exe",
+    "obs64.exe", "obs32.exe", "obs-browser-page.exe", "streamlabs desktop.exe", "streamlabs obs.exe", "xsplit.core.exe", "discord.exe",
+    "nvidia broadcast.exe", "nvidia app.exe",
 }
 
 
@@ -966,7 +970,7 @@ def demo_actions():
 # Descubrir qué se puede hacer en ESTE equipo
 # --------------------------------------------------------------------------
 def discover(profile, progress=None):
-    """profile: 'gaming' | 'work' | 'full'. Devuelve la lista ordenada de acciones aplicables."""
+    """profile: 'gaming' | 'work' | 'streaming' | 'full'. Devuelve la lista ordenada de acciones aplicables."""
     if DEMO:
         time.sleep(1.5)
         acts = demo_actions()
@@ -996,6 +1000,9 @@ def discover(profile, progress=None):
         if profile == "deep":
             import deepclean
             step("Revisando tareas programadas, telemetría y publicidad…", deepclean.deep_actions)
+        if profile == "streaming":
+            import streaming
+            step("Buscando OBS / Streamlabs y tu gráfica…", streaming.streaming_actions)
     chosen = []
     for a in acts:
         if profile == "full":
@@ -1006,6 +1013,11 @@ def discover(profile, progress=None):
                 continue
         elif profile == "extreme":
             if "gaming" not in a.profiles and "extreme" not in a.profiles:
+                continue
+        elif profile == "streaming":
+            if "streaming" not in a.profiles and "gaming" not in a.profiles:
+                continue
+            if tuple(a.profiles) == ("extreme",):
                 continue
         elif profile not in a.profiles:
             continue

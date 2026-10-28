@@ -1,10 +1,9 @@
-"""Página «Optimizar»: elige perfil → prueba «antes» + punto de restauración → te pregunta
+"""Página «Optimizar»: elige perfil → punto de restauración → te pregunta
 cada cambio uno por uno → resumen."""
 import tkinter as tk
 from tkinter import messagebox, ttk
 
 import actions
-import bench
 from util import IS_WIN, DEMO, is_admin, run_cmd
 from widgets import (BG, CYAN, F, FG, GREEN, MUTED, PANEL, PINK, RED, VIOLET, YELLOW, Card, NeonButton,
                      WrapLabel, badge, checkbox, page_title)
@@ -22,6 +21,10 @@ PROFILES = [
     ("deep", "✧", "LIMPIEZA PROFUNDA", VIOLET,
      "Quita lo que Windows hace sin que lo pidas: telemetría, tareas programadas, publicidad, Copilot/Recall, Edge en segundo plano, "
      "reparto P2P de actualizaciones y servicios sobrantes. Más privacidad y menos ruido de fondo."),
+    ("streaming", "◉", "STREAMING", YELLOW,
+     "Para emitir en directo sin que el juego pierda FPS: crea un perfil nuevo en OBS con el codificador de tu gráfica (NVENC, AMF o Quick Sync) "
+     "y el bitrate y la resolución adecuados, da prioridad de gráfica a OBS/Streamlabs y añade los ajustes de Gaming que no molestan al directo. "
+     "No toca tu perfil actual de OBS."),
     ("full", "⚙", "COMPLETO", GREEN,
      "Todo lo anterior junto. Revisaré todo lo que se puede mejorar en tu PC y te lo preguntaré cambio por cambio."),
 ]
@@ -33,7 +36,6 @@ class OptimizePage(tk.Frame):
         self.app = app
         self.gen = 0
         self.v_restore = tk.BooleanVar(value=True)
-        self.v_before = tk.BooleanVar(value=True)
         self.stage = tk.Frame(self, bg=BG)
         self.stage.pack(fill="both", expand=True, padx=26, pady=20)
         self.reset_state()
@@ -80,7 +82,6 @@ class OptimizePage(tk.Frame):
         opts = Card(self.stage, accent=VIOLET, title="Antes de empezar")
         opts.pack(fill="x", pady=(14, 0))
         checkbox(opts.body, "Crear un punto de restauración de Windows (recomendado)", self.v_restore).pack(fill="x", pady=2)
-        checkbox(opts.body, "Hacer un test de rendimiento «antes» (~20 s) para comparar después", self.v_before).pack(fill="x", pady=2)
         WrapLabel(opts.body, fg=MUTED, font=F(9),
                   text="Además, todo lo que apliques queda registrado en «Historial / Deshacer» para volver atrás con un clic.").pack(fill="x", pady=(6, 0))
 
@@ -122,8 +123,8 @@ class OptimizePage(tk.Frame):
         card = Card(self.stage, accent=CYAN, title="Preparación")
         card.pack(fill="x")
         self.prep_rows = {}
-        for key, text in (("before", "Test de rendimiento «antes»"), ("restore", "Punto de restauración de Windows")):
-            enabled = self.v_before.get() if key == "before" else self.v_restore.get()
+        for key, text in (("restore", "Punto de restauración de Windows"),):
+            enabled = self.v_restore.get()
             r = tk.Frame(card.body, bg=PANEL)
             r.pack(fill="x", pady=4)
             ico = tk.Label(r, text="•" if enabled else "—", font=F(14, True), fg=MUTED, bg=PANEL, width=3)
@@ -134,15 +135,10 @@ class OptimizePage(tk.Frame):
             self.prep_rows[key] = (ico, det)
         self.prep_pb = ttk.Progressbar(card.body, style="Neon.Horizontal.TProgressbar", mode="determinate", maximum=100, length=380)
         self.prep_pb.pack(anchor="w", pady=(10, 0))
-        do_before, do_restore = self.v_before.get(), self.v_restore.get()
+        do_restore = self.v_restore.get()
 
         def work():
             out = {}
-            if do_before:
-                self.app.ui(self._prep_state, g, "before", "run", "midiendo…")
-                m = bench.run_benchmark(lambda p, msg: self.app.ui(self._prep_prog, g, p, msg), improved=False)
-                bench.save_snap("before", m)
-                self.app.ui(self._prep_state, g, "before", "ok", "guardado")
             if do_restore:
                 self.app.ui(self._prep_state, g, "restore", "run", "creándolo (puede tardar un minuto)…")
                 ok, msg = actions.create_restore_point()
@@ -151,11 +147,6 @@ class OptimizePage(tk.Frame):
             return out
 
         self.app.bg(work, lambda out: self.after_prep(g, out))
-
-    def _prep_prog(self, g, pct, msg):
-        if g == self.gen:
-            self.prep_pb["value"] = pct
-            self.prep_rows["before"][1].config(text=msg)
 
     def _prep_state(self, g, key, state, text):
         if g != self.gen:
@@ -349,17 +340,21 @@ class OptimizePage(tk.Frame):
         if self.need_reboot:
             WrapLabel(c.body, fg=YELLOW, text="Algunos cambios (ratón, efectos visuales, GPU) se notan al cerrar sesión o reiniciar. "
                                                "El tiempo de arranque de Windows solo se actualiza tras reiniciar.").pack(fill="x", pady=(10, 0))
+        if self.profile == "streaming":
+            import streaming
+            t = Card(self.stage, accent=YELLOW, title="Para emitir sin perder FPS (lo que de verdad funciona)")
+            t.pack(fill="x", pady=(12, 0))
+            for tip in streaming.CONSEJOS:
+                WrapLabel(t.body, text="•  " + tip, fg=FG, font=F(10)).pack(fill="x", pady=2)
+            if not any(a.id == "obs_profile" for a in self.applied):
+                WrapLabel(t.body, fg=MUTED, font=F(9),
+                          text="No apareció el perfil de OBS: si no tienes OBS Studio instalado (o ya estaba creado), solo se aplicaron los ajustes de Windows.").pack(fill="x", pady=(6, 0))
         row = tk.Frame(self.stage, bg=BG)
         row.pack(fill="x", pady=16)
-        NeonButton(row, "▲  Test «DESPUÉS» y comparar", self.go_after, color=GREEN, filled=True, font=F(12, True), padx=22, pady=10).pack(side="left")
-        NeonButton(row, "Ver historial / deshacer", lambda: self.app.show("history"), color=CYAN, padx=16, pady=10).pack(side="left", padx=10)
+        NeonButton(row, "Ver historial / deshacer", lambda: self.app.show("history"), color=CYAN, filled=True, padx=16, pady=10).pack(side="left")
         if self.need_reboot and IS_WIN and not DEMO:
             NeonButton(row, "Reiniciar ahora", self.reboot_now, color=YELLOW, padx=16, pady=10).pack(side="left")
         NeonButton(row, "Volver al inicio", self.show_intro, color=MUTED, padx=16, pady=10).pack(side="left", padx=10)
-
-    def go_after(self):
-        self.app.show("bench")
-        self.app.pages["bench"].run("after")
 
     def reboot_now(self):
         if messagebox.askyesno("Reiniciar", "Guarda tu trabajo. ¿Reiniciar el PC dentro de 10 segundos?"):

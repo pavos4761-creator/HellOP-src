@@ -24,7 +24,7 @@ from widgets import (BG, CYAN, F, FG, GREEN, MUTED, PANEL2, PINK, RED, SIDE, VIO
 SECTIONS = [
     ("INICIO", [("home", "⌂", "Inicio"), ("analysis", "◎", "Análisis de PC"), ("score", "★", "Puntuación")]),
     ("OPTIMIZAR", [("optimize", "⚡", "Optimizar"), ("clean", "✦", "Limpieza"), ("shaders", "❖", "Limpiar shaders"),
-                   ("arranque", "⏻", "Gestor de arranque"), ("bench", "▲", "Antes y después")]),
+                   ("arranque", "⏻", "Gestor de arranque")]),
     ("GAMING", [("games", "▣", "Mis juegos"), ("gameprof", "✧", "Ajustes de juego"), ("booster", "☢", "Modo Extremo"),
                 ("monitor", "≈", "Monitor"), ("diag", "◈", "Diagnóstico"), ("fps", "▤", "FPS reales")]),
     ("AVANZADO", [("tweaks", "☄", "Tweaks"), ("cuello", "⬆", "Qué pieza mejorar"), ("bios", "◉", "BIOS"), ("oc", "⚙", "Overclock")]),
@@ -162,7 +162,6 @@ class App(tk.Tk):
         self.statusbar.pack(fill="x", side="bottom")
 
         from page_analysis import AnalysisPage
-        from page_bench import BenchPage
         from page_bios import BiosPage
         from page_booster import BoosterPage
         from page_clean import CleanPage
@@ -196,7 +195,6 @@ class App(tk.Tk):
             "diag": DiagPage(self.content, self),
             "oc": OcPage(self.content, self),
             "clean": CleanPage(self.content, self),
-            "bench": BenchPage(self.content, self),
             "history": HistoryPage(self.content, self),
             "gameprof": GameProfilePage(self.content, self),
             "tweaks": TweaksPage(self.content, self),
