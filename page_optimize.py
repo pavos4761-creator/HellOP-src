@@ -8,23 +8,19 @@ from util import IS_WIN, DEMO, is_admin, run_cmd
 from widgets import (BG, CYAN, F, FG, GREEN, MUTED, PANEL, PINK, RED, VIOLET, YELLOW, Card, NeonButton,
                      ScrollFrame, WrapLabel, badge, checkbox, page_title)
 
-PROFILES = [
-    ("gaming", "☄", "GAMING", PINK,
-     "Máxima respuesta y mínima latencia: energía al máximo, Modo Juego, prioridad de GPU/CPU, ratón sin aceleración, "
-     "red sin límites, además de limpiar inicio y servicios."),
+PROFILES = [   # ordenados de menos a más cambios
     ("work", "✎", "TRABAJO", CYAN,
      "Un PC ágil y silencioso para el día a día: menos programas de inicio, sin telemetría ni apps basura, "
      "menús instantáneos y mejor DNS. No toca el plan de energía."),
-    ("extreme", "☢", "EXTREMO", RED,
-     "Todo lo de Gaming MÁS ajustes profundos: arranque (HPET, tick), energía de CPU/PCIe/USB, registro, red, modo MSI de la GPU "
-     "y opciones que cambian seguridad por FPS. Cada uno te dice su efecto REAL y su riesgo."),
+    ("gaming", "☄", "GAMING", PINK,
+     "Máxima respuesta y mínima latencia: energía al máximo, Modo Juego, prioridad de GPU/CPU, ratón sin aceleración, "
+     "red sin límites, además de limpiar inicio y servicios."),
     ("deep", "✧", "LIMPIEZA PROFUNDA", VIOLET,
      "Quita lo que Windows hace sin que lo pidas: telemetría, tareas programadas, publicidad, Copilot/Recall, Edge en segundo plano, "
      "reparto P2P de actualizaciones y servicios sobrantes. Más privacidad y menos ruido de fondo."),
-    ("streaming", "◉", "STREAMING", YELLOW,
-     "Para emitir en directo sin que el juego pierda FPS: crea un perfil nuevo en OBS con el codificador de tu gráfica (NVENC, AMF o Quick Sync) "
-     "y el bitrate y la resolución adecuados, da prioridad de gráfica a OBS/Streamlabs y añade los ajustes de Gaming que no molestan al directo. "
-     "No toca tu perfil actual de OBS."),
+    ("extreme", "☢", "EXTREMO", RED,
+     "Todo lo de Gaming MÁS ajustes profundos: arranque (HPET, tick), energía de CPU/PCIe/USB, registro, red, modo MSI de la GPU "
+     "y opciones que cambian seguridad por FPS. Cada uno te dice su efecto REAL y su riesgo."),
     ("full", "⚙", "COMPLETO", GREEN,
      "Todo lo anterior junto. Revisaré todo lo que se puede mejorar en tu PC y te lo preguntaré cambio por cambio."),
 ]
@@ -77,6 +73,7 @@ class OptimizePage(tk.Frame):
             c = Card(row, accent=color)
             c.grid(row=i // 3, column=i % 3, sticky="nsew", padx=(0, 12) if i % 3 < 2 else 0, pady=(0, 12))
             tk.Label(c.body, text=icon, font=F(30, True), fg=color, bg=PANEL).pack(anchor="w")
+            tk.Label(c.body, text=f"NIVEL {i + 1} DE {len(PROFILES)}", font=F(8, True), fg=MUTED, bg=PANEL).pack(anchor="w")
             tk.Label(c.body, text=name, font=F(16, True), fg=color, bg=PANEL).pack(anchor="w", pady=(0, 6))
             WrapLabel(c.body, text=desc, fg=FG).pack(fill="x")
             NeonButton(c.body, "Elegir  →", lambda k=key: self.start(k), color=color, filled=True).pack(anchor="w", pady=(14, 0))

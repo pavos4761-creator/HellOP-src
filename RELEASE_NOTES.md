@@ -1,2 +1,2 @@
-• Arreglado: en «Optimizar» (y todos sus pasos) ahora sale una barra para subir y bajar cuando la ventana es pequeña y no cabe todo.
-• En todas las pantallas con barra de desplazamiento, la barra solo aparece cuando hace falta y se esconde sola si todo cabe.
+• Nuevo apartado «Streaming» en el menú de la izquierda (debajo de «Optimizar»): perfil de OBS con el codificador de tu gráfica, prioridad de gráfica para OBS/Streamlabs y ajustes que no molestan al directo. Muestra qué ha encontrado en tu PC antes de empezar.
+• «Optimizar» ahora ordena sus perfiles de menos a más cambios, con su nivel: Trabajo, Gaming, Limpieza profunda, Extremo y Completo.
