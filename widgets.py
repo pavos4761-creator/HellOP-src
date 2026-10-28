@@ -458,17 +458,37 @@ def kv_rows(parent, rows, key_width=18):
 
 # ---------------------------------------------------------------- scroll
 class ScrollFrame(tk.Frame):
+    """Zona con barra de desplazamiento que SOLO aparece cuando el contenido no cabe (ventana pequeña)."""
+
     def __init__(self, parent, bg=BG):
         super().__init__(parent, bg=bg)
         self.canvas = tk.Canvas(self, bg=bg, highlightthickness=0, bd=0)
         self.vsb = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
         self.inner = tk.Frame(self.canvas, bg=bg)
         self._win = self.canvas.create_window((0, 0), window=self.inner, anchor="nw")
-        self.inner.bind("<Configure>", lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
-        self.canvas.bind("<Configure>", lambda e: self.canvas.itemconfigure(self._win, width=e.width))
+        self._vsb_on = True
+        self.inner.bind("<Configure>", self._ajusta)
+        self.canvas.bind("<Configure>", self._ajusta)
         self.canvas.configure(yscrollcommand=self.vsb.set)
         self.canvas.pack(side="left", fill="both", expand=True)
         self.vsb.pack(side="right", fill="y")
+
+    def _ajusta(self, e=None):
+        try:
+            cw, ch = self.canvas.winfo_width(), self.canvas.winfo_height()
+            self.canvas.itemconfigure(self._win, width=cw)
+            self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+            if ch > 1:
+                necesita = self.inner.winfo_reqheight() > ch + 1
+                if necesita != self._vsb_on:                 # la barra aparece o desaparece sola según quepa o no el contenido
+                    self._vsb_on = necesita
+                    if necesita:
+                        self.vsb.pack(side="right", fill="y")
+                    else:
+                        self.vsb.pack_forget()
+                        self.canvas.yview_moveto(0)
+        except tk.TclError:
+            pass
 
     def clear(self):
         for w in self.inner.winfo_children():

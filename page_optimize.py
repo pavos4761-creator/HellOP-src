@@ -6,7 +6,7 @@ from tkinter import messagebox, ttk
 import actions
 from util import IS_WIN, DEMO, is_admin, run_cmd
 from widgets import (BG, CYAN, F, FG, GREEN, MUTED, PANEL, PINK, RED, VIOLET, YELLOW, Card, NeonButton,
-                     WrapLabel, badge, checkbox, page_title)
+                     ScrollFrame, WrapLabel, badge, checkbox, page_title)
 
 PROFILES = [
     ("gaming", "☄", "GAMING", PINK,
@@ -36,8 +36,9 @@ class OptimizePage(tk.Frame):
         self.app = app
         self.gen = 0
         self.v_restore = tk.BooleanVar(value=True)
-        self.stage = tk.Frame(self, bg=BG)
-        self.stage.pack(fill="both", expand=True, padx=26, pady=20)
+        self.scroll = ScrollFrame(self)              # si la ventana es pequeña, sale una barra para subir y bajar
+        self.scroll.pack(fill="both", expand=True, padx=(26, 10), pady=(20, 10))
+        self.stage = self.scroll.inner
         self.reset_state()
         self.show_intro()
 
@@ -53,6 +54,7 @@ class OptimizePage(tk.Frame):
         self.gen += 1
         for w in self.stage.winfo_children():
             w.destroy()
+        self.scroll.canvas.yview_moveto(0)
 
     def heading(self, title, sub=None):
         page_title(self.stage, title, sub, accent=PINK).pack(anchor="w", pady=(0, 12))
