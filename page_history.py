@@ -20,11 +20,15 @@ class HistoryPage(tk.Frame):
         self.scroll = ScrollFrame(self)
         self.scroll.pack(fill="both", expand=True, padx=(26, 10), pady=(8, 10))
 
-    def on_show(self):
-        self.render()
+    LOTE = 25          # cuántos cambios se dibujan de una vez (dibujar cientos de tarjetas hacía lag)
 
-    def render(self):
+    def on_show(self):
+        self.render(reset=True)
+
+    def render(self, reset=True):
         sf = self.scroll
+        if reset:
+            self.limite = self.LOTE
         sf.clear()
         entries = list(reversed(actions.load_log()))
         pending = [e for e in entries if e["reversible"] and not e["undone"]]
@@ -34,7 +38,7 @@ class HistoryPage(tk.Frame):
             c.pack(fill="x")
             WrapLabel(c.body, text="Todavía no has cambiado nada. Cuando apliques optimizaciones aparecerán aquí.").pack(fill="x")
             return
-        for e in entries:
+        for e in entries[:self.limite]:
             c = Card(sf.inner, accent=MUTED if e["undone"] else GREEN, pad=10)
             c.pack(fill="x", pady=(0, 8))
             r = tk.Frame(c.body, bg=PANEL)
@@ -51,17 +55,24 @@ class HistoryPage(tk.Frame):
                            font=F(9, True)).pack(side="right")
             else:
                 badge(r, "NO REVERSIBLE", RED).pack(side="right")
+        if len(entries) > self.limite:
+            resto = len(entries) - self.limite
+            NeonButton(sf.inner, f"Ver {min(self.LOTE, resto)} más ({resto} sin mostrar)", self.mas, color=CYAN, padx=16, pady=7).pack(pady=(4, 12))
+
+    def mas(self):
+        self.limite += self.LOTE
+        self.render(reset=False)
 
     def undo(self, entry_id):
         res = actions.undo_entry(entry_id)
         self.app.status(res.msg)
         if not res.ok:
             messagebox.showwarning("Deshacer", res.msg)
-        self.render()
+        self.render(reset=False)
 
     def undo_all(self):
         if not messagebox.askyesno("Deshacer todo", "Se revertirán todos los cambios reversibles pendientes.\n¿Continuar?"):
             return
         done, fail = actions.undo_all()
         self.app.status(f"Deshechos {done} cambios" + (f" · {fail} con error" if fail else ""))
-        self.render()
+        self.render(reset=False)

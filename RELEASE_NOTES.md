@@ -1,2 +1,1 @@
-• Más rápida: la app arranca antes porque cada página se crea solo la primera vez que la abres.
-• Inicio: la puntuación sale al instante (se guarda la última) y se recalcula en segundo plano; ya no te quedas esperando en «Midiendo tu PC…».
+• Historial: ya no se queda lagueado al entrar. Dibuja los últimos 25 cambios y un botón «Ver más» enseña el resto.
