@@ -13,6 +13,7 @@ CLAVES = {   # palabras extra para encontrar cada apartado
     "tweaks": "tweaks ajustes registro latencia", "cuello": "cuello de botella pieza mejorar", "bios": "bios xmp expo rebar",
     "oc": "overclock oc", "health": "salud pc disco smart", "debloat": "bloatware quitar apps", "history": "historial deshacer cambios",
     "update": "actualizaciones version nueva", "license": "licencia pro clave",
+    "cmd:informe": "informe exportar html guardar compartir reporte", "cmd:atras": "atras volver anterior",
 }
 
 
@@ -21,9 +22,11 @@ def _n(s):
 
 
 class Paleta(tk.Toplevel):
-    def __init__(self, app, entradas):
+    def __init__(self, app, entradas, comandos=()):
         super().__init__(app)
-        self.app, self.entradas, self.res, self.sel = app, entradas, [], 0
+        self.app, self.res, self.sel = app, [], 0
+        self.comandos = {k: f for k, _i, _t, f in comandos}
+        self.entradas = list(entradas) + [(k, i, t) for k, i, t, _f in comandos]
         self.overrideredirect(True)
         self.configure(bg=mix(BORDER, CYAN, 0.5))
         w, h = 460, 330
@@ -86,4 +89,7 @@ class Paleta(tk.Toplevel):
 
     def ir(self, key):
         self.destroy()
-        self.app.show(key)
+        if key in self.comandos:
+            self.comandos[key]()
+        else:
+            self.app.show(key)

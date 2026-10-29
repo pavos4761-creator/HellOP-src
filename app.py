@@ -208,6 +208,7 @@ class App(tk.Tk):
             import page_shaders  # noqa: F401
             import page_license  # noqa: F401
             import page_locked  # noqa: F401
+        self._hist, self._hist_i = [], -1
         self.pages = _Paginas(self.content, self, {
             "home": lambda p, a: __import__("page_home").HomePage(p, a),
             "analysis": lambda p, a: __import__("page_analysis").AnalysisPage(p, a),
@@ -241,6 +242,8 @@ class App(tk.Tk):
         self.after(80, self._anim_tick)
         self.protocol("WM_DELETE_WINDOW", self.on_close)
         self.report_callback_exception = self._error_tk
+        self.bind_all("<Alt-Left>", lambda e: self.navega(-1))
+        self.bind_all("<Alt-Right>", lambda e: self.navega(1))
         self.bind_all("<Control-k>", self.abrir_buscador)
         self.bind_all("<Control-K>", self.abrir_buscador)
         import booster
@@ -425,6 +428,7 @@ class App(tk.Tk):
                                   color=GREEN, filled=True, padx=10, pady=4, font=F(9, True))
         self.upd_btn.pack(side="left", padx=6)
         self.status(f"Hay una versión nueva: v{latest}")
+        self.toast(f"Hay una versión nueva: v{latest}. Pulsa el botón verde de arriba.", GREEN)
 
     def abrir_asistente(self):
         """Abre el asistente de primera vez (también desde el botón de Inicio)."""
@@ -528,7 +532,8 @@ class App(tk.Tk):
                 self._paleta.destroy()
             except tk.TclError:
                 pass
-        self._paleta = Paleta(self, [(k, i, t) for k, i, t in PAGES])
+        self._paleta = Paleta(self, [(k, i, t) for k, i, t in PAGES], [("cmd:informe", "⎙", "Exportar informe del PC (HTML)", self.exportar_informe),
+                                                                     ("cmd:atras", "←", "Volver al apartado anterior", lambda: self.navega(-1))])
         return "break"
 
     def _error_tk(self, exc, val, tb):
@@ -540,6 +545,7 @@ class App(tk.Tk):
             with open(APP_DIR / "errores.log", "a", encoding="utf-8") as f:
                 f.write(time.strftime("%Y-%m-%d %H:%M:%S") + f"  v{version.__version__}\n" + "".join(traceback.format_exception(exc, val, tb)) + "\n")
             self.status(f"Algo no salió bien ({exc.__name__}). Queda anotado en errores.log")
+            self.toast("Algo no salió bien. Queda anotado en errores.log", RED)
         except Exception:  # noqa: BLE001
             pass
 
@@ -601,8 +607,12 @@ class App(tk.Tk):
         messagebox.showwarning("Administrador", "No se pudo reabrir como administrador.")
 
     # ---- navegación -------------------------------------------------------
-    def show(self, key):
+    def show(self, key, _hist=True):
         first = self.current is None
+        if _hist and key != self.current and key != "locked":
+            self._hist = self._hist[:self._hist_i + 1] + [key]
+            self._hist_i = len(self._hist) - 1
+        self.sidebar.muestra(key)
         for p in self.pages.values():
             p.place_forget()
         for k, n in self.nav.items():
@@ -639,6 +649,51 @@ class App(tk.Tk):
 
     def status(self, text):
         self.statusbar.config(text=text)
+
+    def toast(self, text, color=None):
+        """Aviso flotante abajo a la derecha que entra deslizando y se va solo a los 4 s."""
+        color = color or GREEN
+        try:
+            if getattr(self, "_toast", None) is not None:
+                self._toast.destroy()
+            t = tk.Frame(self, bg=mix(BORDER, color, 0.6), highlightthickness=0)
+            inner = tk.Frame(t, bg=SIDE)
+            inner.pack(padx=1, pady=1)
+            tk.Frame(inner, bg=color, width=4).pack(side="left", fill="y")
+            tk.Label(inner, text=text, font=F(10, True), fg=FG, bg=SIDE, padx=14, pady=10, justify="left", wraplength=360).pack(side="left")
+            self._toast = t
+            t.update_idletasks()
+            w, h = t.winfo_reqwidth(), t.winfo_reqheight()
+            y = self.winfo_height() - h - 44
+            x_fin = self.winfo_width() - w - 22
+            t.place(x=self.winfo_width(), y=y)
+            t.lift()
+            anim.tween(self, 220, lambda p: t.place_configure(x=int(self.winfo_width() - (self.winfo_width() - x_fin) * p)))
+            self.after(4200, lambda: self._quita_toast(t))
+        except tk.TclError:
+            pass
+
+    def _quita_toast(self, t):
+        try:
+            if getattr(self, "_toast", None) is t:
+                self._toast = None
+            t.destroy()
+        except tk.TclError:
+            pass
+
+    def navega(self, delta):
+        """Atrás / adelante entre los apartados visitados (Alt+← / Alt+→)."""
+        i = self._hist_i + delta
+        if 0 <= i < len(self._hist):
+            self._hist_i = i
+            self.show(self._hist[i], _hist=False)
+        return "break"
+
+    def exportar_informe(self):
+        import informe
+        self.toast("Preparando tu informe…", CYAN)
+        self.bg(lambda: informe.guardar(), lambda r: (self.toast("Informe guardado en tu Escritorio y abierto en el navegador", GREEN), informe.abrir(r)),
+                lambda e: self.toast(f"No pude crear el informe: {e}", RED))
 
     # ---- hilos ---------------------------------------------------------------
     def bg(self, fn, done=None, fail=None):

@@ -68,19 +68,17 @@ class BarraLateral(tk.Canvas):
     def __init__(self, parent, sections, on_select):
         super().__init__(parent, bg=_bg_of(parent), highlightthickness=0, bd=0)
         self.on_select, self.off, self._job, self._rz = on_select, 0, None, None
-        self.filas = []          # ("h", titulo) | ("i", entrada)
+        self.filas = []          # ["h", titulo, y, visible, titulo] | ["i", entrada, y, visible, titulo_de_su_seccion]
         self.nav = {}
-        y = 0
+        self.cerradas = self._carga_cerradas()
         for titulo, items in sections:
-            self.filas.append(["h", titulo, y])
-            y += CABECERA
+            self.filas.append(["h", titulo, 0, True, titulo])
             for key, icon, text in items:
                 e = _Entrada(self, key, icon, text)
                 self.nav[key] = e
-                e.fila = ["i", e, y]
+                e.fila = ["i", e, 0, True, titulo]
                 self.filas.append(e.fila)
-                y += PASO
-        self.alto_total = y
+        self._layout()
         self.live_lbl = _Etiqueta(self)
         self.bar_cpu = _Barra(self, "CPU", CYAN, 0)
         self.bar_ram = _Barra(self, "RAM", PINK, 1)
@@ -91,6 +89,55 @@ class BarraLateral(tk.Canvas):
         self.bind("<MouseWheel>", lambda e: self._rueda(-1 if e.delta > 0 else 1))
         self.bind("<Button-4>", lambda e: self._rueda(-1))
         self.bind("<Button-5>", lambda e: self._rueda(1))
+
+    # ---- secciones plegables (se recuerdan entre sesiones) ----
+    def _carga_cerradas(self):
+        try:
+            import json
+            from util import APP_DIR
+            return set(json.loads((APP_DIR / "menu.json").read_text("utf-8")).get("cerradas", []))
+        except Exception:  # noqa: BLE001
+            return set()
+
+    def _guarda_cerradas(self):
+        try:
+            import json
+            from util import APP_DIR
+            APP_DIR.mkdir(parents=True, exist_ok=True)
+            (APP_DIR / "menu.json").write_text(json.dumps({"cerradas": sorted(self.cerradas)}), "utf-8")
+        except Exception:  # noqa: BLE001
+            pass
+
+    def _layout(self):
+        y = 0
+        for f in self.filas:
+            if f[0] == "h":
+                f[2] = y
+                y += CABECERA
+            else:
+                f[3] = f[4] not in self.cerradas
+                f[2] = y
+                if f[3]:
+                    y += PASO
+        self.alto_total = y
+
+    def alterna(self, titulo, abrir=None):
+        cerrada = titulo in self.cerradas
+        if abrir is None:
+            abrir = cerrada
+        if abrir == (not cerrada):
+            return
+        (self.cerradas.discard if abrir else self.cerradas.add)(titulo)
+        self._guarda_cerradas()
+        self._layout()
+        self.off = min(self.off, self._max_off())
+        self._dibuja_todo()
+
+    def muestra(self, key):
+        """Abre la sección de esa entrada si estaba plegada (al navegar con el buscador, por ejemplo)."""
+        e = self.nav.get(key)
+        if e and e.fila[4] in self.cerradas:
+            self.alterna(e.fila[4], True)
 
     # ---- geometría ----
     def _vista(self):
@@ -157,7 +204,9 @@ class BarraLateral(tk.Canvas):
     def _cabecera(self, f):
         y = self._y(f)
         if self._visible(y, CABECERA - 6):
+            cerrada = f[1] in self.cerradas
             self.create_text(26, y + 17, text=f[1], anchor="w", fill=mix(SIDE, MUTED, 0.9), font=F(8, True), tags="fila")
+            self.create_text(self.winfo_width() - 26, y + 17, text="▸" if cerrada else "▾", anchor="e", fill=mix(SIDE, MUTED, 0.55), font=F(8), tags="fila")
 
     def _dibuja(self, e):
         fila = e.fila
@@ -165,7 +214,7 @@ class BarraLateral(tk.Canvas):
         try:
             self.delete(tag)
             y = self._y(fila)
-            if not self._visible(y, PASO):
+            if not fila[3] or not self._visible(y, PASO):
                 return
             w = self.winfo_width()
             k = max(e.hov * 0.5, e.act)
@@ -214,7 +263,7 @@ class BarraLateral(tk.Canvas):
         for f in self.filas:
             if f[0] == "i":
                 fy = self._y(f)
-                if fy <= y < fy + PASO and self._visible(fy, PASO):
+                if f[3] and fy <= y < fy + PASO and self._visible(fy, PASO):
                     return f[1]
         return None
 
@@ -232,6 +281,12 @@ class BarraLateral(tk.Canvas):
             self._anima()
 
     def _click(self, e):
+        for f in self.filas:
+            if f[0] == "h":
+                fy = self._y(f)
+                if fy <= e.y < fy + CABECERA and self._visible(fy, CABECERA - 6):
+                    self.alterna(f[1])
+                    return
         ent = self._en(e.y)
         if ent:
             self.on_select(ent.key)
