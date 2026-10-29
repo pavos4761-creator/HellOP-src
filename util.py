@@ -25,7 +25,7 @@ try:
 except OSError:
     APP_DIR = Path.home()
 
-_NO_WINDOW = 0x08000000 if IS_WIN else 0
+_NO_WINDOW = (0x08000000 | 0x00004000) if IS_WIN else 0     # sin ventana y con prioridad baja: no molesta a lo que estés haciendo
 
 
 # --------------------------------------------------------------------------

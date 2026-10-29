@@ -40,6 +40,14 @@ def ultima():
         return None
 
 
+def antigua(horas=6):
+    """True si la última nota guardada no existe o tiene más de `horas` horas."""
+    try:
+        return time.time() - ULTIMA_FILE.stat().st_mtime > horas * 3600
+    except OSError:
+        return True
+
+
 def _guarda(res):
     try:
         APP_DIR.mkdir(parents=True, exist_ok=True)

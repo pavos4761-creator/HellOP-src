@@ -198,7 +198,7 @@ def _prefetch():
     from concurrent.futures import ThreadPoolExecutor
     import sysinfo
     import bios
-    ex = ThreadPoolExecutor(max_workers=8)
+    ex = ThreadPoolExecutor(max_workers=3)
     tareas = {
         "hw": lambda: sysinfo.ram_advice(sysinfo.collect_hardware()),
         "vbs": vbs_on,

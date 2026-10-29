@@ -409,18 +409,18 @@ class HomePage(tk.Frame):
             self._cargando.add("temp")
             self._temp_ok = True
             import sysinfo
-            self.app.bg(sysinfo.read_temps, lambda r: (self._cargando.discard("temp"), self._temp_done(r)),
-                        lambda e: (self._cargando.discard("temp"), self._temp_done([])))
+            self.app.after(6000, lambda: self.app.bg(sysinfo.read_temps, lambda r: (self._cargando.discard("temp"), self._temp_done(r)),
+                                                     lambda e: (self._cargando.discard("temp"), self._temp_done([]))))
         if self._nota is None:                       # enseña al instante la última nota guardada
             import puntuacion
             ult = puntuacion.ultima()
             if ult:
                 self._nota_done(ult)
-        if "nota" not in self._cargando and (self._nota_t == 0 or time.time() - self._nota_t > 600):
+        import puntuacion
+        if "nota" not in self._cargando and (self._nota is None or (self._nota_t == 0 and puntuacion.antigua())):
             self._cargando.add("nota")
             self._nota_t = time.time()
-            import puntuacion
-            self.app.after(2500 if self._nota else 400, lambda: self.app.bg(
+            self.app.after(10000 if self._nota else 400, lambda: self.app.bg(
                 lambda: puntuacion.calcular(), lambda r: (self._cargando.discard("nota"), self._nota_done(r)),
                 lambda e: self._cargando.discard("nota")))
         w = self.app.pages["games"].watcher
