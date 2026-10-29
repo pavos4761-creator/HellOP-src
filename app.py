@@ -34,6 +34,26 @@ SECTIONS = [
 PAGES = [item for _title, items in SECTIONS for item in items]
 
 
+
+class _Paginas(dict):
+    """Las páginas se crean la primera vez que se abren (arranque más rápido). values() solo da las ya creadas."""
+
+    def __init__(self, parent, app, fabricas):
+        super().__init__()
+        self._parent, self._app, self._fab = parent, app, fabricas
+
+    def __missing__(self, key):
+        page = self._fab[key](self._parent, self._app)
+        self[key] = page
+        return page
+
+    def get(self, key, default=None):
+        return super().get(key, default)
+
+    def creada(self, key):
+        return dict.__contains__(self, key)
+
+
 class NavItem(tk.Canvas):
     """Entrada del menú: el fondo y el color se funden suavemente, la barra lateral «crece» al activarse
     y puede llevar un punto que late (p. ej. modo automático activo)."""
@@ -161,56 +181,57 @@ class App(tk.Tk):
         self.statusbar = tk.Label(self, text="Listo", font=F(9), fg=MUTED, bg=SIDE, anchor="w", padx=14, pady=5)
         self.statusbar.pack(fill="x", side="bottom")
 
-        from page_analysis import AnalysisPage
-        from page_bios import BiosPage
-        from page_booster import BoosterPage
-        from page_clean import CleanPage
-        from page_diag import DiagPage
-        from page_debloat import DebloatPage
-        from page_gameprof import GameProfilePage
-        from page_fps import FpsPage
-        from page_games import GamesPage
-        from page_license import LicensePage
-        from page_locked import LockedPage
-        from page_health import HealthPage
-        from page_home import HomePage
-        from page_monitor import MonitorPage
-        from page_oc import OcPage
-        from page_history import HistoryPage
-        from page_optimize import OptimizePage
-        from page_streaming import StreamingPage
-        from page_tweaks import TweaksPage
-        from page_update import UpdatePage
-        from page_arranque import ArranquePage
-        from page_cuello import CuelloPage
-        from page_puntuacion import ScorePage
-        from page_shaders import ShadersPage
-        self.pages = {
-            "home": HomePage(self.content, self),
-            "analysis": AnalysisPage(self.content, self),
-            "optimize": OptimizePage(self.content, self),
-            "streaming": StreamingPage(self.content, self),
-            "games": GamesPage(self.content, self),
-            "booster": BoosterPage(self.content, self),
-            "bios": BiosPage(self.content, self),
-            "monitor": MonitorPage(self.content, self),
-            "diag": DiagPage(self.content, self),
-            "oc": OcPage(self.content, self),
-            "clean": CleanPage(self.content, self),
-            "history": HistoryPage(self.content, self),
-            "gameprof": GameProfilePage(self.content, self),
-            "tweaks": TweaksPage(self.content, self),
-            "fps": FpsPage(self.content, self),
-            "health": HealthPage(self.content, self),
-            "debloat": DebloatPage(self.content, self),
-            "update": UpdatePage(self.content, self),
-            "arranque": ArranquePage(self.content, self),
-            "cuello": CuelloPage(self.content, self),
-            "score": ScorePage(self.content, self),
-            "shaders": ShadersPage(self.content, self),
-            "license": LicensePage(self.content, self),
-            "locked": LockedPage(self.content, self),
-        }
+        if False:  # para que PyInstaller incluya las páginas que se cargan al abrirlas
+            import page_home  # noqa: F401
+            import page_analysis  # noqa: F401
+            import page_optimize  # noqa: F401
+            import page_streaming  # noqa: F401
+            import page_games  # noqa: F401
+            import page_booster  # noqa: F401
+            import page_bios  # noqa: F401
+            import page_monitor  # noqa: F401
+            import page_diag  # noqa: F401
+            import page_oc  # noqa: F401
+            import page_clean  # noqa: F401
+            import page_history  # noqa: F401
+            import page_gameprof  # noqa: F401
+            import page_tweaks  # noqa: F401
+            import page_fps  # noqa: F401
+            import page_health  # noqa: F401
+            import page_debloat  # noqa: F401
+            import page_update  # noqa: F401
+            import page_arranque  # noqa: F401
+            import page_cuello  # noqa: F401
+            import page_puntuacion  # noqa: F401
+            import page_shaders  # noqa: F401
+            import page_license  # noqa: F401
+            import page_locked  # noqa: F401
+        self.pages = _Paginas(self.content, self, {
+            "home": lambda p, a: __import__("page_home").HomePage(p, a),
+            "analysis": lambda p, a: __import__("page_analysis").AnalysisPage(p, a),
+            "optimize": lambda p, a: __import__("page_optimize").OptimizePage(p, a),
+            "streaming": lambda p, a: __import__("page_streaming").StreamingPage(p, a),
+            "games": lambda p, a: __import__("page_games").GamesPage(p, a),
+            "booster": lambda p, a: __import__("page_booster").BoosterPage(p, a),
+            "bios": lambda p, a: __import__("page_bios").BiosPage(p, a),
+            "monitor": lambda p, a: __import__("page_monitor").MonitorPage(p, a),
+            "diag": lambda p, a: __import__("page_diag").DiagPage(p, a),
+            "oc": lambda p, a: __import__("page_oc").OcPage(p, a),
+            "clean": lambda p, a: __import__("page_clean").CleanPage(p, a),
+            "history": lambda p, a: __import__("page_history").HistoryPage(p, a),
+            "gameprof": lambda p, a: __import__("page_gameprof").GameProfilePage(p, a),
+            "tweaks": lambda p, a: __import__("page_tweaks").TweaksPage(p, a),
+            "fps": lambda p, a: __import__("page_fps").FpsPage(p, a),
+            "health": lambda p, a: __import__("page_health").HealthPage(p, a),
+            "debloat": lambda p, a: __import__("page_debloat").DebloatPage(p, a),
+            "update": lambda p, a: __import__("page_update").UpdatePage(p, a),
+            "arranque": lambda p, a: __import__("page_arranque").ArranquePage(p, a),
+            "cuello": lambda p, a: __import__("page_cuello").CuelloPage(p, a),
+            "score": lambda p, a: __import__("page_puntuacion").ScorePage(p, a),
+            "shaders": lambda p, a: __import__("page_shaders").ShadersPage(p, a),
+            "license": lambda p, a: __import__("page_license").LicensePage(p, a),
+            "locked": lambda p, a: __import__("page_locked").LockedPage(p, a),
+        })
         self.refresh_license()
         self.show("home")
         self._anim_phase = 0.0
@@ -368,6 +389,11 @@ class App(tk.Tk):
                        font=F(9, True)).pack(side="left", padx=6)
         GradientBar(self, height=3).pack(fill="x")
 
+    def _apaga_paginas(self):
+        for k in ("games", "monitor", "booster"):
+            if self.pages.creada(k):
+                self.pages[k].shutdown()
+
     def refresh_license(self):
         """Actualiza la etiqueta de licencia de la cabecera y las marcas PRO del menú."""
         st = licencia.status()
@@ -468,9 +494,7 @@ class App(tk.Tk):
     def on_close(self):
         """Antes de cerrar deja todo como estaba (prioridades, servicios, temporizador)."""
         try:
-            self.pages["games"].shutdown()
-            self.pages["monitor"].shutdown()
-            self.pages["booster"].shutdown()
+            self._apaga_paginas()
         except Exception:  # noqa: BLE001
             pass
         self.destroy()
@@ -487,9 +511,7 @@ class App(tk.Tk):
             if PRO_THEME or DEMO or not IS_WIN:
                 return
             try:
-                self.pages["games"].shutdown()
-                self.pages["monitor"].shutdown()
-                self.pages["booster"].shutdown()
+                self._apaga_paginas()
             except Exception:  # noqa: BLE001
                 pass
             os.environ["HELLOP_SHOW_AT"] = str(time.time() + (DURACION - LANZAR) - 0.15)
@@ -511,9 +533,7 @@ class App(tk.Tk):
             self.status("Reinicio no disponible en este modo: cierra y abre HellOP.")
             return
         try:
-            self.pages["games"].shutdown()
-            self.pages["monitor"].shutdown()
-            self.pages["booster"].shutdown()
+            self._apaga_paginas()
         except Exception:  # noqa: BLE001
             pass
         if relaunch_as_admin():

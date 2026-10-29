@@ -411,12 +411,18 @@ class HomePage(tk.Frame):
             import sysinfo
             self.app.bg(sysinfo.read_temps, lambda r: (self._cargando.discard("temp"), self._temp_done(r)),
                         lambda e: (self._cargando.discard("temp"), self._temp_done([])))
-        if "nota" not in self._cargando and (self._nota is None or time.time() - self._nota_t > 600):
+        if self._nota is None:                       # enseña al instante la última nota guardada
+            import puntuacion
+            ult = puntuacion.ultima()
+            if ult:
+                self._nota_done(ult)
+        if "nota" not in self._cargando and (self._nota_t == 0 or time.time() - self._nota_t > 600):
             self._cargando.add("nota")
             self._nota_t = time.time()
             import puntuacion
-            self.app.bg(lambda: puntuacion.calcular(), lambda r: (self._cargando.discard("nota"), self._nota_done(r)),
-                        lambda e: self._cargando.discard("nota"))
+            self.app.after(2500 if self._nota else 400, lambda: self.app.bg(
+                lambda: puntuacion.calcular(), lambda r: (self._cargando.discard("nota"), self._nota_done(r)),
+                lambda e: self._cargando.discard("nota")))
         w = self.app.pages["games"].watcher
         if w and w.running:
             self._set("auto", w.status()[0], GREEN)
@@ -428,7 +434,7 @@ class HomePage(tk.Frame):
             done = [e for e in actions.load_log() if not e.get("undone")]
             last = done[-1]["ts"] if done else None
         self._set("last", last or ("Ejemplo: hoy" if DEMO else "Aún no has optimizado nada"), GREEN if last or DEMO else YELLOW)
-        info = self.app.pages["update"].info
+        info = self.app.pages["update"].info if self.app.pages.creada("update") else None
         if info and info.get("newer"):
             self._set("upd", f"Hay una versión nueva: v{info['latest']}", YELLOW)
         elif info:

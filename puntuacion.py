@@ -28,6 +28,26 @@ LOGROS = [   # (id, título, descripción)
 ]
 
 
+ULTIMA_FILE = APP_DIR / ("ultima_nota_demo.json" if DEMO else "ultima_nota.json")
+
+
+def ultima():
+    """Última nota guardada (para enseñarla al instante mientras se recalcula)."""
+    try:
+        d = json.loads(ULTIMA_FILE.read_text("utf-8"))
+        return {"score": int(d["score"]), "medal": tuple(d["medal"]), "perdidos": [(t, p, tuple(f) if f else None) for t, p, f in d["perdidos"]]}
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _guarda(res):
+    try:
+        APP_DIR.mkdir(parents=True, exist_ok=True)
+        ULTIMA_FILE.write_text(json.dumps({"score": res["score"], "medal": list(res["medal"]), "perdidos": res["perdidos"]}), "utf-8")
+    except (OSError, TypeError):
+        pass
+
+
 def medal(score):
     for lim, name, col in MEDALLAS:
         if score >= lim:
@@ -61,10 +81,12 @@ def _space():
 
 def calcular(progress=lambda s: None):
     """Devuelve {score, medal, perdidos:[(titulo, puntos, fix)], hallazgos, logros, nuevos}."""
+    from concurrent.futures import ThreadPoolExecutor
     progress("Revisando tu equipo (unos segundos)…")
-    found = [f for f in hidden.scan(progress) if f["key"] in PESO]
-    progress("Mirando programas de inicio y espacio libre…")
-    n_start, st = _startup()
+    with ThreadPoolExecutor(max_workers=2) as ex:      # el arranque se lee a la vez que el escaneo
+        f_start = ex.submit(_startup)
+        found = [f for f in hidden.scan(progress) if f["key"] in PESO]
+        n_start, st = f_start.result()
     if st:
         found.append(st)
     sp = _space()
@@ -84,7 +106,9 @@ def calcular(progress=lambda s: None):
     perdidos.sort(key=lambda x: -x[1])
     ctx = {"score": score, "found": found, "startup": n_start}
     logros, nuevos = evaluar(ctx)
-    return {"score": score, "medal": medal(score), "perdidos": perdidos, "hallazgos": found, "logros": logros, "nuevos": nuevos}
+    res = {"score": score, "medal": medal(score), "perdidos": perdidos, "hallazgos": found, "logros": logros, "nuevos": nuevos}
+    _guarda(res)
+    return res
 
 
 def _cargar():

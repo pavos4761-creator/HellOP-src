@@ -3,6 +3,7 @@ recomendaciones (incluida la guía de BIOS/XMP para los tiempos de la RAM)."""
 import random
 import re
 import shutil
+import time
 
 import psutil
 
@@ -95,9 +96,14 @@ def fix_vram(gpus):
                     break
 
 
+_HW_CACHE = [0.0, None]
+
+
 def collect_hardware():
     if DEMO:
         return DEMO_HW
+    if _HW_CACHE[1] is not None and time.time() - _HW_CACHE[0] < 300:
+        return _HW_CACHE[1]
     data = run_ps_json(HW_SCRIPT, timeout=120, default=None)
     if not isinstance(data, dict):
         raise RuntimeError("No pude leer el hardware (¿PowerShell bloqueado?).")
@@ -105,6 +111,7 @@ def collect_hardware():
         fix_vram(as_list(data.get("gpu")))
     except Exception:  # noqa: BLE001
         pass
+    _HW_CACHE[0], _HW_CACHE[1] = time.time(), data
     return data
 
 

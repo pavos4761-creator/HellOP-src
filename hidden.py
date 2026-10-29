@@ -168,7 +168,7 @@ def background_hogs():
             procs.append(p)
         except (psutil.Error, OSError):
             pass
-    time.sleep(1.5)
+    time.sleep(0.8)
     n = psutil.cpu_count() or 1
     for p in procs:
         try:
@@ -193,8 +193,36 @@ def F(key, sev, title, impact, detail, fix=None):
     return {"key": key, "sev": sev, "title": title, "impact": impact, "detail": detail, "fix": fix}
 
 
+def _prefetch():
+    """Lanza a la vez todas las lecturas lentas (PowerShell, nvidia-smi, procesos) y devuelve {nombre: futuro}."""
+    from concurrent.futures import ThreadPoolExecutor
+    import sysinfo
+    import bios
+    ex = ThreadPoolExecutor(max_workers=8)
+    tareas = {
+        "hw": lambda: sysinfo.ram_advice(sysinfo.collect_hardware()),
+        "vbs": vbs_on,
+        "hdd": games_on_hdd,
+        "fw": bios.firmware_status,
+        "pcie": pcie_link,
+        "hogs": background_hogs,
+        "plan": actions.active_scheme,
+    }
+    fut = {k: ex.submit(f) for k, f in tareas.items()}
+    ex.shutdown(wait=False)
+    return fut
+
+
+def _res(fut, k, default=None):
+    try:
+        return fut[k].result()
+    except Exception:  # noqa: BLE001
+        return default
+
+
 def scan(progress=lambda m: None):
     out = []
+    fut = _prefetch()
 
     progress("Mirando la frecuencia de tu monitor…")
     di = display_info()
@@ -211,11 +239,7 @@ def scan(progress=lambda m: None):
                          "Comprueba también que el juego use esa frecuencia en sus ajustes de vídeo."))
 
     progress("Mirando tu RAM…")
-    try:
-        import sysinfo
-        ra = sysinfo.ram_advice(sysinfo.collect_hardware())
-    except Exception:  # noqa: BLE001
-        ra = None
+    ra = _res(fut, "hw")
     if ra:
         single = [n for n in ra["notes"] if "canal único" in n[1]]
         if single:
@@ -233,14 +257,14 @@ def scan(progress=lambda m: None):
             out.append(F("ramspeed", "ok", ra["headline"], "", ""))
 
     progress("Mirando dónde están tus juegos…")
-    hdd = games_on_hdd()
+    hdd = _res(fut, "hdd") or []
     if hdd:
         out.append(F("hdd", "bad", f"{len(hdd)} juego(s) instalados en un disco duro mecánico", "ALTO en juegos grandes: tirones al cargar texturas y pantallas de carga muy largas",
                      "Un HDD no sigue el ritmo de juegos de mundo abierto: ves tirones cuando entra terreno nuevo. Mueve esos juegos a un SSD "
                      "(en Steam: Propiedades → Instalados → Mover carpeta de instalación). Afectados: " + ", ".join(hdd[:5]) + ".", None))
 
     progress("Mirando VBS y el plan de energía…")
-    v = vbs_on()
+    v = _res(fut, "vbs")
     if v:
         out.append(F("vbs", "warn", "VBS / Integridad de memoria está activo", "MEDIO: ≈4-5 % de media (hasta ~8 % en algún juego) en pruebas de Tom's Hardware",
                      "Windows 11 ejecuta tu sistema dentro de un mini-hipervisor de seguridad. Desactivarlo devuelve FPS pero baja la protección frente "
@@ -249,7 +273,7 @@ def scan(progress=lambda m: None):
     elif v is False:
         out.append(F("vbs", "ok", "VBS desactivado", "", ""))
     try:
-        guid, name = actions.active_scheme()
+        guid, name = _res(fut, "plan", (None, None))
         if guid and guid not in (actions.GUID_HIGH, actions.GUID_ULTIMATE) and not re.search(r"ultimate|m[aá]x|alto rendimiento|high perf", name or "", re.I) \
                 and psutil.sensors_battery() is None:
             out.append(F("plan", "warn", f"Plan de energía: «{name}»", "BAJO-MEDIO: la CPU tarda en subir de frecuencia; se nota en mínimos y tirones",
@@ -260,8 +284,7 @@ def scan(progress=lambda m: None):
 
     progress("Mirando Resizable BAR y el enlace PCIe…")
     try:
-        import bios
-        fw = bios.firmware_status()
+        fw = _res(fut, "fw", {})
         if fw.get("rebar") is False:
             out.append(F("rebar", "info", "Resizable BAR desactivado", "BAJO-MEDIO: 0-10 % según el juego; en RTX serie 20 requiere vBIOS oficial",
                          "Permite a la CPU usar toda la memoria de la gráfica de una vez. En tu equipo puede no estar disponible. Mira la guía de BIOS.",
@@ -270,7 +293,7 @@ def scan(progress=lambda m: None):
             out.append(F("rebar", "ok", "Resizable BAR activado", "", ""))
     except Exception:  # noqa: BLE001
         pass
-    pl = pcie_link()
+    pl = _res(fut, "pcie")
     if pl:
         gen, gmax, wd, wmax, util = pl
         if wd < wmax and util >= 30:
@@ -282,8 +305,8 @@ def scan(progress=lambda m: None):
         else:
             out.append(F("pcie", "ok", f"Gráfica en PCIe x{wd} a pleno ancho", "", ""))
 
-    progress("Midiendo qué gasta de fondo (2 s)…")
-    hogs = background_hogs()
+    progress("Terminando…")
+    hogs = _res(fut, "hogs") or []
     if hogs:
         lines = ", ".join(f"{n} ({c:.0f} % CPU, {fmt_gb(r)})" for n, c, r in hogs[:4])
         out.append(F("bg", "warn", "Programas de fondo que gastan recursos", "BAJO-MEDIO: se nota en tirones, sobre todo con 8-16 GB de RAM o procesador justo",

@@ -1,2 +1,2 @@
-• Nuevo apartado «Streaming» en el menú de la izquierda (debajo de «Optimizar»): perfil de OBS con el codificador de tu gráfica, prioridad de gráfica para OBS/Streamlabs y ajustes que no molestan al directo. Muestra qué ha encontrado en tu PC antes de empezar.
-• «Optimizar» ahora ordena sus perfiles de menos a más cambios, con su nivel: Trabajo, Gaming, Limpieza profunda, Extremo y Completo.
+• Más rápida: la app arranca antes porque cada página se crea solo la primera vez que la abres.
+• Inicio: la puntuación sale al instante (se guarda la última) y se recalcula en segundo plano; ya no te quedas esperando en «Midiendo tu PC…».
