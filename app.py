@@ -23,7 +23,7 @@ from widgets import (BG, CYAN, F, FG, GREEN, MUTED, PANEL2, PINK, RED, SIDE, VIO
 
 SECTIONS = [
     ("INICIO", [("home", "⌂", "Inicio"), ("analysis", "◎", "Análisis de PC"), ("score", "★", "Puntuación")]),
-    ("OPTIMIZAR", [("optimize", "⚡", "Optimizar"), ("streaming", "◉", "Streaming"), ("clean", "✦", "Limpieza"), ("shaders", "❖", "Limpiar shaders"),
+    ("OPTIMIZAR", [("optimize", "⚡", "Optimizar"), ("streaming", "◉", "Streaming"), ("mando", "◈", "Mando"), ("clean", "✦", "Limpieza"), ("shaders", "❖", "Limpiar shaders"),
                    ("arranque", "⏻", "Gestor de arranque")]),
     ("GAMING", [("games", "▣", "Mis juegos"), ("gameprof", "✧", "Ajustes de juego"), ("booster", "☢", "Modo Extremo"),
                 ("monitor", "≈", "Monitor"), ("diag", "◈", "Diagnóstico"), ("fps", "▤", "FPS reales")]),
@@ -186,6 +186,7 @@ class App(tk.Tk):
             import page_analysis  # noqa: F401
             import page_optimize  # noqa: F401
             import page_streaming  # noqa: F401
+            import page_mando  # noqa: F401
             import page_games  # noqa: F401
             import page_booster  # noqa: F401
             import page_bios  # noqa: F401
@@ -211,6 +212,7 @@ class App(tk.Tk):
             "analysis": lambda p, a: __import__("page_analysis").AnalysisPage(p, a),
             "optimize": lambda p, a: __import__("page_optimize").OptimizePage(p, a),
             "streaming": lambda p, a: __import__("page_streaming").StreamingPage(p, a),
+            "mando": lambda p, a: __import__("page_mando").MandoPage(p, a),
             "games": lambda p, a: __import__("page_games").GamesPage(p, a),
             "booster": lambda p, a: __import__("page_booster").BoosterPage(p, a),
             "bios": lambda p, a: __import__("page_bios").BiosPage(p, a),

@@ -34,6 +34,7 @@ else:
 LOG_FILE = APP_DIR / ("historial_demo.json" if DEMO else "historial.json")
 
 GROUPS = [
+    ("mando", "Mando (menos retraso)"),
     ("streaming", "Streaming (OBS)"),
     ("power", "Energía"),
     ("speed", "Respuesta del sistema"),
@@ -185,6 +186,7 @@ def _load_registry():
         import arranque  # noqa: F401
         import shaders  # noqa: F401
         import streaming  # noqa: F401
+        import mando  # noqa: F401
     except Exception:  # noqa: BLE001
         pass
 
@@ -974,10 +976,15 @@ def discover(profile, progress=None):
     if DEMO:
         time.sleep(1.5)
         acts = demo_actions()
+        if profile == "mando":
+            import mando
+            acts = mando.mando_actions()
     else:
         acts = []
 
         def step(msg, fn):
+            if profile == "mando" and not msg.startswith(("Revisando plan", "Revisando USB")):
+                return                      # el perfil Mando solo mira lo suyo (no mide DNS ni lista servicios)
             if progress:
                 progress(msg)
             try:
@@ -1000,6 +1007,9 @@ def discover(profile, progress=None):
         if profile == "deep":
             import deepclean
             step("Revisando tareas programadas, telemetría y publicidad…", deepclean.deep_actions)
+        if profile == "mando":
+            import mando
+            step("Revisando USB, Bluetooth y ahorro de energía…", mando.mando_actions)
         if profile == "streaming":
             import streaming
             step("Buscando OBS / Streamlabs y tu gráfica…", streaming.streaming_actions)
@@ -1013,6 +1023,9 @@ def discover(profile, progress=None):
                 continue
         elif profile == "extreme":
             if "gaming" not in a.profiles and "extreme" not in a.profiles:
+                continue
+        elif profile == "mando":
+            if "mando" not in a.profiles and a.id != "power_plan":
                 continue
         elif profile == "streaming":
             if "streaming" not in a.profiles and "gaming" not in a.profiles:

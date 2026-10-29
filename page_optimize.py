@@ -339,6 +339,12 @@ class OptimizePage(tk.Frame):
         if self.need_reboot:
             WrapLabel(c.body, fg=YELLOW, text="Algunos cambios (ratón, efectos visuales, GPU) se notan al cerrar sesión o reiniciar. "
                                                "El tiempo de arranque de Windows solo se actualiza tras reiniciar.").pack(fill="x", pady=(10, 0))
+        if self.profile == "mando":
+            import mando
+            t = Card(self.stage, accent=PINK, title="Para jugar con mando con el mínimo retraso (lo que de verdad funciona)")
+            t.pack(fill="x", pady=(12, 0))
+            for tip in mando.CONSEJOS:
+                WrapLabel(t.body, text="•  " + tip, fg=FG, font=F(10)).pack(fill="x", pady=2)
         if self.profile == "streaming":
             import streaming
             t = Card(self.stage, accent=YELLOW, title="Para emitir sin perder FPS (lo que de verdad funciona)")
