@@ -23,13 +23,13 @@ from widgets import (BG, CYAN, F, FG, GREEN, MUTED, PANEL2, PINK, RED, SIDE, VIO
 
 SECTIONS = [
     ("INICIO", [("home", "⌂", "Inicio"), ("analysis", "◎", "Análisis de PC"), ("score", "★", "Puntuación")]),
-    ("OPTIMIZAR", [("optimize", "⚡", "Optimizar"), ("streaming", "◉", "Streaming"), ("mando", "◈", "Mando"), ("clean", "✦", "Limpieza"), ("shaders", "❖", "Limpiar shaders"),
+    ("OPTIMIZAR", [("optimize", "⚡", "Optimizar"), ("streaming", "◉", "Streaming"), ("mando", "✜", "Mando"), ("clean", "✦", "Limpieza"), ("shaders", "❖", "Limpiar shaders"),
                    ("arranque", "⏻", "Gestor de arranque")]),
     ("GAMING", [("games", "▣", "Mis juegos"), ("gameprof", "✧", "Ajustes de juego"), ("booster", "☢", "Modo Extremo"),
                 ("monitor", "≈", "Monitor"), ("diag", "◈", "Diagnóstico"), ("fps", "▤", "FPS reales")]),
-    ("AVANZADO", [("tweaks", "☄", "Tweaks"), ("cuello", "⬆", "Qué pieza mejorar"), ("bios", "◉", "BIOS"), ("oc", "⚙", "Overclock")]),
+    ("AVANZADO", [("tweaks", "☄", "Tweaks"), ("cuello", "⬆", "Qué pieza mejorar"), ("bios", "▦", "BIOS"), ("oc", "⚙", "Overclock")]),
     ("SISTEMA", [("health", "♥", "Salud del PC"), ("debloat", "✖", "Quitar bloatware"),
-                ("history", "↺", "Historial / Deshacer"), ("update", "⟳", "Actualizaciones"), ("license", "★", "Licencia")]),
+                ("history", "↺", "Historial / Deshacer"), ("update", "⟳", "Actualizaciones"), ("license", "◇", "Licencia")]),
 ]
 PAGES = [item for _title, items in SECTIONS for item in items]
 
@@ -153,7 +153,7 @@ class App(tk.Tk):
         if _show_at:
             self.withdraw()
         self.title("HellOP  ·  " + ("PRO" if PRO_THEME else "FREE") + ("  ·  MODO DEMO" if DEMO else ""))
-        self.geometry("1140x840")
+        self.geometry(self._geometria_guardada())
         self.minsize(980, 640)
         self.configure(bg=BG)
         setup_styles(self)
@@ -180,6 +180,7 @@ class App(tk.Tk):
 
         self.statusbar = tk.Label(self, text="Listo", font=F(9), fg=MUTED, bg=SIDE, anchor="w", padx=14, pady=5)
         self.statusbar.pack(fill="x", side="bottom")
+        tk.Label(self.statusbar, text="Ctrl+K  buscar", font=F(8), fg=MUTED, bg=SIDE).pack(side="right", padx=14)
 
         if False:  # para que PyInstaller incluya las páginas que se cargan al abrirlas
             import page_home  # noqa: F401
@@ -239,6 +240,9 @@ class App(tk.Tk):
         self._anim_phase = 0.0
         self.after(80, self._anim_tick)
         self.protocol("WM_DELETE_WINDOW", self.on_close)
+        self.report_callback_exception = self._error_tk
+        self.bind_all("<Control-k>", self.abrir_buscador)
+        self.bind_all("<Control-K>", self.abrir_buscador)
         import booster
         rec = booster.recover_after_crash()
         if rec:
@@ -493,8 +497,55 @@ class App(tk.Tk):
                                    "necesito permisos de administrador.\n\n¿Reabrir la app como administrador?"):
                 self.restart_admin()
 
+    # ---- detalles de pulido -----------------------------------------------
+    def _geometria_guardada(self):
+        try:
+            import json
+            from util import APP_DIR
+            g = json.loads((APP_DIR / "ventana.json").read_text("utf-8"))
+            w, h, x, y = int(g["w"]), int(g["h"]), int(g["x"]), int(g["y"])
+            if 980 <= w <= 4000 and 640 <= h <= 3000 and -50 <= x < self.winfo_screenwidth() - 200 and -10 <= y < self.winfo_screenheight() - 150:
+                return f"{w}x{h}+{x}+{y}"
+        except Exception:  # noqa: BLE001
+            pass
+        return "1140x840"
+
+    def _guarda_geometria(self):
+        try:
+            import json
+            from util import APP_DIR
+            if self.state() == "normal":
+                APP_DIR.mkdir(parents=True, exist_ok=True)
+                (APP_DIR / "ventana.json").write_text(json.dumps({"w": self.winfo_width(), "h": self.winfo_height(),
+                                                                   "x": self.winfo_x(), "y": self.winfo_y()}), "utf-8")
+        except Exception:  # noqa: BLE001
+            pass
+
+    def abrir_buscador(self, _e=None):
+        from paleta import Paleta
+        if getattr(self, "_paleta", None) is not None:
+            try:
+                self._paleta.destroy()
+            except tk.TclError:
+                pass
+        self._paleta = Paleta(self, [(k, i, t) for k, i, t in PAGES])
+        return "break"
+
+    def _error_tk(self, exc, val, tb):
+        """Un fallo dentro de la interfaz no tumba la app: se guarda en errores.log y se avisa abajo sin ventanas asustando."""
+        try:
+            import traceback
+            from util import APP_DIR
+            APP_DIR.mkdir(parents=True, exist_ok=True)
+            with open(APP_DIR / "errores.log", "a", encoding="utf-8") as f:
+                f.write(time.strftime("%Y-%m-%d %H:%M:%S") + f"  v{version.__version__}\n" + "".join(traceback.format_exception(exc, val, tb)) + "\n")
+            self.status(f"Algo no salió bien ({exc.__name__}). Queda anotado en errores.log")
+        except Exception:  # noqa: BLE001
+            pass
+
     def on_close(self):
         """Antes de cerrar deja todo como estaba (prioridades, servicios, temporizador)."""
+        self._guarda_geometria()
         try:
             self._apaga_paginas()
         except Exception:  # noqa: BLE001
