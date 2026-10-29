@@ -1,5 +1,5 @@
-• Nuevo apartado «Mando» en el menú (debajo de «Streaming»): detecta tu mando y quita lo que le mete tirones y retraso evitable.
-  – Evita que Windows apague USB, Bluetooth y el propio mando para ahorrar energía.
-  – El botón Xbox ya no abre la Game Bar a mitad de partida y se apaga la captura en segundo plano de Windows.
-  – Temporizador de Windows 11 para todos los programas, más consejos que sí cambian el retraso (cable, Reflex, límite de FPS…).
-  – Todo se puede deshacer desde «Historial / Deshacer». Retraso 0 no existe: esto quita tirones y capas de más.
+• «Mando» mucho más completo (11 ajustes, cada uno con su aviso y deshacer):
+  – Ajustes ocultos del plan de energía: USB 3, PCIe y Bluetooth/Wi-Fi sin ahorro.
+  – Administrador de dispositivos: ahorro de energía apagado en USB/HID/Bluetooth, quitar mandos fantasma, desactivar el reloj HPET, y (solo lo que exista en tu PC) adaptadores virtuales que sobran y la radio Bluetooth si juegas por cable.
+  – Juegos en ventana o sin bordes con el modo rápido de Windows 11.
+  – Más consejos reales (puerto USB 2.0, Wi-Fi de 5 GHz, Reflex, límite de FPS).

@@ -24,9 +24,13 @@ class MandoPage(OptimizePage):
         c = Card(self.stage, accent=PINK, title="Qué hace (y qué no)")
         c.pack(fill="x", pady=(0, 12))
         for t in ("Evita que Windows apague los puertos USB, el Bluetooth y el propio mando para ahorrar energía: es la causa típica de que un mando "
-                  "«se duerma» y tarde en responder.",
+                  "«se duerma» y tarde en responder. Incluye los ajustes ocultos del plan de energía (USB 3, PCIe, Bluetooth/Wi-Fi).",
+                  "Revisa el Administrador de dispositivos y te ofrece, uno por uno, desactivar lo que sobra en TU PC (adaptadores virtuales sin uso, "
+                  "y la radio Bluetooth si juegas por cable). Nada se desinstala: se reactiva con «Deshacer».",
                   "Hace que el botón Xbox no abra la Game Bar a mitad de partida y apaga la captura en segundo plano de Windows.",
                   "Hace que el temporizador rápido de Windows 11 valga para todos los programas (lecturas del mando más regulares).",
+                  "Quita las entradas fantasma de mandos que ya no usas y desactiva el reloj HPET de la placa (reversible).",
+                  "Modo Juego, prioridad máxima para juegos y modo rápido para juegos en ventana/sin bordes (los de Gaming que sí afectan a la respuesta).",
                   "Te da los consejos que sí cambian el retraso (cable, FPS, Reflex…).",
                   "Sé claro: retraso 0 no existe. Esto quita tirones y capas de más; no hace magia. Todo se deshace desde «Historial / Deshacer»."):
             WrapLabel(c.body, text="•  " + t, fg=FG, font=F(10)).pack(fill="x", pady=2)

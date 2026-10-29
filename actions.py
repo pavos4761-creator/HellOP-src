@@ -1025,7 +1025,7 @@ def discover(profile, progress=None):
             if "gaming" not in a.profiles and "extreme" not in a.profiles:
                 continue
         elif profile == "mando":
-            if "mando" not in a.profiles and a.id != "power_plan":
+            if "mando" not in a.profiles and a.id not in ("power_plan", "game_mode", "game_dvr", "game_priority"):
                 continue
         elif profile == "streaming":
             if "streaming" not in a.profiles and "gaming" not in a.profiles:
