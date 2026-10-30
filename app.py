@@ -411,21 +411,37 @@ class App(tk.Tk):
         widgets.guardar_modo(nuevo)
         if "HELLOP_MODE" in os.environ:
             os.environ["HELLOP_MODE"] = nuevo
+        self.after(20, self._rehaz_ventana)       # fuera del clic del botón, que se destruye al redibujar
+
+    def _rehaz_ventana(self):
         try:
             self._apaga_paginas()
         except Exception:  # noqa: BLE001
             pass
         import importlib
-        for n in list(sys.modules):          # módulos que traen los colores copiados: se vuelven a leer con la paleta nueva
-            if n in ("widgets", "app", "asistente", "bienvenida", "cajas", "config_io", "paleta", "sidebar") or n.startswith("page_"):
-                del sys.modules[n]
-        nueva = importlib.import_module("app")
-        for w in self.winfo_children():
-            w.destroy()
-        self.__class__ = nueva.App
-        self._construye()
-        self._titlebar_start()
-        self.after(300, self.pages["games"].boot)
+        try:
+            for n in list(sys.modules):          # módulos que traen los colores copiados: se vuelven a leer con la paleta nueva
+                if n in ("widgets", "app", "asistente", "bienvenida", "cajas", "config_io", "paleta", "sidebar") or n.startswith("page_"):
+                    del sys.modules[n]
+            nueva = importlib.import_module("app")
+            for w in self.winfo_children():
+                w.destroy()
+            self.__class__ = nueva.App
+            self._construye()
+            self.update_idletasks()
+            for ms in (0, 120, 500, 1500):        # Windows a veces tarda en aceptar el color de la barra de título
+                self.after(ms, self._titlebar_start)
+            self.after(300, self.pages["games"].boot)
+        except Exception:  # noqa: BLE001
+            try:                                   # si algo falla, se reabre la ventana entera con los colores nuevos
+                import traceback
+                from util import APP_DIR
+                with open(APP_DIR / "errores.log", "a", encoding="utf-8") as f:
+                    f.write(time.strftime("%Y-%m-%d %H:%M:%S") + " cambio de modo\n" + traceback.format_exc() + "\n")
+            except Exception:  # noqa: BLE001
+                pass
+            self.recarga = True
+            self.destroy()
 
     def _apaga_paginas(self):
         for k in ("games", "monitor", "booster"):
