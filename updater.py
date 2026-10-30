@@ -228,8 +228,12 @@ def _apply_exe(info, progress):
         'start "" "%OLD%"\r\n'
         '(goto) 2>nul & del "%~f0"\r\n', "utf-8")
     if IS_WIN:
-        subprocess.Popen(["cmd", "/c", str(bat)], creationflags=0x00000008 | 0x00000200 | 0x08000000, close_fds=True,
-                         env=clean_env())
+        si = subprocess.STARTUPINFO()                 # ventana oculta: antes salía un cuadro negro de cmd al actualizar
+        si.dwFlags |= 1                               # STARTF_USESHOWWINDOW
+        si.wShowWindow = 0                            # SW_HIDE
+        # Solo CREATE_NO_WINDOW (+ grupo propio). Con DETACHED_PROCESS Windows abre una consola nueva para cada comando del .bat.
+        subprocess.Popen(["cmd", "/c", str(bat)], creationflags=0x00000200 | 0x08000000, close_fds=True,
+                         env=clean_env(), startupinfo=si)
     return "restart"
 
 
