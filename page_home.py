@@ -1,4 +1,4 @@
-"""Página «Inicio» (diseño «neón cristal»): saludo, anillo con la nota de tu PC, datos en vivo y accesos rápidos."""
+"""Página «Inicio» (diseño «Claro Premium»): saludo, anillo con la nota de tu PC, datos en vivo y accesos rápidos."""
 import math
 import time
 import tkinter as tk
@@ -9,7 +9,7 @@ import updater
 import version
 from util import DEMO, is_admin
 from widgets import (BG, BORDER, CYAN, F, FG, GREEN, MUTED, PANEL, PINK, RED, VIOLET, YELLOW, Card, NeonButton, PillBar,
-                     ScrollFrame, WrapLabel, badge, esquinas, glow_image, mix, round_rect)
+                     ScrollFrame, WrapLabel, badge, mix, round_rect, ON_ACCENT, SOMBRA, TRACK)
 
 MAS = [
     ("analysis", "◎", "Analizar mi PC", "Procesador, placa, RAM, gráfica y discos, con consejos para tu equipo.", CYAN),
@@ -24,10 +24,10 @@ MAS = [
 
 
 GRANDES = [   # (página, símbolo, título, texto, color 1, color 2)
-    ("optimize", "⚡", "Optimizar", "Gaming, Trabajo o Extremo. Tú decides cada ajuste.", CYAN, PINK),
-    ("games", "▣", "Mis juegos", "Se optimiza solo al abrir tu juego.", "#3b9eff", "#38e1ff"),
-    ("fps", "▤", "FPS reales", "Mide FPS y tirones y comprueba si un cambio ayudó.", "#ff8a3d", "#ff3b5c"),
-    ("tweaks", "☄", "Tweaks", "Ajustes de latencia en tres niveles de riesgo.", "#ffc233", "#ff9f1c"),
+    ("optimize", "⚡", "Optimizar", "Gaming, Trabajo o Extremo. Tú decides cada ajuste.", CYAN, CYAN),
+    ("games", "▣", "Mis juegos", "Se optimiza solo al abrir tu juego.", PINK, PINK),
+    ("fps", "▤", "FPS reales", "Mide FPS y tirones y comprueba si un cambio ayudó.", YELLOW, YELLOW),
+    ("tweaks", "☄", "Tweaks", "Ajustes de latencia en tres niveles de riesgo.", GREEN, GREEN),
 ]
 
 
@@ -61,13 +61,13 @@ class Anillo(tk.Canvas):
         self.delete("all")
         d, g, r = self.D, 13, self.D / 2 - 14
         c = d / 2
-        self.create_oval(c - r, c - r, c + r, c + r, outline=mix(self.bg0, "#ffffff", 0.09), width=g)
+        self.create_oval(c - r, c - r, c + r, c + r, outline=TRACK, width=g)
         n = int(self.mostrado / 100 * 72)
         for i in range(n):
-            col = mix(CYAN, PINK, i / 72)
+            col = CYAN
             self.create_arc(c - r, c - r, c + r, c + r, start=90 - i * 5 - 5.6, extent=5.6, style="arc", outline=col, width=g)
         if n:
-            for ang, col in ((90, CYAN), (90 - n * 5, mix(CYAN, PINK, n / 72))):
+            for ang, col in ((90, CYAN), (90 - n * 5, CYAN)):
                 x, y = c + r * math.cos(math.radians(ang)), c - r * math.sin(math.radians(ang))
                 self.create_oval(x - g / 2, y - g / 2, x + g / 2, y + g / 2, fill=col, outline="")
         shown = round(self.mostrado) if self.medalla else "—"
@@ -114,7 +114,7 @@ class Hero(tk.Canvas):
     D = 170
 
     def __init__(self, parent, app):
-        self.fill = mix(PANEL, CYAN, 0.07)
+        self.fill = PANEL
         super().__init__(parent, bg=BG, height=self.H, highlightthickness=0, bd=0)
         self.app, self._key, self._img, self._job = app, None, None, None
         self.lbl_nota = _Txt(self, "Midiendo tu PC…")
@@ -123,7 +123,7 @@ class Hero(tk.Canvas):
         self.anillo = self                     # misma interfaz que el anillo suelto de antes: .poner(nota, medalla)
         self.valor, self.mostrado, self.medalla, self._anim = 0, 0.0, "", None
         self.b1 = NeonButton(self, "Mejorar ahora", lambda: app.show("optimize"), color=CYAN, filled=True, font=F(11, True), padx=22, pady=9)
-        self.b2 = NeonButton(self, "Ver qué me falta", lambda: app.show("score"), color=MUTED, font=F(11, True), padx=18, pady=9)
+        self.b2 = NeonButton(self, "Ver qué me falta", lambda: app.show("score"), color=FG, font=F(11, True), padx=18, pady=9)
         self._w1 = self.create_window(0, 0, window=self.b1, anchor="nw")
         self._w2 = self.create_window(0, 0, window=self.b2, anchor="nw")
         self.bind("<Configure>", self._conf)
@@ -142,12 +142,10 @@ class Hero(tk.Canvas):
                 return
             if self._key != (w, self.H):
                 self._key = (w, self.H)
-                self._img = glow_image(self, w, self.H, 30, self.fill,
-                                       [(0.07, 0.18, 430, CYAN, 0.46), (0.97, 0.92, 400, PINK, 0.38), (0.55, 0.45, 320, VIOLET, 0.12)], cell=6)
+                pass
             self.delete("bg")
-            self.create_image(0, 0, image=self._img, anchor="nw", tags="bg")
-            esquinas(self, w, self.H, 30, BG, "bg")
-            round_rect(self, 1, 1, w - 1, self.H - 1, 30, fill="", outline=mix(BORDER, CYAN, 0.7), tags="bg")
+            round_rect(self, 2, 4, w - 2, self.H - 1, 24, fill=SOMBRA, outline="", tags="bg")
+            round_rect(self, 1, 1, w - 2, self.H - 4, 24, fill=self.fill, outline=BORDER, tags="bg")
             self.tag_lower("bg")
             self.pinta_texto()
             self.pinta_datos()
@@ -182,11 +180,10 @@ class Hero(tk.Canvas):
         else:
             y2b = y
         self.coords(self._w2, x2, y2b)
-        try:                                    # que el fondo de cada botón sea del color de la luz que tiene detrás
-            for b, bx in ((self.b1, x0), (self.b2, x2)):
-                p = self._img.get(int(bx + 4), int((y if b is self.b1 else y2b) + 18))
-                b.configure(bg="#%02x%02x%02x" % tuple(p))
-        except (tk.TclError, AttributeError, ValueError, TypeError):
+        try:
+            for b in (self.b1, self.b2):
+                b.configure(bg=self.fill)
+        except tk.TclError:
             pass
 
     def pinta_datos(self):
@@ -199,7 +196,7 @@ class Hero(tk.Canvas):
             y = 48 + i * 42
             self.create_text(x1, y, text=d.nombre, anchor="w", fill=mix(FG, MUTED, 0.45), font=F(9, True), tags="dat")
             self.create_text(x2, y, text=d.valor, anchor="e", fill=FG, font=F(9, True), tags="dat")
-            round_rect(self, x1, y + 12, x2, y + 18, 3, fill=mix(self.fill, "#ffffff", 0.14), outline="", tags="dat")
+            round_rect(self, x1, y + 12, x2, y + 18, 3, fill=TRACK, outline="", tags="dat")
             if d.pct > 0:
                 round_rect(self, x1, y + 12, x1 + max(6, (x2 - x1) * d.pct / 100), y + 18, 3, fill=d.color, outline="", tags="dat")
 
@@ -226,16 +223,16 @@ class Hero(tk.Canvas):
         d, g = self.D, 13
         r = d / 2 - 14
         cx, cy = 28 + d / 2, self.H / 2
-        self.create_oval(cx - r, cy - r, cx + r, cy + r, outline=mix(self.fill, "#ffffff", 0.14), width=g, tags="ring")
+        self.create_oval(cx - r, cy - r, cx + r, cy + r, outline=TRACK, width=g, tags="ring")
         n = int(self.mostrado / 100 * 72)
         for i in range(n):
             self.create_arc(cx - r, cy - r, cx + r, cy + r, start=90 - i * 5 - 5.6, extent=5.6, style="arc",
-                            outline=mix(CYAN, PINK, i / 72), width=g, tags="ring")
+                            outline=CYAN, width=g, tags="ring")
         if n:
-            for ang, col in ((90, CYAN), (90 - n * 5, mix(CYAN, PINK, n / 72))):
+            for ang, col in ((90, CYAN), (90 - n * 5, CYAN)):
                 x, y = cx + r * math.cos(math.radians(ang)), cy - r * math.sin(math.radians(ang))
                 self.create_oval(x - g / 2, y - g / 2, x + g / 2, y + g / 2, fill=col, outline="", tags="ring")
-        self.create_text(cx, cy - 6, text=str(round(self.mostrado) if self.medalla else "—"), fill="#ffffff", font=F(32, True), tags="ring")
+        self.create_text(cx, cy - 6, text=str(round(self.mostrado) if self.medalla else "—"), fill=FG, font=F(32, True), tags="ring")
         self.create_text(cx, cy + 26, text=self.medalla.upper(), fill=CYAN, font=F(9, True), tags="ring")
 
 
@@ -262,12 +259,11 @@ class Tarjeta(tk.Canvas):
             w = max(80, self.winfo_width())
             simbolo, titulo, texto, c1, c2 = self.d
             col = mix(c1, c2, 0.5)
-            round_rect(self, 1, 1, w - 1, self.H - 1, 24, fill=mix(PANEL, col, 0.14 if self.hov else 0.05),
-                       outline=mix(BORDER, col, 0.7 if self.hov else 0.25))
-            round_rect(self, 14, 14, 62, 62, 17, fill=mix(PANEL, col, 0.28), outline="")           # brillo
-            round_rect(self, 18, 18, 58, 58, 14, fill=col, outline="")
-            round_rect(self, 18, 18, 58, 38, 12, fill=mix(c1, "#ffffff", 0.18), outline="")         # reflejo
-            self.create_text(38, 38, text=simbolo, fill="#ffffff", font=F(16, True))
+            round_rect(self, 2, 4, w - 2, self.H - 1, 20, fill=SOMBRA, outline="")
+            round_rect(self, 1, 1, w - 2, self.H - 4, 20, fill=mix(PANEL, col, 0.05) if self.hov else PANEL,
+                       outline=mix(BORDER, col, 0.7 if self.hov else 0.0))
+            round_rect(self, 18, 18, 58, 58, 14, fill=mix(PANEL, col, 0.14), outline="")
+            self.create_text(38, 38, text=simbolo, fill=col, font=F(16, True))
             self.create_text(18, 82, text=titulo, anchor="w", fill=FG, font=F(12, True))
             fnt = F(9)
             import tkinter.font as tkfont
@@ -327,14 +323,14 @@ class HomePage(tk.Frame):
         for c in range(3):
             grid.columnconfigure(c, weight=1, uniform="t")
         for i, (key, icon, name, desc, color) in enumerate(MAS):
-            c = Card(grid, accent=color)
+            c = Card(grid)
             c.grid(row=i // 3, column=i % 3, sticky="nsew", padx=(0, 12) if i % 3 < 2 else 0, pady=(0, 12))
             tk.Label(c.body, text=icon, font=F(24, True), fg=color, bg=PANEL).pack(anchor="w")
             tk.Label(c.body, text=name, font=F(12, True), fg=FG, bg=PANEL).pack(anchor="w", pady=(2, 2))
             WrapLabel(c.body, text=desc, fg=MUTED, font=F(9)).pack(fill="x")
             NeonButton(c.body, "Abrir  →", lambda k=key: app.show(k), color=color, padx=14, pady=6, font=F(10, True)).pack(anchor="w", pady=(10, 0))
 
-        self.status = Card(root, accent=PINK, title="Estado de HellOP")
+        self.status = Card(root, title="Estado de HellOP")
         self.status.pack(fill="x", pady=(2, 14))
         self.rows = {}
         for key, label in (("auto", "Modo juego automático"), ("last", "Última optimización"), ("upd", "Actualizaciones"),

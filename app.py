@@ -17,8 +17,8 @@ import logo_data
 import updater
 import version
 
-from widgets import BORDER, PRO_THEME, themed_logo
-from widgets import (BG, CYAN, F, FG, GREEN, MUTED, PANEL2, PINK, RED, SIDE, VIOLET, YELLOW, GradientBar, MiniBar,
+from widgets import BORDER, LIGHT, ON_ACCENT, PRO_THEME, themed_logo
+from widgets import (BG, PANEL, CYAN, F, FG, GREEN, MUTED, PANEL2, PINK, RED, SIDE, VIOLET, YELLOW, GradientBar, MiniBar,
                      NeonButton, PanelGlow, PanelRedondo, PulseLogo, ScrollFrame, SparkField, badge, install_mousewheel, mix, round_rect, setup_styles)
 
 SECTIONS = [
@@ -172,15 +172,14 @@ class App(tk.Tk):
         self.sidebar.pack(fill="both", expand=True)
         self.nav = self.sidebar.nav
         self.bar_cpu, self.bar_ram, self.live_lbl = self.sidebar.bar_cpu, self.sidebar.bar_ram, self.sidebar.live_lbl
-        marco = PanelRedondo(body, fill=BG, line=mix(BORDER, CYAN, 0.35), radius=28, margen=6)
-        marco.pack(side="left", fill="both", expand=True, padx=12, pady=12)
-        self.content = marco.body
+        self.content = tk.Frame(body, bg=BG)
+        self.content.pack(side="left", fill="both", expand=True, padx=(6, 12), pady=12)
 
         self._tick_live()
 
-        self.statusbar = tk.Label(self, text="Listo", font=F(9), fg=MUTED, bg=SIDE, anchor="w", padx=14, pady=5)
+        self.statusbar = tk.Label(self, text="Listo", font=F(9), fg=MUTED, bg=BG, anchor="w", padx=18, pady=5)
         self.statusbar.pack(fill="x", side="bottom")
-        tk.Label(self.statusbar, text="Ctrl+K  buscar", font=F(8), fg=MUTED, bg=SIDE).pack(side="right", padx=14)
+        tk.Label(self.statusbar, text="Ctrl+K  buscar", font=F(8), fg=MUTED, bg=BG).pack(side="right", padx=14)
 
         if False:  # para que PyInstaller incluya las páginas que se cargan al abrirlas
             import page_home  # noqa: F401
@@ -349,8 +348,7 @@ class App(tk.Tk):
 
     # ---- barra de título de Windows: del color del tema, con un pulso suave -----------
     def _titlebar_start(self):
-        """Windows 11: pinta la barra de título (y su borde) con el color del tema y la hace «respirar».
-        En Windows 10 o anteriores no hace nada (la barra queda como siempre)."""
+        """Windows 11: la barra de título (y su borde) del mismo color que la app, para que no haya ninguna línea entre las dos."""
         if not IS_WIN or DEMO:
             return
         try:
@@ -362,47 +360,56 @@ class App(tk.Tk):
             def rgb(c):                                               # COLORREF = 0x00BBGGRR
                 r, g, b = int(c[1:3], 16), int(c[3:5], 16), int(c[5:7], 16)
                 return (b << 16) | (g << 8) | r
-            dwm(hwnd, 20, byref(c_int(1)), 4)                         # botones claros sobre fondo oscuro
+            dwm(hwnd, 20, byref(c_int(0 if LIGHT else 1)), 4)         # botones oscuros sobre claro / claros sobre oscuro
+            dwm(hwnd, 35, byref(c_int(rgb(BG))), 4)                   # color de la barra
             dwm(hwnd, 36, byref(c_int(rgb(FG))), 4)                   # texto del título
+            dwm(hwnd, 34, byref(c_int(rgb(BG))), 4)                   # borde igual que la barra: sin línea
         except Exception:  # noqa: BLE001
             return
-        import math
-        import time as _t
-        t0 = _t.time()
-
-        def tick():
-            try:
-                k = 0.5 + 0.5 * math.sin((_t.time() - t0) * 1.6)
-                col = rgb(mix(SIDE, CYAN, 0.10 + 0.28 * k))
-                dwm(hwnd, 35, byref(c_int(col)), 4)                   # color de la barra
-                dwm(hwnd, 34, byref(c_int(0xFFFFFFFE)), 4)                # sin línea de borde (DWMWA_COLOR_NONE)
-                self.after(70, tick)
-            except Exception:  # noqa: BLE001
-                pass
-        tick()
 
     # ---- cabecera -------------------------------------------------------
     def _build_header(self):
-        h = tk.Frame(self, bg=SIDE)
-        h.pack(fill="x")
+        h = tk.Frame(self, bg=BG)
+        h.pack(fill="x", padx=(18, 18), pady=(12, 0))
         self._logo = themed_logo(tk.PhotoImage(data=logo_data.LOGO_64))
         self._logo_big = themed_logo(tk.PhotoImage(data=logo_data.LOGO_128))
         self._set_window_icon()
-        PulseLogo(h, self._logo, size=74, bg=SIDE).pack(side="left", padx=(14, 6), pady=2)
-        tk.Label(h, text="Hell", font=F(20, True), fg=FG, bg=SIDE).pack(side="left")
-        tk.Label(h, text="OP", font=F(20, True), fg=CYAN, bg=SIDE).pack(side="left")
-        right = tk.Frame(h, bg=SIDE)
-        right.pack(side="right", padx=18)
+        tile = tk.Canvas(h, width=38, height=38, bg=BG, highlightthickness=0, bd=0)
+        round_rect(tile, 1, 1, 37, 37, 12, fill=CYAN, outline="")
+        tile.create_text(19, 19, text="H", fill=ON_ACCENT, font=F(16, True))
+        tile.pack(side="left")
+        tk.Label(h, text="Hell", font=F(18, True), fg=FG, bg=BG).pack(side="left", padx=(10, 0))
+        tk.Label(h, text="OP", font=F(18, True), fg=CYAN, bg=BG).pack(side="left")
+        busca = tk.Canvas(h, width=300, height=38, bg=BG, highlightthickness=0, bd=0, cursor="hand2")
+        round_rect(busca, 1, 1, 299, 37, 14, fill=PANEL, outline=BORDER)
+        busca.create_text(18, 19, text="Buscar o saltar a…", anchor="w", fill=MUTED, font=F(10))
+        busca.create_text(282, 19, text="Ctrl K", anchor="e", fill=MUTED, font=F(8, True))
+        busca.pack(side="left", padx=(26, 0))
+        busca.bind("<Button-1>", self.abrir_buscador)
+        right = tk.Frame(h, bg=BG)
+        right.pack(side="right")
         self.hdr_right = right
         self.upd_btn = None
+        self.btn_modo = NeonButton(right, "☾  Oscuro" if LIGHT else "☀  Claro", self.cambia_modo, color=MUTED, padx=12, pady=5, font=F(9, True))
+        self.btn_modo.pack(side="right", padx=(8, 0))
         if DEMO:
-            badge(right, "MODO DEMO: NO TOCA NADA", "#ff9f1c").pack(side="left", padx=6)
+            badge(right, "MODO DEMO: NO TOCA NADA", YELLOW).pack(side="left", padx=6)
         if is_admin():
             badge(right, "ADMINISTRADOR", GREEN).pack(side="left", padx=6)
         else:
             badge(right, "SIN ADMINISTRADOR", RED).pack(side="left", padx=6)
             NeonButton(right, "Reabrir como administrador", self.restart_admin, color=RED, padx=10, pady=4,
                        font=F(9, True)).pack(side="left", padx=6)
+
+    def cambia_modo(self):
+        """Claro <-> negro mate. Hace falta reiniciar para repintar todo."""
+        import widgets
+        widgets.guardar_modo("oscuro" if LIGHT else "claro")
+        if DEMO or not IS_WIN:
+            self.status("Modo guardado: cierra y abre HellOP para verlo.")
+            self.toast("Modo guardado. Reinicia HellOP para verlo.", CYAN)
+        else:
+            self.restart_now()
 
     def _apaga_paginas(self):
         for k in ("games", "monitor", "booster"):
@@ -495,7 +502,7 @@ class App(tk.Tk):
             import ctypes
             self.update()
             hwnd = ctypes.windll.user32.GetParent(self.winfo_id())
-            val = ctypes.c_int(1)
+            val = ctypes.c_int(0 if LIGHT else 1)
             ctypes.windll.dwmapi.DwmSetWindowAttribute(hwnd, 20, ctypes.byref(val), ctypes.sizeof(val))
         except Exception:  # noqa: BLE001
             pass
@@ -539,7 +546,8 @@ class App(tk.Tk):
             except tk.TclError:
                 pass
         self._paleta = Paleta(self, [(k, i, t) for k, i, t in PAGES], [("cmd:informe", "⎙", "Exportar informe del PC (HTML)", self.exportar_informe),
-                                                                     ("cmd:atras", "←", "Volver al apartado anterior", lambda: self.navega(-1))])
+                                                                     ("cmd:atras", "←", "Volver al apartado anterior", lambda: self.navega(-1)),
+                                                                     ("cmd:modo", "◐", "Cambiar entre modo claro y negro mate", self.cambia_modo)])
         return "break"
 
     def _error_tk(self, exc, val, tb):
@@ -580,23 +588,14 @@ class App(tk.Tk):
         self._relanzada = False
 
         def lanzar():
-            if PRO_THEME or DEMO or not IS_WIN:
-                return
-            try:
-                self._apaga_paginas()
-            except Exception:  # noqa: BLE001
-                pass
-            os.environ["HELLOP_SHOW_AT"] = str(time.time() + (DURACION - LANZAR) - 0.15)
-            self._relanzada = relaunch_as_admin()
-            os.environ.pop("HELLOP_SHOW_AT", None)
+            return None             # por ahora PRO no cambia los colores: no hace falta reabrir la app
 
         def fin():
             if self._relanzada:
                 self.destroy()
                 sys.exit(0)
             ov.destroy()
-            if not PRO_THEME:
-                self.status("PRO activado. Cierra y abre HellOP para verlo en morado.")
+            self.status("PRO activado. ¡Gracias!")
         ov = Bienvenida(self, logo, fin, bg0=BG, on_launch=lanzar)
 
     def restart_now(self):

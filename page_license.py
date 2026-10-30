@@ -82,40 +82,12 @@ class LicensePage(tk.Frame):
         WrapLabel(inc.body, text="GRATIS incluye solo: análisis de tu PC, limpieza, monitor, historial y actualizaciones.", font=F(9), fg=MUTED).pack(fill="x", pady=(6, 0))
 
         if lic.is_pro():
-            self.build_color(root)
             self.build_config(root)
         if lic.owner_secret() or DEMO:
             self.build_generator(root)
             self.build_registry(root)
 
     # ------------------------------------------------------------------
-    def build_color(self, root):
-        c = Card(root, accent=CYAN, title="Tu color PRO")
-        c.pack(fill="x", pady=(0, 12))
-        WrapLabel(c.body, text="Elige el color de HellOP. Se aplica al reiniciar la app.", font=F(9), fg=MUTED).pack(fill="x", pady=(0, 8))
-        row = tk.Frame(c.body, bg=PANEL)
-        row.pack(fill="x")
-        self.cur_color = widgets.ACENTO
-        for name, pal in widgets.ACENTOS.items():
-            NeonButton(row, name.capitalize() + ("  ✓" if name == self.cur_color else ""), lambda n=name: self.pick_color(n), color=pal[7],
-                       filled=(name == self.cur_color), padx=18, pady=7, font=F(10, True)).pack(side="left", padx=(0, 8))
-        self.cmsg = tk.Label(c.body, text="", font=F(10, True), fg=MUTED, bg=PANEL, anchor="w")
-        self.cmsg.pack(fill="x", pady=(8, 0))
-        self.crow = tk.Frame(c.body, bg=PANEL)
-        self.crow.pack(fill="x")
-
-    def pick_color(self, name):
-        try:
-            widgets.guardar_acento(name)
-        except (OSError, ValueError) as e:
-            self.cmsg.config(text=f"✗ {e}", fg=RED)
-            return
-        self.cmsg.config(text=f"✓ Color «{name}» guardado. Reinicia para verlo.", fg=GREEN)
-        for w in self.crow.winfo_children():
-            w.destroy()
-        NeonButton(self.crow, "↻  Reiniciar ahora", self.app.restart_now, color=CYAN, filled=True, padx=16, pady=6,
-                   font=F(10, True)).pack(side="left", pady=(8, 0))
-
     # ------------------------------------------------------------------
     def build_config(self, root):
         c = Card(root, accent=PINK, title="Mi configuración (exportar / importar)")

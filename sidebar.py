@@ -8,7 +8,7 @@ import math
 import tkinter as tk
 
 import anim
-from widgets import BORDER, CYAN, VIOLET, F, FG, GREEN, MUTED, PANEL2, PINK, RED, SIDE, YELLOW, _bg_of, esquinas, glow_image, mix, round_rect
+from widgets import BG, BORDER, CYAN, F, FG, GREEN, MUTED, PINK, RED, SIDE, SOMBRA, TRACK, YELLOW, _bg_of, esquinas, mix, round_rect
 
 PASO = 28          # alto de cada fila de menú
 CABECERA = 30      # alto de cada título de sección
@@ -169,14 +169,8 @@ class BarraLateral(tk.Canvas):
                 return
             self.off = min(self.off, self._max_off())
             self.delete("bg")
-            borde = mix(BORDER, CYAN, 0.35)
-            if getattr(self, "_glow_key", None) != (w, h):
-                self._glow_key = (w, h)
-                self._glow_img = glow_image(self, w, h, 28, SIDE,
-                                            [(0.1, 0.04, 380, CYAN, 0.36), (0.95, 0.97, 360, PINK, 0.28), (0.55, 0.5, 260, VIOLET, 0.06)], cell=6)
-            self.create_image(0, 0, image=self._glow_img, anchor="nw", tags="bg")
-            esquinas(self, w, h, 28, _bg_of(self.master), "bg")
-            round_rect(self, 1, 1, w - 1, h - 1, 28, fill="", outline=borde, tags="bg")
+            round_rect(self, 1, 3, w - 1, h - 1, 26, fill=SOMBRA, outline="", tags="bg")
+            round_rect(self, 1, 1, w - 1, h - 3, 26, fill=SIDE, outline=BORDER, tags="bg")
             self.tag_lower("bg")
             self._dibuja_todo()
         except tk.TclError:
@@ -198,15 +192,15 @@ class BarraLateral(tk.Canvas):
             alto = b - a
             th = max(24, alto * alto / self.alto_total)
             ty = a + (alto - th) * (self.off / mo)
-            round_rect(self, w - 11, ty, w - 8, ty + th, 1.5, fill=mix(SIDE, MUTED, 0.45), outline="", tags="thumb")
+            round_rect(self, w - 11, ty, w - 8, ty + th, 1.5, fill=mix(SIDE, FG, 0.18), outline="", tags="thumb")
         self._dibuja_vivo()
 
     def _cabecera(self, f):
         y = self._y(f)
         if self._visible(y, CABECERA - 6):
             cerrada = f[1] in self.cerradas
-            self.create_text(26, y + 17, text=f[1], anchor="w", fill=mix(SIDE, MUTED, 0.9), font=F(8, True), tags="fila")
-            self.create_text(self.winfo_width() - 26, y + 17, text="▸" if cerrada else "▾", anchor="e", fill=mix(SIDE, MUTED, 0.55), font=F(8), tags="fila")
+            self.create_text(26, y + 17, text=f[1], anchor="w", fill=MUTED, font=F(8, True), tags="fila")
+            self.create_text(self.winfo_width() - 26, y + 17, text="▸" if cerrada else "▾", anchor="e", fill=MUTED, font=F(8), tags="fila")
 
     def _dibuja(self, e):
         fila = e.fila
@@ -219,16 +213,13 @@ class BarraLateral(tk.Canvas):
             w = self.winfo_width()
             k = max(e.hov * 0.5, e.act)
             if k > 0.02:
-                round_rect(self, 12, y + 1, w - 12, y + PASO - 1, 13, fill=mix(SIDE, CYAN, 0.07 * e.hov + 0.22 * e.act),
-                           outline=mix(SIDE, CYAN, 0.55 * e.act) if e.act > 0.1 else "", tags=(tag, "fila"))
-            if e.act > 0.02:
-                hg = 4 + 14 * e.act
-                round_rect(self, 12, y + PASO / 2 - hg / 2, 15, y + PASO / 2 + hg / 2, 1.5, fill=CYAN, outline="", tags=(tag, "fila"))
+                relleno = mix(mix(SIDE, FG, 0.05 * e.hov), CYAN, 0.13 * e.act)
+                round_rect(self, 12, y + 1, w - 12, y + PASO - 1, 12, fill=relleno, outline="", tags=(tag, "fila"))
             col = mix(mix(MUTED, FG, e.hov), CYAN, e.act)
             self.create_text(33, y + PASO / 2, text=e.icon, fill=col, font=F(11, True), tags=(tag, "fila"))
-            self.create_text(52, y + PASO / 2, text=e.text, anchor="w", fill=col, font=F(10, True), tags=(tag, "fila"))
+            self.create_text(52, y + PASO / 2, text=e.text, anchor="w", fill=col, font=F(10, e.act > 0.5), tags=(tag, "fila"))
             if e.pro:
-                self.create_text(w - 24, y + PASO / 2, text="PRO", anchor="e", fill=mix(SIDE, YELLOW, 0.8), font=F(7, True), tags=(tag, "fila"))
+                self.create_text(w - 24, y + PASO / 2, text="PRO", anchor="e", fill=YELLOW, font=F(7, True), tags=(tag, "fila"))
             if e.dot:
                 a = 0.45 + 0.55 * (0.5 + 0.5 * math.sin(e.pulse))
                 r = 4 + 1.5 * (0.5 + 0.5 * math.sin(e.pulse))
@@ -245,15 +236,14 @@ class BarraLateral(tk.Canvas):
             if w < 60:
                 return
             y0 = h - VIVO
-            self.create_line(22, y0 - 6, w - 22, y0 - 6, fill=mix(SIDE, MUTED, 0.2), tags="vivo")
             self.create_text(24, y0 + 8, text="●  EN VIVO", anchor="w", fill=self.live_lbl.fg, font=F(8, True), tags="vivo")
             for b in (self.bar_cpu, self.bar_ram):
                 y = y0 + 24 + b.fila * 22
                 self.create_text(24, y, text=b.nombre, anchor="w", fill=MUTED, font=F(8, True), tags="vivo")
                 self.create_text(w - 24, y, text=f"{b.v:.0f}%", anchor="e", fill=FG, font=F(8, True), tags="vivo")
-                round_rect(self, 24, y + 9, w - 24, y + 14, 2.5, fill=mix(SIDE, "#ffffff", 0.1), outline="", tags="vivo")
+                round_rect(self, 24, y + 9, w - 24, y + 14, 2.5, fill=TRACK, outline="", tags="vivo")
                 if b.v > 1:
-                    col = GREEN if b.v < 60 else YELLOW if b.v < 85 else RED
+                    col = CYAN if b.v < 60 else YELLOW if b.v < 85 else RED
                     round_rect(self, 24, y + 9, 24 + max(6, (w - 48) * b.v / 100), y + 14, 2.5, fill=col, outline="", tags="vivo")
         except tk.TclError:
             pass

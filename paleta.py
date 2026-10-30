@@ -13,7 +13,7 @@ CLAVES = {   # palabras extra para encontrar cada apartado
     "tweaks": "tweaks ajustes registro latencia", "cuello": "cuello de botella pieza mejorar", "bios": "bios xmp expo rebar",
     "oc": "overclock oc", "health": "salud pc disco smart", "debloat": "bloatware quitar apps", "history": "historial deshacer cambios",
     "update": "actualizaciones version nueva", "license": "licencia pro clave",
-    "cmd:informe": "informe exportar html guardar compartir reporte", "cmd:atras": "atras volver anterior",
+    "cmd:informe": "informe exportar html guardar compartir reporte", "cmd:atras": "atras volver anterior", "cmd:modo": "modo claro oscuro negro mate tema color",
 }
 
 

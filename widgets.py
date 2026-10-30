@@ -1,5 +1,4 @@
-"""Piezas visuales con estilo oscuro «gamer»: tarjetas redondeadas, botones con brillo,
-insignias, medidores circulares, degradados."""
+"""Piezas visuales (diseño «Claro Premium», con modo negro mate): tarjetas redondeadas, botones, insignias, medidores."""
 import math
 import os
 import sys
@@ -20,37 +19,44 @@ def _es_pro():
         return False
 
 
-PRO_THEME = _es_pro()
-
-# colores del tema PRO que se pueden elegir: (BG, SIDE, PANEL, PANEL2, BORDER, FG, MUTED, principal, secundario, terciario)
-ACENTOS = {
-    "morado": ("#08040f", "#0e0818", "#150d24", "#1f1336", "#43296f", "#f3eaff", "#a894c8", "#a855f7", "#e879f9", "#7c5cff"),
-    "azul":   ("#040a14", "#07101e", "#0c1830", "#132446", "#254a80", "#eaf3ff", "#8fa8c8", "#3b9eff", "#38e1ff", "#6c7bff"),
-    "rojo":   ("#0f0405", "#190709", "#240c0f", "#361318", "#6f2a30", "#ffecee", "#c89499", "#ff3b5c", "#ff8a3d", "#ff6b9a"),
-    "dorado": ("#0d0902", "#171004", "#211707", "#33240b", "#6e5320", "#fff6e0", "#c8b48a", "#ffc233", "#ffe08a", "#ff9f1c"),
-}
+# ---- Tema único (diseño «Claro Premium») con modo claro y negro mate. Más adelante, PRO tendrá el suyo.
+# Nombres heredados: CYAN = color principal (índigo), PINK = color secundario (verde azulado), VIOLET = igual que el principal.
+ACENTOS = {}                      # (ya no hay selector de color: se conserva el nombre por compatibilidad)
 
 
 def acento_actual():
-    """Color elegido por el usuario PRO (tema.json). HELLOP_ACCENT lo fuerza en pruebas."""
-    nombre = os.environ.get("HELLOP_ACCENT", "").strip().lower()
-    if nombre not in ACENTOS:
-        try:
-            import json
-            from util import APP_DIR
-            nombre = str(json.loads((APP_DIR / "tema.json").read_text("utf-8")).get("acento", "")).lower()
-        except Exception:  # noqa: BLE001
-            nombre = ""
-    return nombre if nombre in ACENTOS else "morado"
+    return "indigo"
 
 
-def guardar_acento(nombre):
+def guardar_acento(nombre):       # noqa: ARG001
+    return None
+
+
+def modo_actual():
+    """'claro' (por defecto) u 'oscuro' (negro mate). HELLOP_MODE lo fuerza en pruebas; si no, lo guardado en tema.json."""
+    forzado = os.environ.get("HELLOP_MODE", "").strip().lower()
+    if forzado in ("claro", "oscuro"):
+        return forzado
+    try:
+        import json
+        from util import APP_DIR
+        m = str(json.loads((APP_DIR / "tema.json").read_text("utf-8")).get("modo", "")).lower()
+        return m if m in ("claro", "oscuro") else "claro"
+    except Exception:  # noqa: BLE001
+        return "claro"
+
+
+def guardar_modo(modo):
     import json
     from util import APP_DIR
-    if nombre not in ACENTOS:
-        raise ValueError("Color desconocido")
+    d = {}
+    try:
+        d = json.loads((APP_DIR / "tema.json").read_text("utf-8"))
+    except Exception:  # noqa: BLE001
+        pass
+    d["modo"] = "oscuro" if modo == "oscuro" else "claro"
     APP_DIR.mkdir(parents=True, exist_ok=True)
-    (APP_DIR / "tema.json").write_text(json.dumps({"acento": nombre}), "utf-8")
+    (APP_DIR / "tema.json").write_text(json.dumps(d), "utf-8")
 
 
 def _hue(c):
@@ -59,28 +65,32 @@ def _hue(c):
     return colorsys.rgb_to_hsv(r, g, b)[0]
 
 
-ACENTO = acento_actual() if PRO_THEME else "verde"
-if PRO_THEME:      # PRO: el color que haya elegido (morado por defecto)
-    BG, SIDE, PANEL, PANEL2, BORDER, FG, MUTED, CYAN, PINK, VIOLET = ACENTOS[ACENTO]
-    GREEN = "#5bff9a"            # el verde queda solo para «correcto / ok»
-    HUE_SHIFT = (_hue(CYAN) - 0.42) % 1.0       # cuánto girar el tono del logo (verde ≈ 0,42)
-else:              # GRATIS: verde
-    BG, SIDE, PANEL, PANEL2, BORDER = "#040a07", "#07120c", "#0c1a12", "#132a1d", "#1f4a32"
-    FG, MUTED = "#eafff2", "#8fb8a0"
-    CYAN, PINK, VIOLET = "#19e68c", "#b6ff3c", "#00c2a8"
-    GREEN = "#5bff9a"
-    HUE_SHIFT = 0.0
-# Fondo con color (no casi negro): se mezcla un poco del color de acento, como el fondo morado del diseño «neón cristal».
-# Así las zonas con luz difuminada y las de fondo liso se funden y no se ve un cuadro negro detrás.
+MODO = modo_actual()
+LIGHT = MODO == "claro"
+ACENTO = "indigo"
+if LIGHT:
+    BG, SIDE, PANEL, PANEL2, BORDER = "#eef0f7", "#ffffff", "#ffffff", "#f3f4fb", "#dfe2f0"
+    FG, MUTED = "#151a2d", "#5b6280"
+    CYAN, PINK, VIOLET = "#3b5bfd", "#0f9b8e", "#3b5bfd"
+    GREEN, YELLOW, RED = "#17a56b", "#d9822b", "#d1383d"
+    ON_ACCENT = "#ffffff"
+else:              # negro mate
+    BG, SIDE, PANEL, PANEL2, BORDER = "#121316", "#1a1c20", "#1a1c20", "#23262b", "#2c3036"
+    FG, MUTED = "#ecedf0", "#9aa0aa"
+    CYAN, PINK, VIOLET = "#7b92ff", "#3ccfc0", "#7b92ff"
+    GREEN, YELLOW, RED = "#3ddc97", "#ffb224", "#ff6b6b"
+    ON_ACCENT = "#10131a"
+HUE_SHIFT = (_hue(CYAN) - 0.42) % 1.0       # para recolorear el logo clásico (verde ≈ 0,42)
+
+
 def _mix_hex(a, b, t):
     ra, rb = [int(a[i:i + 2], 16) for i in (1, 3, 5)], [int(b[i:i + 2], 16) for i in (1, 3, 5)]
     return "#%02x%02x%02x" % tuple(int(ra[i] + (rb[i] - ra[i]) * t) for i in range(3))
 
 
-BG, SIDE, PANEL, PANEL2 = (_mix_hex(BG, CYAN, 0.13), _mix_hex(SIDE, CYAN, 0.13), _mix_hex(PANEL, CYAN, 0.11), _mix_hex(PANEL2, CYAN, 0.09))
-BORDER = _mix_hex(BORDER, CYAN, 0.08)
-YELLOW = "#ffd23f"
-RED = "#ff4d5e"
+TRACK = _mix_hex(PANEL, FG, 0.10)         # fondo de las barras de progreso
+SOMBRA = _mix_hex(BG, "#10131a" if LIGHT else "#000000", 0.07 if LIGHT else 0.35)      # sombra suave bajo las tarjetas
+PRO_THEME = _es_pro()                      # solo informa de si hay PRO; ya no cambia los colores
 
 FONT = "Segoe UI"
 MONO = "Consolas"
@@ -176,11 +186,11 @@ def setup_styles(root):
     except tk.TclError:
         pass
     for name, col in (("Neon", CYAN), ("Green", GREEN), ("Pink", PINK)):
-        s.configure(f"{name}.Horizontal.TProgressbar", troughcolor=PANEL2, background=col,
-                    bordercolor=BG, lightcolor=col, darkcolor=col, thickness=10)
-    s.configure("Vertical.TScrollbar", troughcolor=BG, background=PANEL2, bordercolor=BG,
-                arrowcolor=MUTED, lightcolor=PANEL2, darkcolor=PANEL2, gripcount=0, width=10)
-    s.map("Vertical.TScrollbar", background=[("active", BORDER)])
+        s.configure(f"{name}.Horizontal.TProgressbar", troughcolor=TRACK, background=col,
+                    bordercolor=BG, lightcolor=col, darkcolor=col, thickness=8)
+    s.configure("Vertical.TScrollbar", troughcolor=BG, background=_mix_hex(BG, FG, 0.18), bordercolor=BG,
+                arrowcolor=MUTED, lightcolor=_mix_hex(BG, FG, 0.18), darkcolor=_mix_hex(BG, FG, 0.18), gripcount=0, width=10)
+    s.map("Vertical.TScrollbar", background=[("active", _mix_hex(BG, FG, 0.32))])
 
 
 # ---------------------------------------------------------------- botón
@@ -212,18 +222,14 @@ class NeonButton(tk.Canvas):
         c, bg, t = self.color, _bg_of(self.master), self._t
         dy = 1 if self._press else 0
         if not self.enabled:
-            round_rect(self, 2, 2, w - 2, h - 2, 12, fill=PANEL2, outline=BORDER)
+            round_rect(self, 1, 1, w - 1, h - 1, 13, fill=TRACK, outline="")
             fg = MUTED
-        elif self.filled:
-            if t > 0.03:                                                     # halo de brillo que crece al acercar el ratón
-                round_rect(self, 0, 0, w, h, 14, fill=mix(bg, c, 0.35 * t), outline="")
-            round_rect(self, 2, 2 + dy, w - 2, h - 2 + dy, 12, fill=mix(c, "#ffffff", 0.30 * t), outline="")
-            fg = BG
-        else:
-            if t > 0.03:
-                round_rect(self, 0, 0, w, h, 14, fill=mix(bg, c, 0.22 * t), outline="")
-            round_rect(self, 2, 2 + dy, w - 2, h - 2 + dy, 12, fill=mix(PANEL2, c, 0.22 * t), outline=mix(c, "#ffffff", 0.25 * t), width=1)
-            fg = mix(c, FG, t)
+        elif self.filled:                                                     # botón principal: color liso, texto claro
+            round_rect(self, 1, 1 + dy, w - 1, h - 1 + dy, 13, fill=mix(c, FG if LIGHT else "#ffffff", 0.10 * t), outline="")
+            fg = ON_ACCENT if c in (CYAN, VIOLET) else ("#ffffff" if LIGHT else "#10131a")
+        else:                                                                 # secundario: relleno suave del mismo color
+            round_rect(self, 1, 1 + dy, w - 1, h - 1 + dy, 13, fill=mix(bg, c, 0.10 + 0.10 * t), outline="")
+            fg = mix(c, FG, 0.30) if LIGHT else mix(c, FG, 0.15)
         self.create_text(w / 2, h / 2 + dy, text=self._text, fill=fg, font=self._font)
         self.configure(cursor="hand2" if self.enabled else "arrow")
 
@@ -283,8 +289,8 @@ def badge(parent, text, color, bg=None):
     w = font.measure(text) + 18
     h = font.metrics("linespace") + 8
     cv = tk.Canvas(parent, width=w, height=h, bg=bg or _bg_of(parent), highlightthickness=0, bd=0)
-    round_rect(cv, 0, 0, w, h, h // 2, fill=mix(color, PANEL, 0.82), outline=color)
-    cv.create_text(w / 2, h / 2, text=text, fill=color, font=font)
+    round_rect(cv, 0, 0, w, h, h // 2, fill=mix(bg or _bg_of(parent), color, 0.14), outline="")
+    cv.create_text(w / 2, h / 2, text=text, fill=mix(color, FG, 0.35) if LIGHT else color, font=font)
     return cv
 
 
@@ -303,15 +309,15 @@ class Card(tk.Canvas):
     """Tarjeta con esquinas redondeadas, borde sutil y marca de color a la izquierda.
     El contenido va en `.body`."""
 
-    def __init__(self, parent, accent=CYAN, title=None, pad=14, radius=22, strip=True, fill=None, line=None, orbs=None):
+    def __init__(self, parent, accent=CYAN, title=None, pad=14, radius=22, strip=False, fill=None, line=None, orbs=None):
         super().__init__(parent, bg=_bg_of(parent), highlightthickness=0, bd=0, height=40)
-        self.accent, self.pad, self.radius, self.strip = accent, pad, radius, strip
+        self.accent, self.pad, self.radius, self.strip = accent, pad, radius, False      # el diseño nuevo no lleva rayita de color
         self.fill, self.line, self.orbs = fill or PANEL, line or BORDER, orbs
-        self._inset = pad + (8 if strip else 0)
+        self._inset = pad + 4
         self.body = tk.Frame(self, bg=self.fill)
         self._win = self.create_window(self._inset, pad, window=self.body, anchor="nw")
         if title:
-            tk.Label(self.body, text=title, font=F(11, True), fg=accent, bg=self.fill).pack(anchor="w", pady=(0, 8))
+            tk.Label(self.body, text=title, font=F(11, True), fg=FG, bg=self.fill).pack(anchor="w", pady=(0, 8))
         self.bind("<Configure>", self._redraw)
         self.body.bind("<Configure>", self._fit)
 
@@ -324,15 +330,14 @@ class Card(tk.Canvas):
         w, h = e.width, e.height
         self.itemconfigure(self._win, width=max(20, w - self._inset - self.pad))
         self.delete("bg")
-        round_rect(self, 1, 1, w - 1, h - 1, self.radius, fill=self.fill, outline=self.line, tags="bg")
+        round_rect(self, 1, 3, w - 1, h - 1, self.radius, fill=SOMBRA, outline="", tags="bg")                 # sombra suave
+        round_rect(self, 1, 1, w - 1, h - 3, self.radius, fill=self.fill, outline=self.line, tags="bg")
         r = self.radius
-        if self.orbs and w > 60 and h > 40:
+        if self.orbs and False and w > 60 and h > 40:
             if getattr(self, "_glow_key", None) != (w, h):
                 self._glow_key, self._glow_img = (w, h), glow_image(self, w, h, r, self.fill, self.orbs, cell=6)
             self.create_image(0, 0, image=self._glow_img, anchor="nw", tags="bg")
             round_rect(self, 1, 1, w - 1, h - 1, r, fill="", outline=self.line, tags="bg")
-        if self.strip:
-            self.create_line(9, r, 9, h - r, fill=self.accent, width=3, capstyle="round", tags="bg")
         self.tag_lower("bg")
 
 
@@ -367,7 +372,7 @@ class Gauge(tk.Canvas):
         self.delete("all")
         s, pad = self.size, 14
         box = (pad, pad, s - pad, s - pad)
-        self.create_arc(*box, start=225, extent=-270, style="arc", outline=PANEL2, width=12)
+        self.create_arc(*box, start=225, extent=-270, style="arc", outline=TRACK, width=12)
         if v > 0.5:
             col = self._color(v)
             self.create_arc(*box, start=225, extent=-270 * v / 100, style="arc", outline=col, width=12)
@@ -389,7 +394,7 @@ class MiniBar(tk.Canvas):
         self.delete("all")
         self.create_text(0, 7, text=self.label, anchor="w", fill=MUTED, font=F(8, True))
         self.create_text(self.w, 7, text=f"{v:.0f}%", anchor="e", fill=FG, font=F(8, True))
-        round_rect(self, 0, 18, self.w, 26, 4, fill=PANEL2, outline="")
+        round_rect(self, 0, 18, self.w, 26, 4, fill=TRACK, outline="")
         if v > 1:
             col = GREEN if v < 60 else YELLOW if v < 85 else RED
             round_rect(self, 0, 18, max(8, self.w * v / 100), 26, 4, fill=col, outline="")
@@ -433,13 +438,9 @@ class GradientBar(tk.Canvas):
 
 def page_title(parent, title, subtitle=None, accent=CYAN):
     f = tk.Frame(parent, bg=BG)
-    row = tk.Frame(f, bg=BG)
-    row.pack(anchor="w")
-    tk.Frame(row, bg=accent, width=5, height=30).pack(side="left", padx=(0, 12))
-    tk.Label(row, text=title, font=F(24, True), fg=FG, bg=BG).pack(side="left")
+    tk.Label(f, text=title, font=F(24, True), fg=FG, bg=BG).pack(anchor="w")
     if subtitle:
         tk.Label(f, text=subtitle, font=F(10), fg=MUTED, bg=BG, anchor="w", justify="left").pack(anchor="w", pady=(4, 0))
-    GradientBar(f, height=2, width=120).pack(anchor="w", pady=(10, 0))
     return f
 
 
@@ -554,7 +555,7 @@ class CheckBox(tk.Frame):
         col = MUTED if self._disabled else CYAN
         if on:
             round_rect(c, 1, 1, 19, 19, 5, fill=col if not self._disabled else PANEL2, outline=col)
-            c.create_line(5, 10, 9, 14, 15, 6, fill=BG, width=2.5, capstyle="round", joinstyle="round")
+            c.create_line(5, 10, 9, 14, 15, 6, fill=ON_ACCENT, width=2.5, capstyle="round", joinstyle="round")
         else:
             round_rect(c, 1, 1, 19, 19, 5, fill=PANEL2, outline=BORDER if self._disabled else MUTED)
 
@@ -698,7 +699,7 @@ class PillBar(tk.Canvas):
     def _draw(self):
         self.delete("all")
         w, h = max(10, self.winfo_width()), self._h
-        round_rect(self, 0, 0, w, h, h / 2, fill=mix(_bg_of(self), "#ffffff", 0.10), outline="")
+        round_rect(self, 0, 0, w, h, h / 2, fill=mix(_bg_of(self), FG, 0.10), outline="")
         if self.pct > 0:
             round_rect(self, 0, 0, max(h, w * self.pct / 100), h, h / 2, fill=self.color, outline="")
 

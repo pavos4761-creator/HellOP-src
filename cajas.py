@@ -1,7 +1,7 @@
 """Cuadros redondeados de Inicio: licencia («PRO ACTIVO · quedan N días») y asistente."""
 import tkinter as tk
 
-from widgets import CYAN, F, FG, MUTED, PINK, RED, SIDE, YELLOW, mix, round_rect
+from widgets import BORDER, CYAN, F, FG, MUTED, PANEL, PINK, RED, SIDE, TRACK, YELLOW, mix, round_rect
 
 
 class _CajaRedonda(tk.Canvas):
@@ -32,8 +32,8 @@ class _CajaRedonda(tk.Canvas):
             self.delete("all")
             w = max(40, self.winfo_width())
             c = self._col()
-            round_rect(self, 1, 1, w - 1, self.ALTO - 1, 20, fill=mix(self.fondo, c, 0.22 if self.hov else 0.14),
-                       outline=mix(self.fondo, c, 0.55 if self.hov else 0.32))
+            round_rect(self, 1, 1, w - 1, self.ALTO - 1, 20, fill=mix(PANEL, c, 0.06 if self.hov else 0.0),
+                       outline=mix(BORDER, c, 0.6 if self.hov else 0.0))
             self._contenido(w)
         except tk.TclError:
             pass
@@ -70,11 +70,11 @@ class CajaLicencia(_CajaRedonda):
         t, sub, pct = self.textos()
         c = self._col()
         self.create_oval(16, 15, 24, 23, fill=c, outline="")
-        self.create_oval(13, 12, 27, 26, outline=mix(self.fondo, c, 0.4))
+        self.create_oval(13, 12, 27, 26, outline=mix(PANEL, c, 0.4))
         self.create_text(34, 19, text=t, anchor="w", fill=c, font=F(9, True))
         self.create_text(16, 40, text=sub, anchor="w", fill=FG, font=F(9))
         by = 56
-        round_rect(self, 16, by, w - 16, by + 6, 3, fill=mix(self.fondo, "#ffffff", 0.12), outline="")
+        round_rect(self, 16, by, w - 16, by + 6, 3, fill=TRACK, outline="")
         if pct:
             round_rect(self, 16, by, 16 + max(6, (w - 32) * pct / 100), by + 6, 3, fill=c, outline="")
 
