@@ -6,7 +6,7 @@ from widgets import BORDER, CYAN, F, FG, MUTED, PANEL, PANEL2, SIDE, mix
 
 CLAVES = {   # palabras extra para encontrar cada apartado
     "home": "inicio principal nota", "analysis": "analisis pc hardware ram cpu gpu", "score": "puntuacion nota medalla logros",
-    "optimize": "optimizar gaming trabajo extremo perfil", "streaming": "streaming obs directo twitch emitir", "mando": "mando gamepad control xbox ps5 dualsense input lag",
+    "optimize": "optimizar gaming trabajo extremo perfil", "streaming": "streaming obs directo twitch emitir", "doctor": "doctor sintomas problema tirones crujidos cierra lento por que", "movil": "movil telefono celular qr segunda pantalla temperaturas remoto", "noche": "noche silencio ruido ventiladores horario calor", "mando": "mando gamepad control xbox ps5 dualsense input lag",
     "clean": "limpieza basura temporales disco", "shaders": "shaders cache nvidia amd", "arranque": "arranque inicio programas startup",
     "games": "juegos biblioteca steam", "gameprof": "ajustes de juego perfil por juego", "booster": "modo extremo booster procesos",
     "monitor": "monitor temperaturas uso", "diag": "diagnostico problemas", "fps": "fps reales medir tirones",

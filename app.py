@@ -26,7 +26,7 @@ SECTIONS = [
     ("OPTIMIZAR", [("optimize", "⚡", "Optimizar"), ("streaming", "◉", "Streaming"), ("mando", "✜", "Mando"), ("clean", "✦", "Limpieza"), ("shaders", "❖", "Limpiar shaders"),
                    ("arranque", "⏻", "Gestor de arranque")]),
     ("GAMING", [("games", "▣", "Mis juegos"), ("gameprof", "✧", "Ajustes de juego"), ("booster", "☢", "Modo Extremo"),
-                ("monitor", "≈", "Monitor"), ("diag", "◈", "Diagnóstico"), ("fps", "▤", "FPS reales")]),
+                ("monitor", "≈", "Monitor"), ("noche", "☾", "Modo noche"), ("movil", "▯", "Monitor en el móvil"), ("diag", "◈", "Diagnóstico"), ("doctor", "✚", "Doctor"), ("fps", "▤", "FPS reales")]),
     ("AVANZADO", [("tweaks", "☄", "Tweaks"), ("cuello", "⬆", "Qué pieza mejorar"), ("bios", "▦", "BIOS"), ("oc", "⚙", "Overclock")]),
     ("SISTEMA", [("health", "♥", "Salud del PC"), ("debloat", "✖", "Quitar bloatware"),
                 ("history", "↺", "Historial / Deshacer"), ("update", "⟳", "Actualizaciones"), ("license", "◇", "Licencia")]),
@@ -188,6 +188,9 @@ class App(tk.Tk):
             import page_optimize  # noqa: F401
             import page_streaming  # noqa: F401
             import page_mando  # noqa: F401
+            import page_noche  # noqa: F401
+            import page_doctor  # noqa: F401
+            import page_movil  # noqa: F401
             import page_games  # noqa: F401
             import page_booster  # noqa: F401
             import page_bios  # noqa: F401
@@ -215,6 +218,9 @@ class App(tk.Tk):
             "optimize": lambda p, a: __import__("page_optimize").OptimizePage(p, a),
             "streaming": lambda p, a: __import__("page_streaming").StreamingPage(p, a),
             "mando": lambda p, a: __import__("page_mando").MandoPage(p, a),
+            "movil": lambda p, a: __import__("page_movil").MovilPage(p, a),
+            "doctor": lambda p, a: __import__("page_doctor").DoctorPage(p, a),
+            "noche": lambda p, a: __import__("page_noche").NochePage(p, a),
             "games": lambda p, a: __import__("page_games").GamesPage(p, a),
             "booster": lambda p, a: __import__("page_booster").BoosterPage(p, a),
             "bios": lambda p, a: __import__("page_bios").BiosPage(p, a),
@@ -252,6 +258,7 @@ class App(tk.Tk):
             self.status("Se reanudaron servicios que el Modo Extremo había pausado: " + ", ".join(rec))
         self.after(50, self._pump)
         self.after(4000, self._auto_check)
+        self.after(20000, self._tick_noche)
         self.after(6000, self._check_revoked)
         self.after(1500, self._asistente_primera_vez)
         self.after(1500, self.pages["games"].boot)
@@ -368,7 +375,7 @@ class App(tk.Tk):
                 k = 0.5 + 0.5 * math.sin((_t.time() - t0) * 1.6)
                 col = rgb(mix(SIDE, CYAN, 0.10 + 0.28 * k))
                 dwm(hwnd, 35, byref(c_int(col)), 4)                   # color de la barra
-                dwm(hwnd, 34, byref(c_int(rgb(mix(BORDER, CYAN, 0.2 + 0.6 * k)))), 4)   # borde
+                dwm(hwnd, 34, byref(c_int(0xFFFFFFFE)), 4)                # sin línea de borde (DWMWA_COLOR_NONE)
                 self.after(70, tick)
             except Exception:  # noqa: BLE001
                 pass
@@ -396,7 +403,6 @@ class App(tk.Tk):
             badge(right, "SIN ADMINISTRADOR", RED).pack(side="left", padx=6)
             NeonButton(right, "Reabrir como administrador", self.restart_admin, color=RED, padx=10, pady=4,
                        font=F(9, True)).pack(side="left", padx=6)
-        GradientBar(self, height=3).pack(fill="x")
 
     def _apaga_paginas(self):
         for k in ("games", "monitor", "booster"):
@@ -553,6 +559,13 @@ class App(tk.Tk):
         """Antes de cerrar deja todo como estaba (prioridades, servicios, temporizador)."""
         self._guarda_geometria()
         try:
+            import noche
+            noche.restaurar()
+            import movil
+            movil.apagar()
+        except Exception:  # noqa: BLE001
+            pass
+        try:
             self._apaga_paginas()
         except Exception:  # noqa: BLE001
             pass
@@ -672,6 +685,16 @@ class App(tk.Tk):
             self.after(4200, lambda: self._quita_toast(t))
         except tk.TclError:
             pass
+
+    def _tick_noche(self):
+        try:
+            import noche
+            r = noche.revisa()
+            if r:
+                self.toast(r, CYAN)
+        except Exception:  # noqa: BLE001
+            pass
+        self.after(60000, self._tick_noche)
 
     def _quita_toast(self, t):
         try:
