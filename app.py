@@ -162,6 +162,10 @@ class App(tk.Tk):
         self.q = queue.Queue()
         self.current = None
         self._construye()
+        if not _show_at and os.environ.get("HELLOP_NOINTRO") != "1":
+            from intro import Intro
+            self.update_idletasks()
+            self.intro = Intro(self)                       # animación de entrada con el logo
         self._tick_live()
         self._anim_phase = 0.0
         self.after(80, self._anim_tick)
@@ -176,8 +180,8 @@ class App(tk.Tk):
         self.after(20000, self._tick_noche)
         self.after(6000, self._check_revoked)
         self.after(1500, self._asistente_primera_vez)
-        self.after(1500, self.pages["games"].boot)
-        self.after(600, self._admin_prompt)
+        self.after(3200, self.pages["games"].boot)
+        self.after(3000, self._admin_prompt)
         self.after(120, self._marco_windows)
         self.after(300, self._titlebar_start)
         self.after(450, self._poner_icono_windows)
@@ -294,7 +298,7 @@ class App(tk.Tk):
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("HellOP.App")
             APP_DIR.mkdir(parents=True, exist_ok=True)
             ico = APP_DIR / "hellop.ico"
-            ico.write_bytes(self._pro_ico() if PRO_THEME else base64.b64decode(logo_data.ICO))
+            ico.write_bytes(base64.b64decode(logo_data.ICO))
             self._ico_path = str(ico)
             self.iconbitmap(default=str(ico))
         except Exception:  # noqa: BLE001
@@ -381,9 +385,8 @@ class App(tk.Tk):
         self._logo = themed_logo(tk.PhotoImage(data=logo_data.LOGO_64))
         self._logo_big = themed_logo(tk.PhotoImage(data=logo_data.LOGO_128))
         self._set_window_icon()
-        tile = tk.Canvas(h, width=38, height=38, bg=BG, highlightthickness=0, bd=0)
-        round_rect(tile, 1, 1, 37, 37, 12, fill=CYAN, outline="")
-        tile.create_text(19, 19, text="H", fill=ON_ACCENT, font=F(16, True))
+        self._logo40 = tk.PhotoImage(data=logo_data.LOGO_40)
+        tile = tk.Label(h, image=self._logo40, bg=BG, bd=0)
         tile.pack(side="left")
         tk.Label(h, text="Hell", font=F(18, True), fg=FG, bg=BG).pack(side="left", padx=(10, 0))
         tk.Label(h, text="OP", font=F(18, True), fg=CYAN, bg=BG).pack(side="left")

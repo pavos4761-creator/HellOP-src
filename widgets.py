@@ -656,8 +656,7 @@ class PulseLogo(tk.Canvas):
 def themed_logo(img, force=False):
     """En PRO pasa el logo (verde) a morado girando el tono de cada pixel. En GRATIS lo deja igual.
     Si algo falla devuelve el logo original: nunca debe impedir que la app arranque."""
-    if not (PRO_THEME or force):
-        return img
+    return img          # el logo nuevo ya trae sus colores: no se recolorea
     try:
         import colorsys
         out = img.copy()
