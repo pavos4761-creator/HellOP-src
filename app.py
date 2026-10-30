@@ -154,7 +154,10 @@ class App(tk.Tk):
             self.withdraw()
         self.title("HellOP  ·  " + ("PRO" if PRO_THEME else "FREE") + ("  ·  MODO DEMO" if DEMO else ""))
         self.geometry(self._geometria_guardada())
-        self.minsize(980, 640)
+        self.resizable(False, False)                       # tamaño estándar fijo
+        self.sin_marco = os.environ.get("HELLOP_MARCO") != "1"
+        if self.sin_marco:
+            self.overrideredirect(True)                    # sin barra de título de Windows: solo la app
         install_mousewheel(self)
         self.q = queue.Queue()
         self.current = None
@@ -175,6 +178,7 @@ class App(tk.Tk):
         self.after(1500, self._asistente_primera_vez)
         self.after(1500, self.pages["games"].boot)
         self.after(600, self._admin_prompt)
+        self.after(120, self._marco_windows)
         self.after(300, self._titlebar_start)
         self.after(450, self._poner_icono_windows)
         self.after(2500, self._poner_icono_windows)
@@ -187,7 +191,7 @@ class App(tk.Tk):
 
     def _construye(self):
         """Dibuja toda la ventana (cabecera, menú, páginas) con la paleta actual. Se vuelve a llamar al cambiar Claro/Oscuro."""
-        self.configure(bg=BG)
+        self.configure(bg=BG, highlightthickness=1, highlightbackground=BORDER, highlightcolor=BORDER)
         setup_styles(self)
         self._dark_titlebar()
         self._build_header()
@@ -389,6 +393,13 @@ class App(tk.Tk):
         busca.create_text(282, 19, text="Ctrl K", anchor="e", fill=MUTED, font=F(8, True))
         busca.pack(side="left", padx=(26, 0))
         busca.bind("<Button-1>", self.abrir_buscador)
+        if self.sin_marco:
+            ctl = tk.Frame(h, bg=BG)
+            ctl.pack(side="right", padx=(10, 0))
+            self._boton_ventana(ctl, "×", self.on_close, True).pack(side="right")
+            self._boton_ventana(ctl, "—", self.minimiza).pack(side="right")
+            for w in (h, tile) + tuple(c for c in h.winfo_children() if isinstance(c, tk.Label)):
+                self._arrastra(w)
         right = tk.Frame(h, bg=BG)
         right.pack(side="right")
         self.hdr_right = right
@@ -548,16 +559,64 @@ class App(tk.Tk):
 
     # ---- detalles de pulido -----------------------------------------------
     def _geometria_guardada(self):
+        """Tamaño estándar fijo (se achica solo si la pantalla es pequeña). Recuerda dónde la dejaste."""
+        sw, sh = self.winfo_screenwidth(), self.winfo_screenheight()
+        w, h = min(1180, sw - 40), min(800, sh - 90)
+        x, y = (sw - w) // 2, max(0, (sh - h) // 2 - 20)
         try:
             import json
             from util import APP_DIR
             g = json.loads((APP_DIR / "ventana.json").read_text("utf-8"))
-            w, h, x, y = int(g["w"]), int(g["h"]), int(g["x"]), int(g["y"])
-            if 980 <= w <= 4000 and 640 <= h <= 3000 and -50 <= x < self.winfo_screenwidth() - 200 and -10 <= y < self.winfo_screenheight() - 150:
-                return f"{w}x{h}+{x}+{y}"
+            gx, gy = int(g["x"]), int(g["y"])
+            if 0 <= gx <= sw - 300 and 0 <= gy <= sh - 200:
+                x, y = gx, gy
         except Exception:  # noqa: BLE001
             pass
-        return "1140x840"
+        return f"{w}x{h}+{x}+{y}"
+
+    # ---- ventana sin marco: arrastrar, minimizar, cerrar -------------------
+    def _marco_windows(self):
+        """Sin marco Windows no la pone en la barra de tareas: se le pide con el estilo APPWINDOW."""
+        if not IS_WIN or not self.sin_marco:
+            return
+        try:
+            import ctypes
+            u = ctypes.windll.user32
+            hwnd = u.GetParent(self.winfo_id()) or self.winfo_id()
+            st = u.GetWindowLongW(hwnd, -20)
+            u.SetWindowLongW(hwnd, -20, (st & ~0x80) | 0x40000)
+            self.withdraw()
+            self.after(40, lambda: (self.deiconify(), self.focus_force()))
+        except Exception:  # noqa: BLE001
+            pass
+
+    def minimiza(self):
+        try:
+            if IS_WIN:
+                import ctypes
+                u = ctypes.windll.user32
+                u.ShowWindow(u.GetParent(self.winfo_id()) or self.winfo_id(), 6)     # SW_MINIMIZE
+            else:
+                self.iconify()
+        except Exception:  # noqa: BLE001
+            pass
+
+    def _arrastra(self, w):
+        def ini(e):
+            self._dx, self._dy = e.x_root - self.winfo_x(), e.y_root - self.winfo_y()
+
+        def mueve(e):
+            self.geometry(f"+{e.x_root - self._dx}+{e.y_root - self._dy}")
+        w.bind("<ButtonPress-1>", ini, add="+")
+        w.bind("<B1-Motion>", mueve, add="+")
+
+    def _boton_ventana(self, parent, texto, cmd, rojo=False):
+        l = tk.Label(parent, text=texto, font=F(12), fg=MUTED, bg=BG, width=3, cursor="hand2")
+        hov = mix(BG, RED if rojo else FG, 0.9 if rojo else 0.08)
+        l.bind("<Enter>", lambda e: l.config(bg=hov, fg="#ffffff" if rojo else FG))
+        l.bind("<Leave>", lambda e: l.config(bg=BG, fg=MUTED))
+        l.bind("<Button-1>", lambda e: cmd())
+        return l
 
     def _guarda_geometria(self):
         try:

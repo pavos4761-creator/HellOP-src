@@ -19,10 +19,20 @@ def main():
     while True:
         from app import App
         app = App()
+        app.after(250, _cierra_splash)
         app.mainloop()
         if not getattr(app, "recarga", False):
             break
         _recarga_modulos()          # cambio de Claro/Oscuro: se vuelven a leer los colores y se abre la ventana otra vez
+
+
+def _cierra_splash():
+    """Cierra la pantallita de carga del .exe (solo existe en el programa compilado)."""
+    try:
+        import pyi_splash  # type: ignore
+        pyi_splash.close()
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def _recarga_modulos():

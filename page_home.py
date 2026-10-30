@@ -47,7 +47,7 @@ def _png(w, h, raw):
 
 def anillo_img(master, size, r, g, valor, color):
     """Anillo con los bordes suavizados (antialias) y puntas redondas, dibujado como imagen con transparencia.
-    valor 0-100; con valor=None dibuja el anillo entero (la pista gris). Se dibuja solo en la franja del anillo, es muy rápido."""
+    valor 0-100; con valor=None dibuja el anillo entero (la pista gris). Solo recorre la franja del anillo: es muy rápido."""
     key = (size, r, g)
     c = size / 2
     if valor is None and (key, color) in _ANILLO_CACHE:
@@ -60,35 +60,34 @@ def anillo_img(master, size, r, g, valor, color):
                 d = math.hypot(x + 0.5 - c, y + 0.5 - c)
                 if abs(d - r) <= g / 2 + 1:
                     ang = (math.degrees(math.atan2(x + 0.5 - c, -(y + 0.5 - c)))) % 360     # 0° = arriba, sentido de las agujas
-                    px.append((x, y, d, ang))
+                    cov = min(1.0, max(0.0, g / 2 + 0.5 - abs(d - r)))
+                    px.append((y * (size * 4 + 1) + 1 + x * 4 + 3, x + 0.5, y + 0.5, ang, int(cov * 255), cov))
         _ANILLO_CACHE[key] = px
     rgb = bytes(int(color[i:i + 2], 16) for i in (1, 3, 5))
-    stride = size * 4 + 1
     raw = bytearray((b"\x00" + (rgb + b"\x00") * size) * size)
-    full = valor is None
-    ext = 0.0 if full else max(0.0, min(100.0, valor)) * 3.6
-    caps = []
-    if not full and ext > 0.3:
-        for a in (0.0, ext):
-            t = math.radians(a)
-            caps.append((c + r * math.sin(t), c - r * math.cos(t)))
     h = g / 2
-    for x, y, d, ang in px:
-        cov = min(1.0, max(0.0, h + 0.5 - abs(d - r)))
-        if not full:
-            if ang > ext:
-                cov = 0.0
-            for cx, cy in caps:
-                cv = min(1.0, max(0.0, h + 0.5 - math.hypot(x + 0.5 - cx, y + 0.5 - cy)))
-                if cv > cov:
-                    cov = cv
-        if cov > 0:
-            raw[y * stride + 1 + x * 4 + 3] = int(cov * 255)
+    if valor is None:
+        for i, _x, _y, _a, a255, _c in px:
+            raw[i] = a255
+    else:
+        ext = max(0.0, min(100.0, valor)) * 3.6
+        if ext > 0.3:
+            caps = [(c + r * math.sin(math.radians(a)), c - r * math.cos(math.radians(a))) for a in (0.0, ext)]
+            cerca = g / r * 57.3 + 4                 # grados a los que una pixel puede tocar una punta
+            for i, x, y, ang, a255, cov in px:
+                if ang <= ext:
+                    raw[i] = a255
+                if ang < cerca or ang > ext - cerca and ang < ext + cerca or ang > 360 - cerca:
+                    for cx, cy in caps:
+                        cv = h + 0.5 - math.hypot(x - cx, y - cy)
+                        if cv > 0:
+                            v = int(min(1.0, cv) * 255)
+                            if v > raw[i]:
+                                raw[i] = v
     img = tk.PhotoImage(master=master, data=_png(size, size, raw))
-    if full:
+    if valor is None:
         _ANILLO_CACHE[(key, color)] = img
     return img
-
 
 class Anillo(tk.Canvas):
     """Anillo con degradado que se llena hasta la nota (0-100); en el centro, la nota y la medalla."""
@@ -107,7 +106,7 @@ class Anillo(tk.Canvas):
     def _anima(self):
         self._job = None
         try:
-            self.mostrado += (self.valor - self.mostrado) * 0.12
+            self.mostrado += (self.valor - self.mostrado) * 0.2
             if abs(self.valor - self.mostrado) < 0.4:
                 self.mostrado = float(self.valor)
             else:
@@ -262,7 +261,7 @@ class Hero(tk.Canvas):
     def _paso(self):
         self._anim = None
         try:
-            self.mostrado += (self.valor - self.mostrado) * 0.12
+            self.mostrado += (self.valor - self.mostrado) * 0.2
             if abs(self.valor - self.mostrado) < 0.4:
                 self.mostrado = float(self.valor)
             else:

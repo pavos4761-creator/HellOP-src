@@ -31,7 +31,7 @@ jobs:
           pip install -r requirements.txt pyinstaller
 
       - name: Compilar el exe
-        run: python -m PyInstaller --noconsole --onefile --uac-admin --name HellOP --icon assets/hellop.ico main.py
+        run: python -m PyInstaller --noconsole --onefile --uac-admin --name HellOP --icon assets/hellop.ico --splash assets/splash.png main.py
 
       - name: Calcular huellas SHA256 (el codigo fuente NO se publica)
         shell: pwsh
