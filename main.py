@@ -16,8 +16,20 @@ def main():
             ctypes.windll.shcore.SetProcessDpiAwareness(1)   # texto nítido en pantallas 4K/escaladas
         except Exception:  # noqa: BLE001
             pass
-    from app import App
-    App().mainloop()
+    while True:
+        from app import App
+        app = App()
+        app.mainloop()
+        if not getattr(app, "recarga", False):
+            break
+        _recarga_modulos()          # cambio de Claro/Oscuro: se vuelven a leer los colores y se abre la ventana otra vez
+
+
+def _recarga_modulos():
+    """Descarta los módulos que traen colores copiados (widgets, páginas...) para que se carguen con la paleta nueva."""
+    for n in list(sys.modules):
+        if n in ("widgets", "app", "asistente", "bienvenida", "cajas", "config_io", "paleta", "sidebar") or n.startswith("page_"):
+            del sys.modules[n]
 
 
 if __name__ == "__main__":

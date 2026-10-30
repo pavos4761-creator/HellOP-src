@@ -31,6 +31,65 @@ GRANDES = [   # (página, símbolo, título, texto, color 1, color 2)
 ]
 
 
+_ANILLO_CACHE = {}
+
+
+def _png(w, h, raw):
+    import struct
+    import zlib
+
+    def chunk(t, d):
+        c = struct.pack(">I", len(d)) + t + d
+        return c + struct.pack(">I", zlib.crc32(t + d) & 0xFFFFFFFF)
+    return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 6, 0, 0, 0))
+            + chunk(b"IDAT", zlib.compress(bytes(raw), 1)) + chunk(b"IEND", b""))
+
+
+def anillo_img(master, size, r, g, valor, color):
+    """Anillo con los bordes suavizados (antialias) y puntas redondas, dibujado como imagen con transparencia.
+    valor 0-100; con valor=None dibuja el anillo entero (la pista gris). Se dibuja solo en la franja del anillo, es muy rápido."""
+    key = (size, r, g)
+    c = size / 2
+    if valor is None and (key, color) in _ANILLO_CACHE:
+        return _ANILLO_CACHE[(key, color)]
+    px = _ANILLO_CACHE.get(key)
+    if px is None:
+        px = []
+        for y in range(size):
+            for x in range(size):
+                d = math.hypot(x + 0.5 - c, y + 0.5 - c)
+                if abs(d - r) <= g / 2 + 1:
+                    ang = (math.degrees(math.atan2(x + 0.5 - c, -(y + 0.5 - c)))) % 360     # 0° = arriba, sentido de las agujas
+                    px.append((x, y, d, ang))
+        _ANILLO_CACHE[key] = px
+    rgb = bytes(int(color[i:i + 2], 16) for i in (1, 3, 5))
+    stride = size * 4 + 1
+    raw = bytearray((b"\x00" + (rgb + b"\x00") * size) * size)
+    full = valor is None
+    ext = 0.0 if full else max(0.0, min(100.0, valor)) * 3.6
+    caps = []
+    if not full and ext > 0.3:
+        for a in (0.0, ext):
+            t = math.radians(a)
+            caps.append((c + r * math.sin(t), c - r * math.cos(t)))
+    h = g / 2
+    for x, y, d, ang in px:
+        cov = min(1.0, max(0.0, h + 0.5 - abs(d - r)))
+        if not full:
+            if ang > ext:
+                cov = 0.0
+            for cx, cy in caps:
+                cv = min(1.0, max(0.0, h + 0.5 - math.hypot(x + 0.5 - cx, y + 0.5 - cy)))
+                if cv > cov:
+                    cov = cv
+        if cov > 0:
+            raw[y * stride + 1 + x * 4 + 3] = int(cov * 255)
+    img = tk.PhotoImage(master=master, data=_png(size, size, raw))
+    if full:
+        _ANILLO_CACHE[(key, color)] = img
+    return img
+
+
 class Anillo(tk.Canvas):
     """Anillo con degradado que se llena hasta la nota (0-100); en el centro, la nota y la medalla."""
     D = 170
@@ -61,15 +120,9 @@ class Anillo(tk.Canvas):
         self.delete("all")
         d, g, r = self.D, 13, self.D / 2 - 14
         c = d / 2
-        self.create_oval(c - r, c - r, c + r, c + r, outline=TRACK, width=g)
-        n = int(self.mostrado / 100 * 72)
-        for i in range(n):
-            col = CYAN
-            self.create_arc(c - r, c - r, c + r, c + r, start=90 - i * 5 - 5.6, extent=5.6, style="arc", outline=col, width=g)
-        if n:
-            for ang, col in ((90, CYAN), (90 - n * 5, CYAN)):
-                x, y = c + r * math.cos(math.radians(ang)), c - r * math.sin(math.radians(ang))
-                self.create_oval(x - g / 2, y - g / 2, x + g / 2, y + g / 2, fill=col, outline="")
+        self._i1, self._i2 = anillo_img(self, d, r, g, None, TRACK), anillo_img(self, d, r, g, self.mostrado, CYAN)
+        self.create_image(0, 0, image=self._i1, anchor="nw")
+        self.create_image(0, 0, image=self._i2, anchor="nw")
         shown = round(self.mostrado) if self.medalla else "—"
         self.create_text(c, c - 6, text=str(shown), fill=FG, font=F(32, True))
         self.create_text(c, c + 26, text=self.medalla.upper(), fill=CYAN, font=F(9, True))
@@ -223,15 +276,9 @@ class Hero(tk.Canvas):
         d, g = self.D, 13
         r = d / 2 - 14
         cx, cy = 28 + d / 2, self.H / 2
-        self.create_oval(cx - r, cy - r, cx + r, cy + r, outline=TRACK, width=g, tags="ring")
-        n = int(self.mostrado / 100 * 72)
-        for i in range(n):
-            self.create_arc(cx - r, cy - r, cx + r, cy + r, start=90 - i * 5 - 5.6, extent=5.6, style="arc",
-                            outline=CYAN, width=g, tags="ring")
-        if n:
-            for ang, col in ((90, CYAN), (90 - n * 5, CYAN)):
-                x, y = cx + r * math.cos(math.radians(ang)), cy - r * math.sin(math.radians(ang))
-                self.create_oval(x - g / 2, y - g / 2, x + g / 2, y + g / 2, fill=col, outline="", tags="ring")
+        self._i1, self._i2 = anillo_img(self, d, r, g, None, TRACK), anillo_img(self, d, r, g, self.mostrado, CYAN)
+        self.create_image(cx - d / 2, cy - d / 2, image=self._i1, anchor="nw", tags="ring")
+        self.create_image(cx - d / 2, cy - d / 2, image=self._i2, anchor="nw", tags="ring")
         self.create_text(cx, cy - 6, text=str(round(self.mostrado) if self.medalla else "—"), fill=FG, font=F(32, True), tags="ring")
         self.create_text(cx, cy + 26, text=self.medalla.upper(), fill=CYAN, font=F(9, True), tags="ring")
 

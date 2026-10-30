@@ -155,11 +155,40 @@ class App(tk.Tk):
         self.title("HellOP  ·  " + ("PRO" if PRO_THEME else "FREE") + ("  ·  MODO DEMO" if DEMO else ""))
         self.geometry(self._geometria_guardada())
         self.minsize(980, 640)
-        self.configure(bg=BG)
-        setup_styles(self)
         install_mousewheel(self)
         self.q = queue.Queue()
         self.current = None
+        self._construye()
+        self._tick_live()
+        self._anim_phase = 0.0
+        self.after(80, self._anim_tick)
+        self.protocol("WM_DELETE_WINDOW", self.on_close)
+        self.report_callback_exception = self._error_tk
+        import booster
+        rec = booster.recover_after_crash()
+        if rec:
+            self.status("Se reanudaron servicios que el Modo Extremo había pausado: " + ", ".join(rec))
+        self.after(50, self._pump)
+        self.after(4000, self._auto_check)
+        self.after(20000, self._tick_noche)
+        self.after(6000, self._check_revoked)
+        self.after(1500, self._asistente_primera_vez)
+        self.after(1500, self.pages["games"].boot)
+        self.after(600, self._admin_prompt)
+        self.after(300, self._titlebar_start)
+        self.after(450, self._poner_icono_windows)
+        self.after(2500, self._poner_icono_windows)
+        if _show_at:
+            try:
+                espera = max(0, int((float(_show_at) - time.time()) * 1000))
+            except ValueError:
+                espera = 0
+            self.after(espera, self.deiconify)
+
+    def _construye(self):
+        """Dibuja toda la ventana (cabecera, menú, páginas) con la paleta actual. Se vuelve a llamar al cambiar Claro/Oscuro."""
+        self.configure(bg=BG)
+        setup_styles(self)
         self._dark_titlebar()
         self._build_header()
 
@@ -174,8 +203,6 @@ class App(tk.Tk):
         self.bar_cpu, self.bar_ram, self.live_lbl = self.sidebar.bar_cpu, self.sidebar.bar_ram, self.sidebar.live_lbl
         self.content = tk.Frame(body, bg=BG)
         self.content.pack(side="left", fill="both", expand=True, padx=(6, 12), pady=12)
-
-        self._tick_live()
 
         self.statusbar = tk.Label(self, text="Listo", font=F(9), fg=MUTED, bg=BG, anchor="w", padx=18, pady=5)
         self.statusbar.pack(fill="x", side="bottom")
@@ -243,34 +270,10 @@ class App(tk.Tk):
         })
         self.refresh_license()
         self.show("home")
-        self._anim_phase = 0.0
-        self.after(80, self._anim_tick)
-        self.protocol("WM_DELETE_WINDOW", self.on_close)
-        self.report_callback_exception = self._error_tk
         self.bind_all("<Alt-Left>", lambda e: self.navega(-1))
         self.bind_all("<Alt-Right>", lambda e: self.navega(1))
         self.bind_all("<Control-k>", self.abrir_buscador)
         self.bind_all("<Control-K>", self.abrir_buscador)
-        import booster
-        rec = booster.recover_after_crash()
-        if rec:
-            self.status("Se reanudaron servicios que el Modo Extremo había pausado: " + ", ".join(rec))
-        self.after(50, self._pump)
-        self.after(4000, self._auto_check)
-        self.after(20000, self._tick_noche)
-        self.after(6000, self._check_revoked)
-        self.after(1500, self._asistente_primera_vez)
-        self.after(1500, self.pages["games"].boot)
-        self.after(600, self._admin_prompt)
-        self.after(300, self._titlebar_start)
-        self.after(450, self._poner_icono_windows)
-        self.after(2500, self._poner_icono_windows)
-        if _show_at:
-            try:
-                espera = max(0, int((float(_show_at) - time.time()) * 1000))
-            except ValueError:
-                espera = 0
-            self.after(espera, self.deiconify)
 
     def _set_window_icon(self):
         """Icono de la ventana y de la barra de tareas (en vez del plumín por defecto de Tk)."""
@@ -402,14 +405,27 @@ class App(tk.Tk):
                        font=F(9, True)).pack(side="left", padx=6)
 
     def cambia_modo(self):
-        """Claro <-> negro mate. Hace falta reiniciar para repintar todo."""
+        """Claro <-> negro mate sin cerrar HellOP: la ventana se vuelve a crear con la paleta nueva."""
         import widgets
-        widgets.guardar_modo("oscuro" if LIGHT else "claro")
-        if DEMO or not IS_WIN:
-            self.status("Modo guardado: cierra y abre HellOP para verlo.")
-            self.toast("Modo guardado. Reinicia HellOP para verlo.", CYAN)
-        else:
-            self.restart_now()
+        nuevo = "oscuro" if LIGHT else "claro"
+        widgets.guardar_modo(nuevo)
+        if "HELLOP_MODE" in os.environ:
+            os.environ["HELLOP_MODE"] = nuevo
+        try:
+            self._apaga_paginas()
+        except Exception:  # noqa: BLE001
+            pass
+        import importlib
+        for n in list(sys.modules):          # módulos que traen los colores copiados: se vuelven a leer con la paleta nueva
+            if n in ("widgets", "app", "asistente", "bienvenida", "cajas", "config_io", "paleta", "sidebar") or n.startswith("page_"):
+                del sys.modules[n]
+        nueva = importlib.import_module("app")
+        for w in self.winfo_children():
+            w.destroy()
+        self.__class__ = nueva.App
+        self._construye()
+        self._titlebar_start()
+        self.after(300, self.pages["games"].boot)
 
     def _apaga_paginas(self):
         for k in ("games", "monitor", "booster"):
