@@ -5,11 +5,14 @@ import random
 import time
 import tkinter as tk
 
-from widgets import BG, CYAN, F, FG, MUTED, mix
+from widgets import F, mix
 
+FONDO = "#090b13"
 TILE = "#0e1119"
+BLANCO = "#f4f6ff"
+SUAVE = "#8a93b5"
 A, B = "#6d8bff", "#2fd4c0"
-DUR = 2.55
+DUR = 3.25
 
 
 def _ease(t):                                   # suave al empezar y al acabar
@@ -70,21 +73,42 @@ def _tramo(pts, tot, a, b):
     return res
 
 
+def _in(t):                                     # acelera al salir
+    t = max(0.0, min(1.0, t))
+    return t * t * t
+
+
 class Intro(tk.Canvas):
+    """Orden: 1) las partículas llegan en espiral y forman los anillos del logo, 2) el núcleo se enciende con un destello
+    y una onda, 3) el nombre entra letra a letra, 4) la capa sube y deja ver la app."""
+
     def __init__(self, app):
-        super().__init__(app, bg=BG, highlightthickness=0, bd=0)
+        super().__init__(app, bg=FONDO, highlightthickness=0, bd=0)
         self.app = app
         self.place(x=0, y=0, relwidth=1, relheight=1)
         tk.Misc.lift(self)
         self.fin = False
         self.t0 = None
-        self.s = 1.15                                   # el logo ocupa 180·s px
+        self.s = 1.15
+        self.W0 = self.H0 = None
+        import random
+        import tkinter.font as tkfont
+        rnd = random.Random(11)
         self.rings = []
-        for x0, r, ancho, op, dash, off, w in ((38, 34, 7, 0.45, 300, 0, 7), (56, 24, 8, 0.75, 230, 60, 8)):
+        for x0, r, op, dash, off, w in ((38, 34, 0.55, 300, 0, 7), (56, 24, 0.85, 230, 60, 8)):
             pts, tot = _camino(x0, x0, 200 - x0, 200 - x0, r)
             self.rings.append((pts, tot, off, off + dash, op, w))
-        rnd = random.Random(7)
-        self.motas = [(rnd.random(), rnd.random(), 0.04 + rnd.random() * 0.09, 1.2 + rnd.random() * 2.4, rnd.random() * 6.28) for _ in range(46)]
+        # partículas: cada una viaja hasta un punto de los anillos
+        self.part = []
+        for (pts, tot, a0, a1, op, w), n in zip(self.rings, (46, 36)):
+            tr = _tramo(pts, tot, a0, a1)
+            for k in range(n):
+                f = k / n
+                x, y = tr[min(len(tr) - 1, int(f * (len(tr) - 1)))]
+                self.part.append((x, y, rnd.random() * 6.283, 0.55 + rnd.random() * 0.45, rnd.random() * 0.45, 1.3 + rnd.random() * 1.7, f))
+        self.motas = [(rnd.random(), rnd.random(), 0.03 + rnd.random() * 0.06, 0.8 + rnd.random() * 1.6, rnd.random() * 6.28) for _ in range(40)]
+        self.fuente = tkfont.Font(font=F(32, True))
+        self.letras = [("H", BLANCO), ("e", BLANCO), ("l", BLANCO), ("l", BLANCO), ("O", A), ("P", A)]
         self.bind("<Button-1>", lambda e: self.acaba())
         self.after(30, self._arranca)
 
@@ -103,7 +127,7 @@ class Intro(tk.Canvas):
         if t >= DUR:
             self.acaba()
         else:
-            self.after(10, self._frame)
+            self.after(8, self._frame)
 
     def acaba(self):
         if self.fin:
@@ -118,82 +142,97 @@ class Intro(tk.Canvas):
     # ---------------------------------------------------------------
     def pinta(self, t):
         self.delete("all")
-        if not getattr(self, "H0", None):
+        if not self.H0:
             self.H0, self.W0 = max(300, self.app.winfo_height()), max(300, self.app.winfo_width())
         W, H = self.W0, self.H0
-        # cortina final: la capa sube y deja ver la app
-        cort = _ease(_span(t, 2.0, DUR))
+        cort = _in(_span(t, 2.7, DUR))
         if cort > 0:
-            self.place_configure(y=-int(self.H0 * cort))
-        self._fondo(t, W, H)
-        s = self.s * (0.88 + 0.12 * _out(_span(t, 0.0, 0.7)))
-        cx, cy = W / 2, H / 2 - 34
-        k = 180 * s / 180                             # escala SVG(200) → píxeles: 1 unidad = s px
+            self.place_configure(y=-int(H * cort))
+        cx, cy = W / 2, H / 2 - 30
+        self._fondo(t, W, H, cx, cy)
+        golpe = 1.0 + 0.05 * math.sin(math.pi * _span(t, 1.45, 1.95)) if 1.45 < t < 1.95 else 1.0
+        s = self.s * golpe * (0.9 + 0.1 * _out(_span(t, 0.3, 1.2)))
         X = lambda x: cx + (x - 100) * s
         Y = lambda y: cy + (y - 100) * s
-        # baldosa
-        ap = _out(_span(t, 0.0, 0.5))
+        # baldosa del logo
+        ap = _out(_span(t, 0.5, 1.2))
         if ap > 0:
-            col = mix(BG, TILE, ap)
-            self._rr(X(10), Y(10), X(190), Y(190), 48 * s, col, mix(BG, mix(TILE, "#ffffff", 0.10), ap))
-        # anillos que se dibujan solos
-        horario = ((0.30, 1.05), (0.55, 1.30))
-        for (pts, tot, a0, a1, op, w), (ta, tb) in zip(self.rings, horario):
-            p = _ease(_span(t, ta, tb))
+            self._rr(X(10), Y(10), X(190), Y(190), 48 * s, mix(FONDO, TILE, ap), mix(FONDO, "#262c44", ap))
+        # partículas en espiral hacia los anillos
+        D = max(W, H) * 0.75
+        for x, y, ang, vel, retraso, r, f in self.part:
+            p = _ease(_span(t, retraso, retraso + 0.85))
+            tx, ty = X(x), Y(y)
             if p <= 0:
                 continue
-            tr = _tramo(pts, tot, a0, a0 + (a1 - a0) * p)
-            self._linea(tr, w * s, op, X, Y)
-        # núcleo y brillo
-        g = _span(t, 0.95, 1.45)
+            giro = (1 - p) * 2.2
+            rad = (1 - p) * D * vel
+            px = tx + rad * math.cos(ang + giro)
+            py = ty + rad * math.sin(ang + giro)
+            q = _ease(_span(t, retraso, retraso + 0.85) - 0.06)
+            rq = (1 - q) * D * vel
+            qx, qy = tx + rq * math.cos(ang + (1 - q) * 2.2), ty + rq * math.sin(ang + (1 - q) * 2.2)
+            vis = min(1.0, p * 3) * (1 - _ease(_span(t, 1.0, 1.35)))
+            col = mix(FONDO, mix(A, B, f), 0.85 * vis)
+            if vis > 0.02:
+                self.create_line(qx, qy, px, py, fill=mix(FONDO, mix(A, B, f), 0.45 * vis), width=max(1, r * 0.8))
+                self.create_oval(px - r, py - r, px + r, py + r, outline="", fill=col)
+        # anillos: aparecen cuando llegan las partículas
+        fa = _ease(_span(t, 0.85, 1.45))
+        if fa > 0:
+            for pts, tot, a0, a1, op, w in self.rings:
+                self._linea(_tramo(pts, tot, a0, a1), w * s, op * fa, X, Y)
+        # destello y núcleo
+        g = _span(t, 1.35, 1.9)
         if g > 0:
             ge = _out(g)
-            for i in range(9, 0, -1):
-                r = 34 * s * (i / 9) * (0.6 + 0.4 * ge)
-                self.create_oval(cx - r, cy - r, cx + r, cy + r, outline="", fill=mix(TILE, "#9ff3e6", 0.9 * (1 - i / 9) ** 1.8 * ge))
+            fl = max(0.0, 1 - _span(t, 1.4, 1.9))
+            for i in range(10, 0, -1):
+                r = (36 + 40 * fl) * s * (i / 10)
+                self.create_oval(cx - r, cy - r, cx + r, cy + r, outline="",
+                                 fill=mix(TILE, "#bff7ee", min(1.0, (0.9 * (1 - i / 10) ** 1.7 * ge) + 0.5 * fl * (1 - i / 10))))
             r = 15 * s * _back(g)
             if r > 0:
-                self.create_oval(cx - r, cy - r, cx + r, cy + r, outline="", fill=mix(A, B, 0.5))
-        # onda que sale del núcleo
-        o = _span(t, 1.35, 1.95)
-        if 0 < o < 1:
-            r = (18 + 70 * _out(o)) * s
-            self.create_oval(cx - r, cy - r, cx + r, cy + r, outline=mix(TILE, B, 0.55 * (1 - o)), width=max(1, 2 * s * (1 - o)), fill="")
-        # nombre
-        n = _ease(_span(t, 1.35, 1.85))
-        if n > 0:
-            ty = cy + 100 * s + 34 + 10 * (1 - n)
-            self.create_text(W / 2 - 1, ty, text="Hell", anchor="e", fill=mix(BG, FG, n), font=F(30, True))
-            self.create_text(W / 2 - 1, ty, text="OP", anchor="w", fill=mix(BG, CYAN, n), font=F(30, True))
-            m = _ease(_span(t, 1.55, 2.0))
-            self.create_text(W / 2, ty + 34, text="Tu PC, al máximo", fill=mix(BG, MUTED, m), font=F(10))
+                self.create_oval(cx - r, cy - r, cx + r, cy + r, outline="", fill=mix(mix(A, B, 0.5), "#ffffff", 0.6 * fl))
+        # ondas que salen del núcleo
+        for ini in (1.4, 1.62):
+            o = _span(t, ini, ini + 0.9)
+            if 0 < o < 1:
+                r = (20 + 150 * _out(o)) * s
+                self.create_oval(cx - r, cy - r, cx + r, cy + r, outline=mix(FONDO, B, 0.5 * (1 - o) ** 1.5),
+                                 width=max(1, 2.5 * s * (1 - o)), fill="")
+        # nombre, letra a letra
+        ty = cy + 100 * s + 40
+        total = sum(self.fuente.measure(l) for l, _c in self.letras)
+        x = W / 2 - total / 2
+        for i, (l, col) in enumerate(self.letras):
+            e = _out(_span(t, 1.75 + i * 0.06, 2.15 + i * 0.06))
+            if e > 0:
+                self.create_text(x, ty + 16 * (1 - e), text=l, anchor="w", fill=mix(FONDO, col, e), font=F(32, True))
+            x += self.fuente.measure(l)
+        m = _ease(_span(t, 2.15, 2.6))
+        if m > 0:
+            self.create_text(W / 2, ty + 40, text="Tu PC, al máximo", fill=mix(FONDO, SUAVE, m), font=F(10))
+            ln = _out(_span(t, 2.1, 2.7)) * 70
+            self.create_line(W / 2 - ln, ty + 62, W / 2 + ln, ty + 62, fill=mix(FONDO, B, 0.55 * (1 - _span(t, 2.4, 2.7) if t > 2.4 else 1)), width=2)
 
-    def _fondo(self, t, W, H):
-        """Fondo vivo: dos luces suaves que se mueven despacio, rejilla de puntos que respira y motas que suben."""
-        ap = _ease(_span(t, 0.0, 0.8))
-        if ap <= 0:
-            return
-        orbs = ((0.25 + 0.06 * math.sin(t * 0.9), 0.33 + 0.06 * math.cos(t * 0.7), 0.27, A, 0.24),
-                (0.75 + 0.06 * math.cos(t * 0.8), 0.70 + 0.05 * math.sin(t * 0.9), 0.27, B, 0.20))
+    def _fondo(self, t, W, H, cx, cy):
+        """Luces suaves que se mueven y motas que suben; todo se enciende un poco más con el destello."""
+        ap = _ease(_span(t, 0.0, 0.7))
+        pico = 1 + 0.9 * max(0.0, 1 - abs(t - 1.55) / 0.35)
+        orbs = ((0.22 + 0.06 * math.sin(t * 0.9), 0.30 + 0.05 * math.cos(t * 0.7), 0.30, A, 0.30),
+                (0.78 + 0.06 * math.cos(t * 0.8), 0.72 + 0.05 * math.sin(t * 0.9), 0.30, B, 0.24))
         for fx, fy, fr, col, fuerza in orbs:
             R = fr * max(W, H)
             for k in range(13, 1, -1):
                 r = R * k / 13
-                a = fuerza * ap * (1 - k / 13) ** 1.3 * 0.9
-                self.create_oval(fx * W - r, fy * H - r, fx * W + r, fy * H + r, outline="", fill=mix(BG, col, a))
-        paso = 58
-        for gy in range(paso // 2, int(H), paso):
-            for gx in range(paso // 2, int(W), paso):
-                d = math.hypot(gx - W / 2, gy - H / 2) / (0.6 * max(W, H))
-                onda = 0.5 + 0.5 * math.sin(t * 2.2 - d * 6)
-                a = ap * 0.20 * onda * max(0.0, 1 - d)
-                if a > 0.015:
-                    self.create_oval(gx - 1.4, gy - 1.4, gx + 1.4, gy + 1.4, outline="", fill=mix(BG, FG, a))
+                a = min(0.6, fuerza * ap * pico * (1 - k / 13) ** 1.3 * 0.9)
+                self.create_oval(fx * W - r, fy * H - r, fx * W + r, fy * H + r, outline="", fill=mix(FONDO, col, a))
         for x, y0, v, r, ph in self.motas:
             y = (y0 - t * v) % 1.0
             vis = ap * (0.5 + 0.5 * math.sin(t * 1.6 + ph)) * min(1.0, y * 6, (1 - y) * 6)
             px = x * W + 12 * math.sin(t * 0.8 + ph)
-            self.create_oval(px - r, y * H - r, px + r, y * H + r, outline="", fill=mix(BG, mix(A, B, x), 0.55 * vis))
+            self.create_oval(px - r, y * H - r, px + r, y * H + r, outline="", fill=mix(FONDO, mix(A, B, x), 0.55 * vis))
 
     def _rr(self, x0, y0, x1, y1, r, fill, outline):
         pts = []
