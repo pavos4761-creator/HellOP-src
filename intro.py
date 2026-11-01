@@ -78,6 +78,40 @@ def _in(t):                                     # acelera al salir
     return t * t * t
 
 
+def _png(w, h, raw):
+    import struct
+    import zlib
+
+    def chunk(t, d):
+        c = struct.pack(">I", len(d)) + t + d
+        return c + struct.pack(">I", zlib.crc32(t + d) & 0xFFFFFFFF)
+    return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 6, 0, 0, 0))
+            + chunk(b"IDAT", zlib.compress(bytes(raw), 1)) + chunk(b"IEND", b""))
+
+
+_DISCOS = {}
+
+
+def disco(master, r, color):
+    """Círculo con borde suave (antialias), con caché por tamaño y color."""
+    k = (round(r * 2), color)
+    img = _DISCOS.get(k)
+    if img is None:
+        rr = k[0] / 2
+        n = int(math.ceil(rr)) * 2 + 4
+        c = n / 2
+        rgb = bytes(int(color[j:j + 2], 16) for j in (1, 3, 5))
+        raw = bytearray()
+        for y in range(n):
+            raw += b"\x00"
+            for x in range(n):
+                cov = min(1.0, max(0.0, rr + 0.5 - math.hypot(x + 0.5 - c, y + 0.5 - c)))
+                raw += rgb + bytes((int(cov * 255),))
+        img = tk.PhotoImage(master=master, data=_png(n, n, raw))
+        _DISCOS[k] = img
+    return img
+
+
 class Intro(tk.Canvas):
     """Orden: 1) las partículas llegan en espiral y forman los anillos del logo, 2) el núcleo se enciende con un destello
     y una onda, 3) el nombre entra letra a letra, 4) la capa sube y deja ver la app."""
@@ -109,6 +143,9 @@ class Intro(tk.Canvas):
                 x, y = tr[min(len(tr) - 1, int(f * (len(tr) - 1)))]
                 self.part.append((x, y, rnd.random() * 6.283, 0.55 + rnd.random() * 0.45, rnd.random() * 0.45, 1.3 + rnd.random() * 1.7, f))
         self.motas = [(rnd.random(), rnd.random(), 0.03 + rnd.random() * 0.06, 0.8 + rnd.random() * 1.6, rnd.random() * 6.28) for _ in range(40)]
+        import intro_data
+        self.img_tile = [tk.PhotoImage(master=app, data=d) for d in intro_data.TILE]
+        self.img_ring = [tk.PhotoImage(master=app, data=d) for d in intro_data.RING]
         self.fuente = tkfont.Font(font=F(32, True))
         self.letras = [("H", BLANCO), ("e", BLANCO), ("l", BLANCO), ("l", BLANCO), ("O", A), ("P", A)]
         self.bind("<Button-1>", lambda e: self.acaba())
@@ -116,6 +153,7 @@ class Intro(tk.Canvas):
     def inicia(self):
         tk.Misc.lift(self)
         self.t0 = time.perf_counter()
+        self.after(int((DUR + 0.7) * 1000), self.acaba)      # pase lo que pase, a los pocos segundos entra solo a la app
         self._frame()
 
     def _frame(self):
@@ -125,11 +163,25 @@ class Intro(tk.Canvas):
         try:
             self.pinta(t)
         except tk.TclError:
+            self.acaba()
+            return
+        except Exception:  # noqa: BLE001
+            self._anota()
+            self.acaba()
             return
         if t >= DUR:
             self.acaba()
         else:
             self.after(8, self._frame)
+
+    def _anota(self):
+        try:
+            import traceback
+            from util import APP_DIR
+            with open(APP_DIR / "errores.log", "a", encoding="utf-8") as f:
+                f.write(time.strftime("%Y-%m-%d %H:%M:%S") + " intro\n" + traceback.format_exc() + "\n")
+        except Exception:  # noqa: BLE001
+            pass
 
     def acaba(self):
         if self.fin:
@@ -150,50 +202,44 @@ class Intro(tk.Canvas):
             self.place_configure(y=-int(H * cort))
         cx, cy = W / 2, H / 2 - 30
         self._fondo(t, W, H, cx, cy)
-        golpe = 1.0 + 0.05 * math.sin(math.pi * _span(t, 1.45, 1.95)) if 1.45 < t < 1.95 else 1.0
-        s = self.s * golpe * (0.9 + 0.1 * _out(_span(t, 0.3, 1.2)))
-        X = lambda x: cx + (x - 100) * s
-        Y = lambda y: cy + (y - 100) * s
-        # baldosa del logo
+        s = self.s
         ap = _out(_span(t, 0.5, 1.2))
         if ap > 0:
-            self._rr(X(10), Y(10), X(190), Y(190), 48 * s, mix(FONDO, TILE, ap), mix(FONDO, "#262c44", ap))
+            self.create_image(cx, cy, image=self.img_tile[min(5, int(ap * 5.999))], anchor="center")
         # partículas en espiral hacia los anillos
+        X = lambda x: cx + (x - 100) * s
+        Y = lambda y: cy + (y - 100) * s
         D = max(W, H) * 0.75
         for x, y, ang, vel, retraso, r, f in self.part:
             p = _ease(_span(t, retraso, retraso + 0.85))
-            tx, ty = X(x), Y(y)
             if p <= 0:
                 continue
-            giro = (1 - p) * 2.2
-            rad = (1 - p) * D * vel
-            px = tx + rad * math.cos(ang + giro)
-            py = ty + rad * math.sin(ang + giro)
-            q = _ease(_span(t, retraso, retraso + 0.85) - 0.06)
-            rq = (1 - q) * D * vel
-            qx, qy = tx + rq * math.cos(ang + (1 - q) * 2.2), ty + rq * math.sin(ang + (1 - q) * 2.2)
+            tx, ty = X(x), Y(y)
             vis = min(1.0, p * 3) * (1 - _ease(_span(t, 1.0, 1.35)))
-            col = mix(FONDO, mix(A, B, f), 0.85 * vis)
-            if vis > 0.02:
-                self.create_line(qx, qy, px, py, fill=mix(FONDO, mix(A, B, f), 0.45 * vis), width=max(1, r * 0.8))
-                self.create_oval(px - r, py - r, px + r, py + r, outline="", fill=col)
-        # anillos: aparecen cuando llegan las partículas
-        fa = _ease(_span(t, 0.85, 1.45))
-        if fa > 0:
-            for pts, tot, a0, a1, op, w in self.rings:
-                self._linea(_tramo(pts, tot, a0, a1), w * s, op * fa, X, Y)
+            if vis <= 0.02:
+                continue
+            for k, (dq, al, rr) in enumerate(((0.0, 1.0, r), (0.05, 0.55, r * 0.8), (0.10, 0.28, r * 0.6), (0.15, 0.12, r * 0.45))):
+                q = max(0.0, p - dq)
+                rad = (1 - q) * D * vel
+                px = tx + rad * math.cos(ang + (1 - q) * 2.2)
+                py = ty + rad * math.sin(ang + (1 - q) * 2.2)
+                self.create_oval(px - rr, py - rr, px + rr, py + rr, outline="", fill=mix(FONDO, mix(A, B, f), 0.9 * vis * al))
         # destello y núcleo
         g = _span(t, 1.35, 1.9)
+        if g <= 0:
+            self._anillos(t, cx, cy)
         if g > 0:
             ge = _out(g)
             fl = max(0.0, 1 - _span(t, 1.4, 1.9))
-            for i in range(10, 0, -1):
-                r = (36 + 40 * fl) * s * (i / 10)
+            for i in range(18, 0, -1):
+                r = (36 + 40 * fl) * s * (i / 18)
                 self.create_oval(cx - r, cy - r, cx + r, cy + r, outline="",
-                                 fill=mix(TILE, "#bff7ee", min(1.0, (0.9 * (1 - i / 10) ** 1.7 * ge) + 0.5 * fl * (1 - i / 10))))
+                                 fill=mix(TILE, "#bff7ee", min(1.0, (0.9 * (1 - i / 18) ** 1.7 * ge) + 0.5 * fl * (1 - i / 18))))
+            self._anillos(t, cx, cy)
             r = 15 * s * _back(g)
-            if r > 0:
-                self.create_oval(cx - r, cy - r, cx + r, cy + r, outline="", fill=mix(mix(A, B, 0.5), "#ffffff", 0.6 * fl))
+            if r > 0.5:
+                col = mix(mix(A, B, 0.5), "#ffffff", round(0.6 * fl * 4) / 4)
+                self.create_image(cx, cy, image=disco(self.app, r, col), anchor="center")
         # ondas que salen del núcleo
         for ini in (1.4, 1.62):
             o = _span(t, ini, ini + 0.9)
@@ -216,6 +262,12 @@ class Intro(tk.Canvas):
             ln = _out(_span(t, 2.1, 2.7)) * 70
             self.create_line(W / 2 - ln, ty + 62, W / 2 + ln, ty + 62, fill=mix(FONDO, B, 0.55 * (1 - _span(t, 2.4, 2.7) if t > 2.4 else 1)), width=2)
 
+    def _anillos(self, t, cx, cy):
+        """Anillos del logo: aparecen cuando llegan las partículas (imagen con bordes suaves)."""
+        fa = _ease(_span(t, 0.85, 1.45))
+        if fa > 0:
+            self.create_image(cx, cy, image=self.img_ring[min(5, int(fa * 5.999))], anchor="center")
+
     def _fondo(self, t, W, H, cx, cy):
         """Luces suaves que se mueven y motas que suben; todo se enciende un poco más con el destello."""
         ap = _ease(_span(t, 0.0, 0.7))
@@ -224,30 +276,12 @@ class Intro(tk.Canvas):
                 (0.78 + 0.06 * math.cos(t * 0.8), 0.72 + 0.05 * math.sin(t * 0.9), 0.30, B, 0.24))
         for fx, fy, fr, col, fuerza in orbs:
             R = fr * max(W, H)
-            for k in range(13, 1, -1):
-                r = R * k / 13
-                a = min(0.6, fuerza * ap * pico * (1 - k / 13) ** 1.3 * 0.9)
+            for k in range(30, 1, -1):
+                r = R * k / 30
+                a = min(0.6, fuerza * ap * pico * (1 - k / 30) ** 1.3 * 0.9)
                 self.create_oval(fx * W - r, fy * H - r, fx * W + r, fy * H + r, outline="", fill=mix(FONDO, col, a))
         for x, y0, v, r, ph in self.motas:
             y = (y0 - t * v) % 1.0
             vis = ap * (0.5 + 0.5 * math.sin(t * 1.6 + ph)) * min(1.0, y * 6, (1 - y) * 6)
             px = x * W + 12 * math.sin(t * 0.8 + ph)
             self.create_oval(px - r, y * H - r, px + r, y * H + r, outline="", fill=mix(FONDO, mix(A, B, x), 0.55 * vis))
-
-    def _rr(self, x0, y0, x1, y1, r, fill, outline):
-        pts = []
-        for cx, cy, a0 in ((x1 - r, y0 + r, -90), (x1 - r, y1 - r, 0), (x0 + r, y1 - r, 90), (x0 + r, y0 + r, 180)):
-            for k in range(0, 13):
-                a = math.radians(a0 + 90 * k / 12)
-                pts += [cx + r * math.cos(a), cy + r * math.sin(a)]
-        self.create_polygon(pts, fill=fill, outline=outline, width=1)
-
-    def _linea(self, tr, ancho, op, X, Y):
-        """Trazo con degradado diagonal (de A a B) y semitransparencia imitada mezclando con la baldosa."""
-        n = len(tr)
-        paso = max(1, n // 40)
-        for i in range(0, n - 1, paso):
-            seg = tr[i:i + paso + 1]
-            mx = sum(p[0] + p[1] for p in seg) / len(seg) / 400
-            col = mix(TILE, mix(A, B, max(0, min(1, mx))), op)
-            self.create_line([c for p in seg for c in (X(p[0]), Y(p[1]))], fill=col, width=ancho, capstyle="round", joinstyle="round")
