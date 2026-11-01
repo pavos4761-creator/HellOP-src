@@ -2,6 +2,8 @@
 import math
 import tkinter as tk
 
+import anim
+
 import puntuacion
 from widgets import (BG, CYAN, F, FG, GREEN, MUTED, PANEL, PANEL2, PINK, RED, YELLOW, Card, NeonButton, ScrollFrame, WrapLabel, mix,
                      page_title)
@@ -26,9 +28,9 @@ class ScoreRing(tk.Canvas):
             self.shown = self.target
             self._draw()
             return
-        self.shown += max(0.7, d * 0.12)
+        self.shown += max(0.7 * anim.FRAME_MS / 25, d * anim.kf(0.12, 25))
         self._draw()
-        self.after(25, self._step)
+        self.after(anim.FRAME_MS, self._step)
 
     def _draw(self):
         try:

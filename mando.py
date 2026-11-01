@@ -37,7 +37,6 @@ def mandos():
 
 
 # --------------------------------------------------------------------------- acciones
-PCIE_SUB, PCIE_SET = "501a4d13-42af-4429-9fd1-a8218c268e20", "ee12f906-d277-404b-b6da-e5fa1a576df5"      # ahorro de energía del enlace PCIe (ASPM)
 USB3_LPM = "d4e98f31-5ffe-4ce1-be31-1b38b384c009"                                                         # gestión de energía del enlace USB 3
 WIFI_SUB, WIFI_SET = "19cbb8fa-5279-450e-9fac-8a3d5fedd0c1", "12bbebe6-58d6-4636-95bb-3217ef867c1a"      # ahorro del adaptador inalámbrico (Wi-Fi/BT)
 
@@ -86,15 +85,6 @@ class _PowerCfgAction(Action):
         run_cmd(["powercfg", "/setactive", "SCHEME_CURRENT"], timeout=15)
 
 
-class UsbSuspendAction(_PowerCfgAction):
-    id, group, effect = "mando_usb_suspend", "mando", "real"
-    title = "USB: que Windows no apague los puertos para ahorrar energía"
-    desc = ("Windows puede «dormir» un puerto USB si cree que no lo usas. Con un mando, eso se nota como un parón o una pulsación perdida al "
-            "volver a tocarlo. Esto desactiva la suspensión selectiva de USB en tu plan de energía actual.")
-    ajustes = ((USB_SUB, USB_SET),)
-    texto = "Ahora: suspensión selectiva de USB activada  →  desactivada"
-
-
 class Usb3LinkAction(_PowerCfgAction):
     id, group, effect = "mando_usb3_lpm", "mando", "pequeño"
     title = "USB 3: sin ahorro de energía en el enlace"
@@ -102,15 +92,6 @@ class Usb3LinkAction(_PowerCfgAction):
             "constantemente, así que ese «despertar» solo le estorba. Esto apaga la gestión de energía del enlace USB 3 (ajuste oculto del plan).")
     ajustes = ((USB_SUB, USB3_LPM),)
     texto = "Ahora: gestión de energía del enlace USB 3 activada  →  desactivada"
-
-
-class PcieAspmAction(_PowerCfgAction):
-    id, group, effect = "mando_pcie_aspm", "mando", "pequeño"
-    title = "PCIe: sin ahorro de energía en los enlaces (donde cuelgan USB y Bluetooth)"
-    desc = ("Los controladores USB y la tarjeta Bluetooth/Wi-Fi van por PCIe, que también puede bajar de estado para ahorrar energía y tardar en "
-            "despertar. Esto lo apaga. En portátil gastará algo más de batería.")
-    ajustes = ((PCIE_SUB, PCIE_SET),)
-    texto = "Ahora: ahorro de energía PCIe (ASPM) activado  →  desactivado"
 
 
 class WirelessPowerAction(_PowerCfgAction):
@@ -168,21 +149,10 @@ class DevicePowerAction(Action):
 
 
 def mando_actions():
-    acts = [
-        UsbSuspendAction(), Usb3LinkAction(), PcieAspmAction(), WirelessPowerAction(), DevicePowerAction(),
-        RegTweak("mando_nexus", "mando", "El botón Xbox del mando no abre la Game Bar",
-                 "Con la Game Bar activa, pulsar el botón central (Xbox) en mitad de la partida abre un panel de Windows y puede tirar de los FPS "
-                 "un momento. Esto hace que el botón no abra nada (tu juego o Steam lo siguen leyendo igual).",
-                 [("HKCU", r"Software\Microsoft\GameBar", "UseNexusForGameBarEnabled", 0, REG_DWORD)],
-                 profiles=("mando",), effect="pequeño", risk="bajo"),
-        RegTweak("mando_timer", "mando", "Temporizador de Windows 11: que valga para todos los programas",
-                 "En Windows 11, un programa que pide el temporizador rápido solo lo consigue con su ventana visible. Con esto vuelve al comportamiento "
-                 "clásico: el juego lee el mando con intervalos más regulares aunque tengas Discord u otro programa delante.",
-                 [("HKLM", r"SYSTEM\CurrentControlSet\Control\Session Manager\kernel", "GlobalTimerResolutionRequests", 1, REG_DWORD)],
-                 needs_admin=True, profiles=("mando",), effect="depende", risk="medio", reboot=True,
-                 warning="Algo más de consumo de energía. Solo tiene efecto en Windows 11."),
-    ]
-    acts += [_flip(), GhostDevicesAction(), HpetDeviceAction()]
+    # SOLO ajustes propios del mando. Nada que ya haga el Modo Extremo (suspensión USB, PCIe, HPET, temporizador, Game Bar, plan de energía…):
+    # cada pantalla tiene lo suyo y no se mezclan.
+    acts = [Usb3LinkAction(), WirelessPowerAction(), DevicePowerAction()]
+    acts += [_flip(), GhostDevicesAction()]
     try:
         lista = mandos()
         cable = bool(lista) and all(c == "cable" for _n, c in lista)
@@ -308,35 +278,6 @@ class GhostDevicesAction(Action):
             return {"_msg": "(Demo) entradas fantasma eliminadas"}
         ok = sum(run_cmd(["pnputil", "/remove-device", iid], timeout=30)[0] == 0 for iid in self._lista())
         return {"_msg": f"{ok} entradas fantasma eliminadas"}
-
-
-class HpetDeviceAction(Action):
-    id, group = "mando_hpet_dev", "mando"
-    title = "Administrador de dispositivos: desactivar el «High precision event timer» (HPET)"
-    desc = ("Es un reloj antiguo de la placa. Windows moderno usa el reloj de la CPU, pero dejar el HPET activo puede dar lecturas del reloj más "
-            "lentas y variables (microtirones al leer el mando). Es lo mismo que desactivarlo a mano en Administrador de dispositivos > Dispositivos del sistema.")
-    needs_admin, reversible, risk, effect, reboot, profiles = True, True, "medio", "depende", True, ("mando",)
-    warning = "En algunos PCs mejora los mínimos y en otros no cambia nada. Si algo va peor, «Deshacer» lo vuelve a activar."
-    PS = ("Get-PnpDevice -FriendlyName 'High precision event timer' -ErrorAction SilentlyContinue | Where-Object { $_.Status -eq 'OK' } | "
-          "Select-Object -ExpandProperty InstanceId | ConvertTo-Json -Compress")
-
-    def check(self):
-        if DEMO:
-            return "HPET activado en el Administrador de dispositivos"
-        return "HPET activado en el Administrador de dispositivos" if _pnp(self.PS, 30) else None
-
-    def apply(self):
-        if DEMO:
-            return {"ids": [], "_msg": "(Demo) HPET desactivado"}
-        ids = [x for x in _pnp(self.PS, 30) if isinstance(x, str)]
-        for iid in ids:
-            run_ps("Disable-PnpDevice -InstanceId " + ps_quote(iid) + " -Confirm:$false -ErrorAction SilentlyContinue", timeout=40)
-        return {"ids": ids, "_msg": "HPET desactivado (se nota tras reiniciar)"}
-
-    @classmethod
-    def undo_data(cls, data):
-        for iid in data.get("ids") or []:
-            run_ps("Enable-PnpDevice -InstanceId " + ps_quote(iid) + " -Confirm:$false -ErrorAction SilentlyContinue", timeout=40)
 
 
 CONSEJOS = [

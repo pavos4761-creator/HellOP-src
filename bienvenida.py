@@ -93,7 +93,7 @@ class Bienvenida(tk.Canvas):
         self.titulo = textos()[0].replace("Pro", "PRO")
         self._burst = False
         self.bind("<Button-1>", lambda e: self._skip())
-        self.after(16, self._tick)
+        self.after(8, self._tick)
 
     def _skip(self):
         if time.time() - self.t0 > 1.5 and not self.done:
@@ -112,7 +112,7 @@ class Bienvenida(tk.Canvas):
             t = time.time() - self.t0
             w, h = self.winfo_width(), self.winfo_height()
             if w < 50 or h < 50:
-                self.after(16, self._tick)
+                self.after(8, self._tick)
                 return
             cx, cy = w / 2, h / 2
             fo = max(0.0, min(1.0, (t - (DURACION - 0.5)) / 0.5))        # al final se funde con el fondo de la app morada
@@ -209,6 +209,6 @@ class Bienvenida(tk.Canvas):
                 self.done = True
                 self.on_done()
                 return
-            self.after(16, self._tick)
+            self.after(8, self._tick)
         except tk.TclError:
             self.done = True

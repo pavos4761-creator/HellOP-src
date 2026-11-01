@@ -88,18 +88,18 @@ class NavItem(tk.Canvas):
             self._draw()
             return
         if self._job is None:
-            self._job = self.after(16, self._step)
+            self._job = self.after(anim.FRAME_MS, self._step)
 
     def _step(self):
         self._job = None
         gh, ga = float(self._hover_goal), float(self.active)
-        self.hov += (gh - self.hov) * 0.3
-        self.act += (ga - self.act) * 0.25
+        self.hov += (gh - self.hov) * anim.kf(0.3)
+        self.act += (ga - self.act) * anim.kf(0.25)
         done = abs(gh - self.hov) < 0.02 and abs(ga - self.act) < 0.02
         if done:
             self.hov, self.act = gh, ga
         else:
-            self._job = self.after(16, self._step)
+            self._job = self.after(anim.FRAME_MS, self._step)
         self._draw()
 
     def set_active(self, on):
@@ -159,6 +159,7 @@ class App(tk.Tk):
         self.sin_marco = os.environ.get("HELLOP_MARCO") != "1"
         if self.sin_marco:
             self.overrideredirect(True)                    # sin barra de título de Windows: solo la app
+        anim.reloj_fino(True)                              # relojes de 1 ms: animaciones a 120 fps
         install_mousewheel(self)
         self.q = queue.Queue()
         self.current = None
@@ -684,6 +685,7 @@ class App(tk.Tk):
     def on_close(self):
         """Antes de cerrar deja todo como estaba (prioridades, servicios, temporizador)."""
         self._guarda_geometria()
+        anim.reloj_fino(False)
         try:
             import noche
             noche.restaurar()

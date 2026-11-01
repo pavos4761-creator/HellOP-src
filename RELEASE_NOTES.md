@@ -1,2 +1,3 @@
-• Intro a 120 fotogramas por segundo (si tu pantalla lo permite; en una de 60 Hz se verá a 60): los elementos se mueven en vez de redibujarse y Windows trabaja con relojes de 1 ms.
-• Más calidad: luces de fondo con degradado suave de verdad (imagen con transparencia), baldosa, anillos y núcleo con bordes suaves y partículas con estela.
+• Mando y Modo Extremo ya no se mezclan: quité del Mando el ahorro de energía PCIe y el reloj HPET, que eran los mismos ajustes que hace el Modo Extremo. Ahora el Mando solo tiene lo suyo (enlace USB 3, Bluetooth/Wi-Fi, ahorro de energía por dispositivo, juegos en ventana y entradas fantasma de mandos).
+• Streaming también va separado: solo muestra ajustes de streaming, sin los de Gaming ni los del Modo Extremo.
+• Animaciones a 120 fotogramas por segundo en todo: también el anillo de Inicio, la puntuación y la bienvenida PRO (el resto de la app ya iba así). Una pantalla de 60 Hz mostrará 60.

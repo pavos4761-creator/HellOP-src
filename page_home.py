@@ -4,6 +4,7 @@ import time
 import tkinter as tk
 
 import actions
+import anim
 import games
 import updater
 import version
@@ -101,16 +102,16 @@ class Anillo(tk.Canvas):
     def poner(self, valor, medalla):
         self.valor, self.medalla = valor, medalla
         if self._job is None:
-            self._job = self.after(16, self._anima)
+            self._job = self.after(anim.FRAME_MS, self._anima)
 
     def _anima(self):
         self._job = None
         try:
-            self.mostrado += (self.valor - self.mostrado) * 0.2
+            self.mostrado += (self.valor - self.mostrado) * anim.kf(0.2)
             if abs(self.valor - self.mostrado) < 0.4:
                 self.mostrado = float(self.valor)
             else:
-                self._job = self.after(16, self._anima)
+                self._job = self.after(anim.FRAME_MS, self._anima)
             self._draw()
         except tk.TclError:
             pass
@@ -256,16 +257,16 @@ class Hero(tk.Canvas):
     def poner(self, valor, medalla):
         self.valor, self.medalla = valor, medalla
         if self._anim is None:
-            self._anim = self.after(16, self._paso)
+            self._anim = self.after(anim.FRAME_MS, self._paso)
 
     def _paso(self):
         self._anim = None
         try:
-            self.mostrado += (self.valor - self.mostrado) * 0.2
+            self.mostrado += (self.valor - self.mostrado) * anim.kf(0.2)
             if abs(self.valor - self.mostrado) < 0.4:
                 self.mostrado = float(self.valor)
             else:
-                self._anim = self.after(16, self._paso)
+                self._anim = self.after(anim.FRAME_MS, self._paso)
             self._ring()
         except tk.TclError:
             pass

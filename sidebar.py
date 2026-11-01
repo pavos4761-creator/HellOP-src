@@ -297,8 +297,8 @@ class BarraLateral(tk.Canvas):
             if not anim.ENABLED:
                 e.hov, e.act = gh, ga
             else:
-                e.hov += (gh - e.hov) * 0.3
-                e.act += (ga - e.act) * 0.25
+                e.hov += (gh - e.hov) * anim.kf(0.3)
+                e.act += (ga - e.act) * anim.kf(0.25)
                 if abs(gh - e.hov) < 0.02 and abs(ga - e.act) < 0.02:
                     e.hov, e.act = gh, ga
                 else:
@@ -307,7 +307,7 @@ class BarraLateral(tk.Canvas):
                 e._pint = (e.hov, e.act)
                 self._dibuja(e)
         if seguir and self._job is None:
-            self._job = self.after(16, self._paso)
+            self._job = self.after(anim.FRAME_MS, self._paso)
 
     def _paso(self):
         self._job = None

@@ -983,7 +983,7 @@ def discover(profile, progress=None):
         acts = []
 
         def step(msg, fn):
-            if profile == "mando" and not msg.startswith(("Revisando plan", "Revisando USB")):
+            if profile == "mando" and not msg.startswith("Revisando USB"):
                 return                      # el perfil Mando solo mira lo suyo (no mide DNS ni lista servicios)
             if progress:
                 progress(msg)
@@ -1025,13 +1025,11 @@ def discover(profile, progress=None):
             if "gaming" not in a.profiles and "extreme" not in a.profiles:
                 continue
         elif profile == "mando":
-            if "mando" not in a.profiles and a.id not in ("power_plan", "game_mode", "game_dvr", "game_priority"):
-                continue
+            if "mando" not in a.profiles:
+                continue                # solo lo propio del mando: nada del Modo Extremo ni de Gaming
         elif profile == "streaming":
-            if "streaming" not in a.profiles and "gaming" not in a.profiles:
-                continue
-            if tuple(a.profiles) == ("extreme",):
-                continue
+            if "streaming" not in a.profiles:
+                continue                # solo lo propio del streaming: nada de Gaming ni del Modo Extremo
         elif profile not in a.profiles:
             continue
         status = a.check()

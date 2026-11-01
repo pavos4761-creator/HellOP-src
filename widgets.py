@@ -6,6 +6,8 @@ import tkinter as tk
 import tkinter.font as tkfont
 from tkinter import ttk
 
+import anim
+
 # ---------------------------------------------------------------- paleta
 def _es_pro():
     """¿Con clave PRO (o creador)? Entonces la app se ve en morado. HELLOP_THEME=pro|green fuerza uno (pruebas)."""
@@ -236,16 +238,16 @@ class NeonButton(tk.Canvas):
     def _set_hover(self, flag):
         self._hover = flag
         if self._job is None:
-            self._job = self.after(16, self._anim)
+            self._job = self.after(anim.FRAME_MS, self._anim)
 
     def _anim(self):
         self._job = None
         goal = 1.0 if self._hover else 0.0
-        self._t += (goal - self._t) * 0.35
+        self._t += (goal - self._t) * anim.kf(0.35)
         if abs(goal - self._t) < 0.03:
             self._t = goal
         else:
-            self._job = self.after(16, self._anim)
+            self._job = self.after(anim.FRAME_MS, self._anim)
         try:
             self._draw()
         except tk.TclError:
@@ -361,9 +363,9 @@ class Gauge(tk.Canvas):
             self._shown = self.value
             self._draw(self._shown)
             return
-        self._shown += diff * 0.25
+        self._shown += diff * anim.kf(0.25, 25)
         self._draw(self._shown)
-        self.after(25, self._animate)
+        self.after(anim.FRAME_MS, self._animate)
 
     def _color(self, v):
         return GREEN if v < 60 else YELLOW if v < 85 else RED
