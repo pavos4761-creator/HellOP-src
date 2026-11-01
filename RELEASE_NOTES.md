@@ -1,2 +1,2 @@
-• Intro con mejor calidad: el logo (baldosa, anillos y núcleo) ahora se dibuja con bordes suaves en vez de dentados, las partículas llevan estela, y las luces de fondo tienen un degradado más fino.
-• La intro siempre se cierra sola a los pocos segundos y entra a la app (con un seguro por si algo fallara), sin hacer clic.
+• Intro a 120 fotogramas por segundo (si tu pantalla lo permite; en una de 60 Hz se verá a 60): los elementos se mueven en vez de redibujarse y Windows trabaja con relojes de 1 ms.
+• Más calidad: luces de fondo con degradado suave de verdad (imagen con transparencia), baldosa, anillos y núcleo con bordes suaves y partículas con estela.
