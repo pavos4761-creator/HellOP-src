@@ -90,7 +90,9 @@ class Intro(tk.Canvas):
         self.fin = False
         self.t0 = None
         self.s = 1.15
-        self.W0 = self.H0 = None
+        import re
+        m = re.match(r"(\d+)x(\d+)", getattr(app, "_geom0", ""))
+        self.W0, self.H0 = (int(m.group(1)), int(m.group(2))) if m else (1180, 800)
         import random
         import tkinter.font as tkfont
         rnd = random.Random(11)
@@ -110,9 +112,9 @@ class Intro(tk.Canvas):
         self.fuente = tkfont.Font(font=F(32, True))
         self.letras = [("H", BLANCO), ("e", BLANCO), ("l", BLANCO), ("l", BLANCO), ("O", A), ("P", A)]
         self.bind("<Button-1>", lambda e: self.acaba())
-        self.after(30, self._arranca)
 
-    def _arranca(self):
+    def inicia(self):
+        tk.Misc.lift(self)
         self.t0 = time.perf_counter()
         self._frame()
 
@@ -142,8 +144,6 @@ class Intro(tk.Canvas):
     # ---------------------------------------------------------------
     def pinta(self, t):
         self.delete("all")
-        if not self.H0:
-            self.H0, self.W0 = max(300, self.app.winfo_height()), max(300, self.app.winfo_width())
         W, H = self.W0, self.H0
         cort = _in(_span(t, 2.7, DUR))
         if cort > 0:

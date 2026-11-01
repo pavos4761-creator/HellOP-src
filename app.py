@@ -150,10 +150,11 @@ class App(tk.Tk):
         super().__init__()
         # Tras la animación «Bienvenido a PRO» la app nueva carga en segundo plano y aparece justo cuando la animación acaba.
         _show_at = os.environ.pop("HELLOP_SHOW_AT", None)
-        if _show_at:
-            self.withdraw()
+        con_intro = not _show_at and os.environ.get("HELLOP_NOINTRO") != "1"
+        self.withdraw()                                    # no se enseña nada hasta que haya algo bonito que ver
         self.title("HellOP  ·  " + ("PRO" if PRO_THEME else "FREE") + ("  ·  MODO DEMO" if DEMO else ""))
-        self.geometry(self._geometria_guardada())
+        self._geom0 = self._geometria_guardada()
+        self.geometry(self._geom0)
         self.resizable(False, False)                       # tamaño estándar fijo
         self.sin_marco = os.environ.get("HELLOP_MARCO") != "1"
         if self.sin_marco:
@@ -161,11 +162,22 @@ class App(tk.Tk):
         install_mousewheel(self)
         self.q = queue.Queue()
         self.current = None
-        self._construye()
-        if not _show_at and os.environ.get("HELLOP_NOINTRO") != "1":
+        self.configure(bg=BG)
+        if con_intro:
+            # La capa oscura de la intro es lo PRIMERO que aparece (sin cuadro blanco ni app a medias); la app se monta debajo.
             from intro import Intro
             self.update_idletasks()
-            self.intro = Intro(self)                       # animación de entrada con el logo
+            self._marco_estilo()
+            self.intro = Intro(self)
+            self.deiconify()
+            self.update()
+        self._construye()
+        if con_intro:
+            self.intro.inicia()                            # empieza la animación cuando la app ya está lista debajo
+        else:
+            self.after(120, self._marco_windows)
+            if not _show_at:
+                self.deiconify()
         self._tick_live()
         self._anim_phase = 0.0
         self.after(80, self._anim_tick)
@@ -182,7 +194,6 @@ class App(tk.Tk):
         self.after(1500, self._asistente_primera_vez)
         self.after(3200, self.pages["games"].boot)
         self.after(3000, self._admin_prompt)
-        self.after(120, self._marco_windows)
         self.after(300, self._titlebar_start)
         self.after(450, self._poner_icono_windows)
         self.after(2500, self._poner_icono_windows)
@@ -578,6 +589,19 @@ class App(tk.Tk):
         return f"{w}x{h}+{x}+{y}"
 
     # ---- ventana sin marco: arrastrar, minimizar, cerrar -------------------
+    def _marco_estilo(self):
+        """Pide a Windows que la ventana sin marco salga en la barra de tareas (con la ventana aún oculta)."""
+        if not IS_WIN or not self.sin_marco:
+            return
+        try:
+            import ctypes
+            u = ctypes.windll.user32
+            hwnd = u.GetParent(self.winfo_id()) or self.winfo_id()
+            st = u.GetWindowLongW(hwnd, -20)
+            u.SetWindowLongW(hwnd, -20, (st & ~0x80) | 0x40000)
+        except Exception:  # noqa: BLE001
+            pass
+
     def _marco_windows(self):
         """Sin marco Windows no la pone en la barra de tareas: se le pide con el estilo APPWINDOW."""
         if not IS_WIN or not self.sin_marco:
