@@ -1,1 +1,1 @@
-• Al abrir, lo primero que sale es la animación (fondo oscuro desde el primer instante): se acabó el cuadro blanco y ver la app abierta unos segundos antes. La app se prepara por debajo mientras tanto.
+• Quitada la pantallita de carga («Abriendo…»): al abrir solo sale la animación y entra sola a la app, sin hacer clic.
