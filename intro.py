@@ -1,6 +1,7 @@
 """Intro al abrir HellOP: el logo (capas de chip + núcleo) se dibuja solo, aparece el nombre y una cortina sube y deja ver la app.
 Todo se calcula con el reloj (no con el número de fotogramas), así va fluido aunque el PC esté ocupado. Un clic la salta."""
 import math
+import random
 import time
 import tkinter as tk
 
@@ -82,6 +83,8 @@ class Intro(tk.Canvas):
         for x0, r, ancho, op, dash, off, w in ((38, 34, 7, 0.45, 300, 0, 7), (56, 24, 8, 0.75, 230, 60, 8)):
             pts, tot = _camino(x0, x0, 200 - x0, 200 - x0, r)
             self.rings.append((pts, tot, off, off + dash, op, w))
+        rnd = random.Random(7)
+        self.motas = [(rnd.random(), rnd.random(), 0.04 + rnd.random() * 0.09, 1.2 + rnd.random() * 2.4, rnd.random() * 6.28) for _ in range(46)]
         self.bind("<Button-1>", lambda e: self.acaba())
         self.after(30, self._arranca)
 
@@ -122,6 +125,7 @@ class Intro(tk.Canvas):
         cort = _ease(_span(t, 2.0, DUR))
         if cort > 0:
             self.place_configure(y=-int(self.H0 * cort))
+        self._fondo(t, W, H)
         s = self.s * (0.88 + 0.12 * _out(_span(t, 0.0, 0.7)))
         cx, cy = W / 2, H / 2 - 34
         k = 180 * s / 180                             # escala SVG(200) → píxeles: 1 unidad = s px
@@ -163,6 +167,33 @@ class Intro(tk.Canvas):
             self.create_text(W / 2 - 1, ty, text="OP", anchor="w", fill=mix(BG, CYAN, n), font=F(30, True))
             m = _ease(_span(t, 1.55, 2.0))
             self.create_text(W / 2, ty + 34, text="Tu PC, al máximo", fill=mix(BG, MUTED, m), font=F(10))
+
+    def _fondo(self, t, W, H):
+        """Fondo vivo: dos luces suaves que se mueven despacio, rejilla de puntos que respira y motas que suben."""
+        ap = _ease(_span(t, 0.0, 0.8))
+        if ap <= 0:
+            return
+        orbs = ((0.25 + 0.06 * math.sin(t * 0.9), 0.33 + 0.06 * math.cos(t * 0.7), 0.27, A, 0.24),
+                (0.75 + 0.06 * math.cos(t * 0.8), 0.70 + 0.05 * math.sin(t * 0.9), 0.27, B, 0.20))
+        for fx, fy, fr, col, fuerza in orbs:
+            R = fr * max(W, H)
+            for k in range(13, 1, -1):
+                r = R * k / 13
+                a = fuerza * ap * (1 - k / 13) ** 1.3 * 0.9
+                self.create_oval(fx * W - r, fy * H - r, fx * W + r, fy * H + r, outline="", fill=mix(BG, col, a))
+        paso = 58
+        for gy in range(paso // 2, int(H), paso):
+            for gx in range(paso // 2, int(W), paso):
+                d = math.hypot(gx - W / 2, gy - H / 2) / (0.6 * max(W, H))
+                onda = 0.5 + 0.5 * math.sin(t * 2.2 - d * 6)
+                a = ap * 0.20 * onda * max(0.0, 1 - d)
+                if a > 0.015:
+                    self.create_oval(gx - 1.4, gy - 1.4, gx + 1.4, gy + 1.4, outline="", fill=mix(BG, FG, a))
+        for x, y0, v, r, ph in self.motas:
+            y = (y0 - t * v) % 1.0
+            vis = ap * (0.5 + 0.5 * math.sin(t * 1.6 + ph)) * min(1.0, y * 6, (1 - y) * 6)
+            px = x * W + 12 * math.sin(t * 0.8 + ph)
+            self.create_oval(px - r, y * H - r, px + r, y * H + r, outline="", fill=mix(BG, mix(A, B, x), 0.55 * vis))
 
     def _rr(self, x0, y0, x1, y1, r, fill, outline):
         pts = []

@@ -1,3 +1,2 @@
-• Logo nuevo («Núcleo»): capas de chip que se cierran sobre un núcleo brillante. Cambia en el icono del programa, la barra de tareas, la pantalla de carga y la cabecera.
-• Intro al abrir: el logo se dibuja solo, aparece el nombre y una cortina sube para dejar ver la app (unos 2 segundos; con un clic se salta).
-• El logo ya no se recolorea según el plan: siempre se ve igual.
+• La intro de entrada ahora tiene fondo animado: dos luces suaves que se mueven despacio, una rejilla de puntos que respira y motas que suben, todo con los colores del modo (claro u oscuro).
+• Revisadas las 27 páginas en modo claro y oscuro: sin errores.
