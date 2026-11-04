@@ -9,6 +9,7 @@ from widgets import (CYAN, F, FG, GREEN, MUTED, PANEL, PINK, RED, YELLOW, Card, 
 
 
 class StreamingPage(OptimizePage):
+    perfiles = False
     def heading(self, title, sub=None):
         from widgets import page_title
         page_title(self.stage, title, sub, accent=YELLOW).pack(anchor="w", pady=(0, 12))

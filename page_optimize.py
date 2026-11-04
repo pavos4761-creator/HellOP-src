@@ -69,46 +69,48 @@ class OptimizePage(tk.Frame):
     def heading(self, title, sub=None):
         page_title(self.stage, title, sub, accent=PINK).pack(anchor="w", pady=(0, 12))
 
-    # ---- 1. elegir perfil -------------------------------------------------
-    def show_intro(self):
-        self.clear()
-        self.heading("Optimizar", "Elige para qué quieres tu PC. Después verás cada optimización en su cuadrado y marcas las que quieras: yo no cambio nada sin que lo pidas.")
-        if not is_admin():
-            c = Card(self.stage, accent=RED)
-            c.pack(fill="x", pady=(0, 12))
-            WrapLabel(c.body, fg=YELLOW,
-                      text="Estás sin permisos de administrador: los ajustes de servicios, energía, red y el punto de restauración "
-                           "no se podrán aplicar. Usa «Reabrir como administrador» arriba a la derecha.").pack(fill="x")
-        row = tk.Frame(self.stage, bg=BG)
-        row.pack(fill="x")
-        for i in range(3):
-            row.columnconfigure(i, weight=1, uniform="p")
-        for i, (key, icon, name, color, desc) in enumerate(PROFILES):
-            c = Card(row, accent=color)
-            c.grid(row=i // 3, column=i % 3, sticky="nsew", padx=(0, 12) if i % 3 < 2 else 0, pady=(0, 12))
-            tk.Label(c.body, text=icon, font=F(30, True), fg=color, bg=PANEL).pack(anchor="w")
-            tk.Label(c.body, text=f"NIVEL {i + 1} DE {len(PROFILES)}", font=F(8, True), fg=MUTED, bg=PANEL).pack(anchor="w")
-            tk.Label(c.body, text=name, font=F(16, True), fg=color, bg=PANEL).pack(anchor="w", pady=(0, 6))
-            WrapLabel(c.body, text=desc, fg=FG).pack(fill="x")
-            NeonButton(c.body, "Elegir  →", lambda k=key: self.start(k), color=color, filled=True).pack(anchor="w", pady=(14, 0))
+    # ---- 1. entrada: directamente los cuadrados -------------------------------
+    perfiles = True      # MandoPage y StreamingPage lo ponen a False (tienen su propio perfil)
 
-        opts = Card(self.stage, accent=VIOLET, title="Antes de empezar")
-        opts.pack(fill="x", pady=(14, 0))
-        checkbox(opts.body, "Crear un punto de restauración de Windows (recomendado)", self.v_restore).pack(fill="x", pady=2)
-        WrapLabel(opts.body, fg=MUTED, font=F(9),
-                  text="Además, todo lo que apliques queda registrado en «Historial / Deshacer» para volver atrás con un clic.").pack(fill="x", pady=(6, 0))
+    def show_intro(self):
+        self.start(self.profile or "full")
+
+    def _chips(self, actual):
+        fila = tk.Frame(self.stage, bg=BG)
+        fila.pack(fill="x", pady=(0, 12))
+        tk.Label(fila, text="Nivel:", font=F(9, True), fg=MUTED, bg=BG).pack(side="left", padx=(0, 8))
+        for key, icon, name, color, desc in PROFILES:
+            on = key == actual
+            b = NeonButton(fila, name.title(), (lambda k=key: self.start(k)) if not on else (lambda: None), color=color if on else MUTED,
+                           filled=on, font=F(9, True), padx=12, pady=5)
+            b.pack(side="left", padx=(0, 6))
+
+    def _esqueleto(self):
+        """Cuadrados vacíos mientras se mira tu PC: así la pantalla ya tiene su forma y solo se rellenan."""
+        self._sk = tk.Frame(self.stage, bg=BG)
+        self._sk.pack(fill="x")
+        for i in range(3):
+            self._sk.columnconfigure(i, weight=1, uniform="c")
+        for k in range(6):
+            c = tk.Frame(self._sk, bg=PANEL, highlightthickness=2, highlightbackground=BORDER, height=190)
+            c.grid(row=k // 3, column=k % 3, sticky="nsew", padx=(0, 12) if k % 3 < 2 else 0, pady=(0, 12))
+            c.grid_propagate(False)
+            tk.Frame(c, bg=BORDER, width=40, height=40).place(x=14, y=14)
+            tk.Frame(c, bg=BORDER, width=120, height=12).place(x=14, y=72)
+            tk.Frame(c, bg=BORDER, width=200, height=9).place(x=14, y=100)
+            tk.Frame(c, bg=BORDER, width=160, height=9).place(x=14, y=118)
 
     # ---- 2. buscar ----------------------------------------------------------
     def start(self, profile):
         self.reset_state()
         self.profile = profile
         self.clear()
-        self.heading("Buscando qué se puede mejorar…", "Esto tarda unos segundos (mido tu DNS y reviso inicio, servicios, memoria y procesos).")
-        self.scan_msg = tk.Label(self.stage, text="Empezando…", font=F(11), fg=CYAN, bg=BG, anchor="w")
-        self.scan_msg.pack(anchor="w", pady=(10, 6))
-        pb = ttk.Progressbar(self.stage, style="Neon.Horizontal.TProgressbar", mode="indeterminate", length=380)
-        pb.pack(anchor="w")
-        pb.start(12)
+        self.heading("Optimizar" if self.perfiles else "Optimizaciones", "Mirando tu PC… los cuadrados aparecen en un momento.")
+        if self.perfiles:
+            self._chips(profile)
+        self.scan_msg = tk.Label(self.stage, text="Empezando…", font=F(9), fg=CYAN, bg=BG, anchor="w")
+        self.scan_msg.pack(anchor="w", pady=(0, 10))
+        self._esqueleto()
         g = self.gen
         self.app.bg(lambda: actions.discover(profile, progress=lambda m: self.app.ui(self._scan_msg, g, m)),
                     lambda acts: self.after_scan(g, acts))
@@ -122,8 +124,9 @@ class OptimizePage(tk.Frame):
             return
         if not acts:
             self.clear()
-            self.heading("Tu PC ya está muy bien", "No encontré nada que mejorar para este perfil.")
-            NeonButton(self.stage, "Volver", self.show_intro, color=CYAN).pack(anchor="w", pady=10)
+            self.heading("Tu PC ya está muy bien", "No encontré nada que mejorar para este nivel.")
+            if self.perfiles:
+                self._chips(self.profile)
             return
         self.acts = acts
         self._restore_hecho = False
@@ -137,6 +140,8 @@ class OptimizePage(tk.Frame):
         self.cuadros = []
         n = len(acts)
         self.heading(f"{n} optimizaciones para tu PC", "Marca con el interruptor y aplica juntas, o pulsa «Aplicar» en una sola. Solo sale lo que está sin hacer en tu PC.")
+        if self.perfiles:
+            self._chips(self.profile)
         if not is_admin():
             c = Card(self.stage, accent=RED)
             c.pack(fill="x", pady=(0, 12))
