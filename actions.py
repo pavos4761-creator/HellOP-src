@@ -40,6 +40,7 @@ GROUPS = [
     ("speed", "Respuesta del sistema"),
     ("gaming", "Juegos"),
     ("latency", "Latencia extrema (núcleo, energía y registro)"),
+    ("advanced", "Ajustes avanzados del sistema"),
     ("gpu", "Gráfica y procesador (ajustes específicos)"),
     ("deep", "Limpieza profunda de Windows"),
     ("tradeoff", "Rendimiento a cambio de seguridad"),
@@ -187,6 +188,7 @@ def _load_registry():
         import shaders  # noqa: F401
         import streaming  # noqa: F401
         import mando  # noqa: F401
+        import avanzado  # noqa: F401
     except Exception:  # noqa: BLE001
         pass
 
@@ -963,6 +965,12 @@ def demo_actions():
         DemoAction("y5", "deep", "Desactivar Copilot y Recall (funciones de IA de Windows)", "Quita Copilot de la barra y evita que Recall capture tu pantalla para analizarla.", "Modifica 2 ajustes del registro", admin=True, profiles=("deep",), effect="pequeño"),
         DemoAction("y6", "deep", "Desactivar servicio: Telemetría de NVIDIA", "Envía datos de uso de tu driver a NVIDIA. Los juegos y el panel funcionan igual sin él.", "Servicio «NvTelemetryContainer»: automático", admin=True, profiles=("deep",), effect="pequeño"),
         DemoAction("y7", "latency", "Agrupar servicios de Windows en menos procesos (svchost)", "Se agrupan como en versiones antiguas: menos procesos, menos RAM y menos cambios de contexto.", "Ahora: SvcHostSplitThresholdInKB = por defecto  →  nuevo: 16777216", admin=True, reboot=True, profiles=("extreme",), effect="pequeño"),
+        DemoAction("av1", "advanced", "Antivirus de Windows: que sus análisis no te roben CPU mientras juegas", "Defender hace análisis que pueden disparar la CPU y el disco en plena partida. Esto los pasa a prioridad baja sin quitar la protección.", "Análisis de Defender: prioridad normal, hasta el 50 % de CPU", admin=True, profiles=("extreme",), effect="real"),
+        DemoAction("av2", "advanced", "Red: recibir los paquetes uno a uno (sin agruparlos)", "Windows agrupa paquetes de red (RSC) y eso añade microsegundos de espera a cada uno: latencia de más en juegos online.", "Agrupado de paquetes (RSC): activado", admin=True, profiles=("extreme",), effect="pequeño"),
+        DemoAction("av3", "advanced", "Memoria: no comprimir la RAM (tienes de sobra)", "Con 16 GB o más rara vez hace falta comprimir memoria: menos trabajo de CPU escondido y menos picos.", "Compresión de memoria: activada (RAM: 32 GB)", admin=True, reboot=True, profiles=("extreme",), effect="depende"),
+        DemoAction("av4", "advanced", "Temporizador: respetar la precisión que pide cada juego", "Evita que el juego pierda la precisión del reloj en cuanto otra ventana toma el foco (tirón al hacer alt-tab).", "Modifica 1 ajuste del registro", admin=True, reboot=True, profiles=("extreme",), effect="depende"),
+        DemoAction("av5", "advanced", "Ratón y teclado: cola de entrada más corta", "Los eventos de ratón y teclado se entregan antes cuando hay carga. Ajuste fino, efecto pequeño.", "Modifica 2 ajustes del registro", admin=True, reboot=True, profiles=("extreme",), effect="pequeño"),
+        DemoAction("av6", "advanced", "Memoria: mantener el núcleo de Windows siempre en RAM", "Con 16 GB o más, el núcleo y los drivers no tienen por qué ir al archivo de paginación.", "Modifica 1 ajuste del registro", admin=True, reboot=True, profiles=("extreme",), effect="pequeño"),
         DemoAction("y8", "tradeoff", "Excluir tus carpetas de juegos del análisis en tiempo real del antivirus", "Defender no analiza cada archivo que el juego lee: menos tirones y cargas más rápidas.", "4 carpeta(s) de juegos sin excluir", admin=True, risk="medio", profiles=("extreme",), effect="depende", warning="Esas carpetas dejan de analizarse en busca de virus. Hazlo solo con juegos oficiales de Steam/Epic."),
         DemoAction("d11", "network", "Cambiar el DNS a Cloudflare (1.1.1.1)", "Un DNS más rápido hace que las páginas empiecen a cargar antes.", "Tu DNS responde en 31 ms · Cloudflare en 9 ms", admin=True),
     ]
@@ -1004,6 +1012,8 @@ def discover(profile, progress=None):
             step("Revisando tarjeta de red y gráfica…", extreme.hardware_actions)
             import deepclean
             step("Buscando ajustes extra de rendimiento…", deepclean.extra_gaming_actions)
+            import avanzado
+            step("Midiendo ajustes avanzados (memoria, red, antivirus)…", avanzado.avanzado_actions)
         if profile == "deep":
             import deepclean
             step("Revisando tareas programadas, telemetría y publicidad…", deepclean.deep_actions)

@@ -4,8 +4,9 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 
 import actions
+import cuadros
 from util import IS_WIN, DEMO, is_admin, run_cmd
-from widgets import (BG, CYAN, F, FG, GREEN, MUTED, PANEL, PINK, RED, VIOLET, YELLOW, Card, NeonButton,
+from widgets import (BG, BORDER, CYAN, F, FG, GREEN, MUTED, PANEL, PINK, RED, VIOLET, YELLOW, Card, NeonButton,
                      ScrollFrame, WrapLabel, badge, checkbox, page_title)
 
 PROFILES = [   # ordenados de menos a más cambios
@@ -22,8 +23,17 @@ PROFILES = [   # ordenados de menos a más cambios
      "Todo lo de Gaming MÁS ajustes profundos: arranque (HPET, tick), energía de CPU/PCIe/USB, registro, red, modo MSI de la GPU "
      "y opciones que cambian seguridad por FPS. Cada uno te dice su efecto REAL y su riesgo."),
     ("full", "⚙", "COMPLETO", GREEN,
-     "Todo lo anterior junto. Revisaré todo lo que se puede mejorar en tu PC y te lo preguntaré cambio por cambio."),
+     "Todo lo anterior junto. Revisaré todo lo que se puede mejorar en tu PC y te lo enseño en cuadrados para que marques lo que quieras."),
 ]
+
+
+def _medir():
+    """RAM en uso y número de procesos (para enseñar el antes y el después de una limpieza)."""
+    try:
+        import psutil
+        return {"ram": psutil.virtual_memory().used / 1024 ** 3, "procs": len(psutil.pids())}
+    except Exception:  # noqa: BLE001
+        return None
 
 
 class OptimizePage(tk.Frame):
@@ -35,6 +45,9 @@ class OptimizePage(tk.Frame):
         self.scroll = ScrollFrame(self)              # si la ventana es pequeña, sale una barra para subir y bajar
         self.scroll.pack(fill="both", expand=True, padx=(26, 10), pady=(20, 10))
         self.stage = self.scroll.inner
+        self.barra = None
+        self.cuadros = []
+        self._restore_hecho = False
         self.reset_state()
         self.show_intro()
 
@@ -48,6 +61,7 @@ class OptimizePage(tk.Frame):
 
     def clear(self):
         self.gen += 1
+        self.mostrar_barra(False)
         for w in self.stage.winfo_children():
             w.destroy()
         self.scroll.canvas.yview_moveto(0)
@@ -58,7 +72,7 @@ class OptimizePage(tk.Frame):
     # ---- 1. elegir perfil -------------------------------------------------
     def show_intro(self):
         self.clear()
-        self.heading("Optimizar", "Elige para qué quieres tu PC. Yo no cambio nada sin preguntarte: verás cada ajuste y decides.")
+        self.heading("Optimizar", "Elige para qué quieres tu PC. Después verás cada optimización en su cuadrado y marcas las que quieras: yo no cambio nada sin que lo pidas.")
         if not is_admin():
             c = Card(self.stage, accent=RED)
             c.pack(fill="x", pady=(0, 12))
@@ -89,7 +103,7 @@ class OptimizePage(tk.Frame):
         self.reset_state()
         self.profile = profile
         self.clear()
-        self.heading("Buscando qué se puede mejorar…", "Esto tarda unos segundos (mido tu DNS y reviso inicio, servicios y procesos).")
+        self.heading("Buscando qué se puede mejorar…", "Esto tarda unos segundos (mido tu DNS y reviso inicio, servicios, memoria y procesos).")
         self.scan_msg = tk.Label(self.stage, text="Empezando…", font=F(11), fg=CYAN, bg=BG, anchor="w")
         self.scan_msg.pack(anchor="w", pady=(10, 6))
         pb = ttk.Progressbar(self.stage, style="Neon.Horizontal.TProgressbar", mode="indeterminate", length=380)
@@ -112,214 +126,222 @@ class OptimizePage(tk.Frame):
             NeonButton(self.stage, "Volver", self.show_intro, color=CYAN).pack(anchor="w", pady=10)
             return
         self.acts = acts
-        self.prepare()
+        self._restore_hecho = False
+        self.show_grid()
 
-    # ---- 3. preparación: test antes + restauración --------------------------
-    def prepare(self):
+    # ---- 3. cuadrícula: cada optimización en su cuadrado --------------------
+    def show_grid(self):
         self.clear()
         g = self.gen
-        self.heading(f"Encontré {len(self.acts)} cosas que se pueden mejorar", "Primero me preparo para que puedas volver atrás si algo no te gusta.")
-        card = Card(self.stage, accent=CYAN, title="Preparación")
-        card.pack(fill="x")
-        self.prep_rows = {}
-        for key, text in (("restore", "Punto de restauración de Windows"),):
-            enabled = self.v_restore.get()
-            r = tk.Frame(card.body, bg=PANEL)
-            r.pack(fill="x", pady=4)
-            ico = tk.Label(r, text="•" if enabled else "—", font=F(14, True), fg=MUTED, bg=PANEL, width=3)
-            ico.pack(side="left")
-            tk.Label(r, text=text + ("" if enabled else "  (omitido)"), font=F(11), fg=FG if enabled else MUTED, bg=PANEL).pack(side="left")
-            det = tk.Label(r, text="", font=F(9), fg=MUTED, bg=PANEL)
-            det.pack(side="left", padx=10)
-            self.prep_rows[key] = (ico, det)
-        self.prep_pb = ttk.Progressbar(card.body, style="Neon.Horizontal.TProgressbar", mode="determinate", maximum=100, length=380)
-        self.prep_pb.pack(anchor="w", pady=(10, 0))
-        do_restore = self.v_restore.get()
+        acts = self.acts
+        self.cuadros = []
+        n = len(acts)
+        self.heading(f"{n} optimizaciones para tu PC", "Marca con el interruptor y aplica juntas, o pulsa «Aplicar» en una sola. Solo sale lo que está sin hacer en tu PC.")
+        if not is_admin():
+            c = Card(self.stage, accent=RED)
+            c.pack(fill="x", pady=(0, 12))
+            WrapLabel(c.body, fg=YELLOW, text="Estás sin permisos de administrador: lo que toca servicios, energía, red o el registro del sistema no se podrá aplicar. "
+                                              "Usa «Reabrir como administrador» arriba a la derecha.").pack(fill="x")
+        # paquetes de un clic
+        packs = cuadros.paquetes_utiles(acts)
+        if packs:
+            tk.Label(self.stage, text="Paquetes de un clic", font=F(13, True), fg=FG, bg=BG, anchor="w").pack(fill="x", pady=(2, 8))
+            fila = tk.Frame(self.stage, bg=BG)
+            fila.pack(fill="x", pady=(0, 6))
+            cols = min(4, len(packs))
+            for i in range(cols):
+                fila.columnconfigure(i, weight=1, uniform="pk")
+            for i, d in enumerate(packs[:4]):
+                cuadros.Paquete(fila, self, d, acts).grid(row=0, column=i, sticky="nsew", padx=(0, 12) if i < cols - 1 else 0)
+        # herramientas
+        tools = tk.Frame(self.stage, bg=BG)
+        tools.pack(fill="x", pady=(14, 6))
+        tk.Label(tools, text="Todas las optimizaciones", font=F(13, True), fg=FG, bg=BG).pack(side="left")
+        NeonButton(tools, "Marcar las seguras", self.marca_seguras, color=CYAN, font=F(9, True), padx=12, pady=5).pack(side="right")
+        NeonButton(tools, "Quitar marcas", self.quita_marcas, color=MUTED, font=F(9, True), padx=12, pady=5).pack(side="right", padx=(0, 8))
+        self.zona = tk.Frame(self.stage, bg=BG)
+        self.zona.pack(fill="x")
+        # grupos en orden; los cuadros se crean por tandas para que la pantalla no se quede congelada
+        orden = []
+        for a in acts:
+            if a.group not in orden:
+                orden.append(a.group)
+        self._cola = [(gr, [a for a in acts if a.group == gr]) for gr in orden]
+        self._tanda(g)
+        self.mostrar_barra(True)
+        self.actualiza_barra()
+
+    def _tanda(self, g, hechos=0):
+        if g != self.gen:
+            return
+        creados = 0
+        while self._cola and creados < 6:
+            gr, lista = self._cola[0]
+            if not getattr(self, "_grid_actual", None) or self._grid_actual[0] != gr:
+                cab = tk.Frame(self.zona, bg=BG)
+                cab.pack(fill="x", pady=(10, 6))
+                tk.Label(cab, text=actions.GROUP_NAMES.get(gr, gr).upper(), font=F(9, True), fg=MUTED, bg=BG).pack(side="left")
+                tk.Label(cab, text=f"{len(lista)}", font=F(9, True), fg=cuadros.VISUAL.get(gr, ("", CYAN))[1], bg=BG).pack(side="left", padx=8)
+                lk = tk.Label(cab, text="marcar grupo", font=F(9, True), fg=CYAN, bg=BG, cursor="hand2")
+                lk.pack(side="left")
+                lk.bind("<Button-1>", lambda e, gr=gr: self.marca_grupo(gr))
+                grid = tk.Frame(self.zona, bg=BG)
+                grid.pack(fill="x")
+                for i in range(3):
+                    grid.columnconfigure(i, weight=1, uniform="c")
+                self._grid_actual = (gr, grid, 0)
+            _g, grid, k = self._grid_actual
+            a = lista.pop(0)
+            c = cuadros.Cuadro(grid, self, a)
+            c.grid(row=k // 3, column=k % 3, sticky="nsew", padx=(0, 12) if k % 3 < 2 else 0, pady=(0, 12))
+            self.cuadros.append(c)
+            self._grid_actual = (gr, grid, k + 1)
+            creados += 1
+            if not lista:
+                self._cola.pop(0)
+                self._grid_actual = None
+        if self._cola:
+            self.after(1, lambda: self._tanda(g))
+
+    # ---- selección ----
+    def marca_seguras(self):
+        for c in self.cuadros:
+            c.poner_sel(c.a.risk == "bajo" and c.a.reversible and (not c.a.needs_admin or is_admin()))
+        self.actualiza_barra()
+
+    def quita_marcas(self):
+        for c in self.cuadros:
+            c.poner_sel(False)
+        self.actualiza_barra()
+
+    def marca_grupo(self, gr):
+        for c in self.cuadros:
+            if c.a.group == gr:
+                c.poner_sel(True)
+        self.actualiza_barra()
+
+    def marca_paquete(self, sel):
+        ids = {id(a) for a in cuadros.paquete_acciones(sel, self.acts)}
+        for c in self.cuadros:
+            c.poner_sel(id(c.a) in ids)
+        self.actualiza_barra()
+
+    def aplica_paquete(self, sel):
+        ids = {id(a) for a in cuadros.paquete_acciones(sel, self.acts)}
+        lista = [c for c in self.cuadros if id(c.a) in ids and c.estado in ("idle", "bad")]
+        if lista and messagebox.askyesno("Aplicar paquete", f"Voy a aplicar {len(lista)} ajustes (todos de riesgo bajo o medio y reversibles).\n\n¿Seguro?"):
+            self.aplicar(lista, confirmado=True)
+
+    # ---- barra de abajo ----
+    def _crea_barra(self):
+        self.barra = tk.Frame(self, bg=PANEL, highlightthickness=1, highlightbackground=BORDER)
+        izq = tk.Frame(self.barra, bg=PANEL)
+        izq.pack(side="left", padx=(18, 0), pady=10)
+        self.lbl_sel = tk.Label(izq, text="", font=F(11, True), fg=FG, bg=PANEL, anchor="w")
+        self.lbl_sel.pack(anchor="w")
+        self.lbl_res = tk.Label(izq, text="", font=F(9), fg=MUTED, bg=PANEL, anchor="w", justify="left")
+        self.lbl_res.pack(anchor="w")
+        der = tk.Frame(self.barra, bg=PANEL)
+        der.pack(side="right", padx=(0, 18), pady=10)
+        self.b_apl = NeonButton(der, "Aplicar seleccionadas", lambda: self.aplicar([c for c in self.cuadros if c.sel()]), color=GREEN, filled=True,
+                                font=F(11, True), padx=22, pady=9)
+        self.b_apl.pack(side="right")
+        self.b_fin = NeonButton(der, "Terminar", self.show_summary, color=MUTED, font=F(10, True), padx=16, pady=8)
+        self.b_fin.pack(side="right", padx=(0, 10))
+        self.b_reb = NeonButton(der, "Reiniciar ahora", self.reboot_now, color=YELLOW, font=F(10, True), padx=16, pady=8)
+        mid = tk.Frame(self.barra, bg=PANEL)
+        mid.pack(side="right", padx=20)
+        checkbox(mid, "Punto de restauración", self.v_restore, bg=PANEL).pack()
+
+    def mostrar_barra(self, si):
+        if si:
+            if not getattr(self, "barra", None):
+                self._crea_barra()
+            self.barra.pack(side="bottom", fill="x", before=self.scroll)
+        elif getattr(self, "barra", None):
+            self.barra.pack_forget()
+
+    def actualiza_barra(self):
+        n = sum(1 for c in self.cuadros if c.sel())
+        self.lbl_sel.config(text=f"{n} seleccionada{'s' if n != 1 else ''}" if n else "Ninguna seleccionada")
+        self.b_apl.set_text(f"Aplicar seleccionadas ({n})" if n else "Aplicar seleccionadas")
+        self.b_apl.set_enabled(n > 0 and not self.busy)
+        done = len(self.applied)
+        if done and not self.busy:
+            self.lbl_res.config(text=f"✓ {done} aplicadas" + (f"  ·  ✗ {len(self.failed)} con error" if self.failed else "") +
+                                ("  ·  reinicia para notar todos los cambios" if self.need_reboot else ""), fg=GREEN if not self.failed else YELLOW)
+        if self.need_reboot and IS_WIN and not DEMO:
+            self.b_reb.pack(side="right", padx=(0, 10))
+
+    # ---- 4. aplicar -------------------------------------------------------------
+    def aplicar(self, lista, confirmado=False):
+        lista = [c for c in lista if c.estado in ("idle", "bad")]
+        if self.busy or not lista:
+            return
+        altos = [c for c in lista if c.a.risk == "alto"]
+        if altos and not confirmado:
+            txt = "\n\n".join(f"{c.a.title}\n{getattr(c.a, 'warning', '')}" for c in altos[:3])
+            if not messagebox.askyesno("Ajustes de riesgo ALTO", txt + "\n\nSe pueden deshacer desde «Historial / Deshacer», pero mientras estén aplicados "
+                                       "tu PC estará menos protegido.\n\n¿Seguro que quieres aplicarlos?"):
+                lista = [c for c in lista if c.a.risk != "alto"]
+                if not lista:
+                    return
+        self.busy = True
+        g = self.gen
+        self.b_apl.set_enabled(False)
+        quiere_restore = self.v_restore.get() and not self._restore_hecho
+        limpia = any(c.a.group in ("startup", "services", "bloat", "procs", "deep") for c in lista)
+        for c in lista:
+            c.corriendo()
 
         def work():
-            out = {}
-            if do_restore:
-                self.app.ui(self._prep_state, g, "restore", "run", "creándolo (puede tardar un minuto)…")
+            antes = _medir() if limpia else None
+            if quiere_restore:
+                self.app.ui(self._res, g, "Creando el punto de restauración de Windows (puede tardar un minuto)…")
                 ok, msg = actions.create_restore_point()
-                out["restore"] = (ok, msg)
-                self.app.ui(self._prep_state, g, "restore", "ok" if ok else "bad", msg)
-            return out
-
-        self.app.bg(work, lambda out: self.after_prep(g, out))
-
-    def _prep_state(self, g, key, state, text):
-        if g != self.gen:
-            return
-        ico, det = self.prep_rows[key]
-        sym, col = {"run": ("…", CYAN), "ok": ("✓", GREEN), "bad": ("✗", RED)}[state]
-        ico.config(text=sym, fg=col)
-        det.config(text=text, fg=col if state != "run" else MUTED)
-
-    def after_prep(self, g, out):
-        if g != self.gen:
-            return
-        r = out.get("restore")
-        if r and not r[0]:
-            if not messagebox.askyesno("Punto de restauración",
-                                       f"No pude crear el punto de restauración:\n\n{r[1]}\n\n"
-                                       "¿Continuar igualmente? Los cambios se podrán deshacer desde «Historial / Deshacer»."):
-                self.show_intro()
-                return
-        self.idx = 0
-        self.show_wizard()
-
-    # ---- 4. preguntar uno por uno ------------------------------------------
-    def show_wizard(self):
-        self.clear()
-        n = len(self.acts)
-        if self.idx >= n:
-            self.show_summary()
-            return
-        a = self.acts[self.idx]
-        g = self.gen
-        top = tk.Frame(self.stage, bg=BG)
-        top.pack(fill="x")
-        tk.Label(top, text=f"Cambio {self.idx + 1} de {n}", font=F(11, True), fg=MUTED, bg=BG).pack(side="left")
-        badge(top, actions.GROUP_NAMES.get(a.group, a.group).upper(), VIOLET).pack(side="left", padx=10)
-        pb = ttk.Progressbar(self.stage, style="Neon.Horizontal.TProgressbar", mode="determinate", maximum=n, value=self.idx)
-        pb.pack(fill="x", pady=(8, 14))
-
-        card = Card(self.stage, accent=PINK, pad=20)
-        card.pack(fill="x")
-        tk.Label(card.body, text=a.title, font=F(17, True), fg=FG, bg=PANEL, anchor="w", justify="left", wraplength=760).pack(fill="x")
-        if getattr(a, "status", ""):
-            tk.Label(card.body, text=a.status, font=("Consolas", 9), fg=CYAN, bg=PANEL, anchor="w", justify="left",
-                     wraplength=760).pack(fill="x", pady=(6, 0))
-        WrapLabel(card.body, text=a.desc, font=F(11)).pack(fill="x", pady=(10, 10))
-        tags = tk.Frame(card.body, bg=PANEL)
-        tags.pack(fill="x")
-        risk_txt, risk_col = {"bajo": ("RIESGO BAJO", GREEN), "medio": ("RIESGO MEDIO: LEE BIEN", YELLOW),
-                              "alto": ("RIESGO ALTO: REDUCE SEGURIDAD", RED)}.get(a.risk, ("RIESGO MEDIO", YELLOW))
-        badge(tags, risk_txt, risk_col).pack(side="left", padx=(0, 6))
-        eff = {"real": ("EFECTO REAL", GREEN), "pequeño": ("EFECTO PEQUEÑO", YELLOW), "depende": ("DEPENDE DE TU EQUIPO", CYAN),
-               "mínimo": ("EFECTO CASI NULO", MUTED)}.get(getattr(a, "effect", ""))
-        if eff:
-            badge(tags, *eff).pack(side="left", padx=(0, 6))
-        badge(tags, "SE PUEDE DESHACER" if a.reversible else "NO SE PUEDE DESHACER", GREEN if a.reversible else YELLOW).pack(side="left", padx=(0, 6))
-        if a.needs_admin:
-            badge(tags, "NECESITA ADMINISTRADOR", MUTED if is_admin() else RED).pack(side="left", padx=(0, 6))
-        if a.reboot:
-            badge(tags, "SE NOTA AL REINICIAR / CERRAR SESIÓN", VIOLET).pack(side="left", padx=(0, 6))
-
-        if getattr(a, "warning", ""):
-            wc = Card(self.stage, accent=RED, pad=12)
-            wc.pack(fill="x", pady=(10, 0))
-            WrapLabel(wc.body, text="⚠  " + a.warning, fg=RED, font=F(10, True)).pack(fill="x")
-        btns = tk.Frame(self.stage, bg=BG)
-        btns.pack(fill="x", pady=(16, 6))
-        self.b_apply = NeonButton(btns, "✓   APLICAR", lambda: self.do_apply(a), color=GREEN, filled=True, font=F(13, True), padx=30, pady=11)
-        self.b_apply.pack(side="left")
-        self.b_skip = NeonButton(btns, "Omitir", lambda: self.do_skip(), color=MUTED, font=F(12, True), padx=24, pady=10)
-        self.b_skip.pack(side="left", padx=12)
-        self.flash = tk.Label(btns, text="", font=F(11, True), bg=BG, fg=GREEN, anchor="w")
-        self.flash.pack(side="left", padx=10)
-
-        more = tk.Frame(self.stage, bg=BG)
-        more.pack(fill="x", pady=(10, 0))
-        same_group = sum(1 for x in self.acts[self.idx:] if x.group == a.group)
-        if same_group > 1:
-            NeonButton(more, f"Omitir los {same_group} de «{actions.GROUP_NAMES.get(a.group, a.group)}»", lambda: self.skip_group(a.group),
-                       color=MUTED, font=F(9, True), padx=10, pady=5).pack(side="left", padx=(0, 8))
-        safe = [x for x in self.acts[self.idx:] if x.risk == "bajo" and x.reversible and (not x.needs_admin or is_admin())]
-        if len(safe) > 1:
-            NeonButton(more, f"Aplicar sin preguntar los {len(safe)} seguros que quedan", self.apply_safe_rest, color=CYAN,
-                       font=F(9, True), padx=10, pady=5).pack(side="left", padx=(0, 8))
-        NeonButton(more, "Terminar aquí", self.show_summary, color=MUTED, font=F(9, True), padx=10, pady=5).pack(side="left")
-        WrapLabel(self.stage, bg=BG, fg=MUTED, font=F(9),
-                  text="«Seguros» = riesgo bajo y reversibles. Los de riesgo medio o irreversibles (cerrar procesos, quitar apps) siempre te los pregunto uno a uno.").pack(fill="x", pady=(10, 0))
-
-    def _set_buttons(self, on):
-        self.b_apply.set_enabled(on)
-        self.b_skip.set_enabled(on)
-
-    def do_apply(self, a):
-        if self.busy:
-            return
-        if a.risk == "alto" and not messagebox.askyesno(
-                "Ajuste de riesgo ALTO", f"{a.title}\n\n{getattr(a, 'warning', '')}\n\n"
-                "Se puede deshacer desde «Historial / Deshacer», pero mientras esté aplicado tu PC estará menos protegido.\n\n"
-                "¿Seguro que quieres aplicarlo?"):
-            return
-        self.busy = True
-        g = self.gen
-        self._set_buttons(False)
-        self.flash.config(text="Aplicando…", fg=CYAN)
-        self.app.bg(lambda: actions.execute(a), lambda r: self.after_apply(g, a, r))
-
-    def after_apply(self, g, a, r):
-        self.busy = False
-        if g != self.gen:
-            return
-        if r.ok:
-            self.applied.append(a)
-            self.need_reboot = self.need_reboot or a.reboot
-            self.flash.config(text="✓ " + r.msg, fg=GREEN)
-            self.after(650, lambda: self._advance(g))
-        else:
-            self.failed.append((a, r.msg))
-            self.flash.config(text="✗ " + r.msg[:140], fg=RED)
-            self._set_buttons(True)
-            self.b_apply.set_text("Reintentar")
-
-    def _advance(self, g):
-        if g == self.gen:
-            self.idx += 1
-            self.show_wizard()
-
-    def do_skip(self):
-        if self.busy:
-            return
-        self.skipped += 1
-        self.idx += 1
-        self.show_wizard()
-
-    def skip_group(self, group):
-        while self.idx < len(self.acts) and self.acts[self.idx].group == group:
-            self.skipped += 1
-            self.idx += 1
-        self.show_wizard()
-
-    def apply_safe_rest(self):
-        safe = [x for x in self.acts[self.idx:] if x.risk == "bajo" and x.reversible and (not x.needs_admin or is_admin())]
-        if not safe or not messagebox.askyesno(
-                "Aplicar los seguros", f"Voy a aplicar {len(safe)} cambios de riesgo bajo y reversibles sin preguntar uno a uno.\n"
-                "Los demás te los seguiré preguntando.\n\n¿Seguro?"):
-            return
-        self.busy = True
-        g = self.gen
-        self._set_buttons(False)
-
-        def work():
+                self._restore_hecho = True
+                if not ok:
+                    self.app.ui(self._res, g, "No pude crear el punto de restauración; sigo igualmente (todo se puede deshacer desde el Historial).")
             res = []
-            for i, a in enumerate(safe, 1):
-                self.app.ui(self._flash, g, f"Aplicando {i}/{len(safe)}: {a.title[:60]}…")
-                res.append((a, actions.execute(a)))
-            return res
+            for i, c in enumerate(lista, 1):
+                self.app.ui(self._res, g, f"Aplicando {i} de {len(lista)}: {c.a.title[:70]}…")
+                r = actions.execute(c.a)
+                res.append((c, r))
+                self.app.ui(self._uno, g, c, r)
+            despues = None
+            if antes:
+                import time
+                time.sleep(2.5)
+                despues = _medir()
+            return res, antes, despues
 
-        self.app.bg(work, lambda res: self.after_safe(g, safe, res))
+        self.app.bg(work, lambda out: self._fin_lote(g, out))
 
-    def _flash(self, g, text):
+    def _res(self, g, texto):
         if g == self.gen:
-            self.flash.config(text=text, fg=CYAN)
+            self.lbl_res.config(text=texto, fg=CYAN)
 
-    def after_safe(self, g, safe, res):
+    def _uno(self, g, c, r):
+        if g != self.gen:
+            return
+        c.fin(r)
+        if r.ok:
+            self.applied.append(c.a)
+            self.need_reboot = self.need_reboot or c.a.reboot
+        else:
+            self.failed.append((c.a, r.msg))
+
+    def _fin_lote(self, g, out):
         self.busy = False
         if g != self.gen:
             return
-        for a, r in res:
-            if r.ok:
-                self.applied.append(a)
-                self.need_reboot = self.need_reboot or a.reboot
-            else:
-                self.failed.append((a, r.msg))
-        done = {id(a) for a, _ in res}
-        self.acts = self.acts[:self.idx] + [x for x in self.acts[self.idx:] if id(x) not in done]
-        self.show_wizard()
+        _res, antes, despues = out
+        self.actualiza_barra()
+        extra = ""
+        if antes and despues:
+            extra = (f"   ·   RAM en uso: {antes['ram']:.1f} → {despues['ram']:.1f} GB   ·   procesos: {antes['procs']} → {despues['procs']}")
+        self.lbl_res.config(text=self.lbl_res.cget("text") + extra, fg=GREEN if not self.failed else YELLOW)
+        self.app.toast(f"{len(_res)} ajustes procesados", GREEN if not self.failed else YELLOW) if hasattr(self.app, "toast") else None
 
     # ---- 5. resumen ----------------------------------------------------------
     def show_summary(self):
@@ -327,8 +349,8 @@ class OptimizePage(tk.Frame):
         self.heading("¡Listo!", "Esto es lo que ha pasado.")
         c = Card(self.stage, accent=GREEN, title="Resumen")
         c.pack(fill="x")
-        left = max(0, len(self.acts) - self.idx)     # pendientes si pulsó «Terminar aquí»
-        tk.Label(c.body, text=f"✓ {len(self.applied)} aplicados     ·     {self.skipped + left} omitidos"
+        sin = max(0, len(self.acts) - len(self.applied) - len(self.failed))      # los que dejó sin marcar
+        tk.Label(c.body, text=f"✓ {len(self.applied)} aplicados     ·     {sin} sin aplicar"
                  f"     ·     ✗ {len(self.failed)} con error", font=F(12, True), fg=FG, bg=PANEL, anchor="w").pack(fill="x", pady=(0, 8))
         for a in self.applied[:25]:
             tk.Label(c.body, text="✓  " + a.title, font=F(10), fg=GREEN, bg=PANEL, anchor="w", justify="left", wraplength=800).pack(fill="x")
