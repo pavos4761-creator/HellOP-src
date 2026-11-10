@@ -28,10 +28,10 @@ PROFILES = [   # ordenados de menos a más cambios
 
 
 def _medir():
-    """RAM en uso y número de procesos (para enseñar el antes y el después de una limpieza)."""
+    """Foto real del sistema (reloj, procesos, RAM, CPU, caché) para comparar antes y después."""
     try:
-        import psutil
-        return {"ram": psutil.virtual_memory().used / 1024 ** 3, "procs": len(psutil.pids())}
+        import medir
+        return medir.instantanea()
     except Exception:  # noqa: BLE001
         return None
 
@@ -140,6 +140,12 @@ class OptimizePage(tk.Frame):
         self.cuadros = []
         n = len(acts)
         self.heading(f"{n} optimizaciones para tu PC", "Marca con el interruptor y aplica juntas, o pulsa «Aplicar» en una sola. Solo sale lo que está sin hacer en tu PC.")
+        self.resultado = tk.Frame(self.stage, bg=BG)
+        self.resultado.pack(fill="x")
+        self.hallazgos = tk.Frame(self.stage, bg=BG)
+        self.hallazgos.pack(fill="x")
+        if self.perfiles:
+            self.app.bg(lambda: __import__("cuello").run()[1], lambda it: self._hallazgos(g, it), lambda e: None)
         if self.perfiles:
             self._chips(self.profile)
         if not is_admin():
@@ -295,12 +301,12 @@ class OptimizePage(tk.Frame):
         g = self.gen
         self.b_apl.set_enabled(False)
         quiere_restore = self.v_restore.get() and not self._restore_hecho
-        limpia = any(c.a.group in ("startup", "services", "bloat", "procs", "deep") for c in lista)
         for c in lista:
             c.corriendo()
 
         def work():
-            antes = _medir() if limpia else None
+            antes = _medir()
+            self.app.ui(self._res, g, "Midiendo tu PC antes de cambiar nada…")
             if quiere_restore:
                 self.app.ui(self._res, g, "Creando el punto de restauración de Windows (puede tardar un minuto)…")
                 ok, msg = actions.create_restore_point()
@@ -316,7 +322,8 @@ class OptimizePage(tk.Frame):
             despues = None
             if antes:
                 import time
-                time.sleep(2.5)
+                self.app.ui(self._res, g, "Midiendo otra vez para comparar…")
+                time.sleep(3)
                 despues = _medir()
             return res, antes, despues
 
@@ -342,11 +349,56 @@ class OptimizePage(tk.Frame):
             return
         _res, antes, despues = out
         self.actualiza_barra()
-        extra = ""
         if antes and despues:
-            extra = (f"   ·   RAM en uso: {antes['ram']:.1f} → {despues['ram']:.1f} GB   ·   procesos: {antes['procs']} → {despues['procs']}")
-        self.lbl_res.config(text=self.lbl_res.cget("text") + extra, fg=GREEN if not self.failed else YELLOW)
-        self.app.toast(f"{len(_res)} ajustes procesados", GREEN if not self.failed else YELLOW) if hasattr(self.app, "toast") else None
+            self.muestra_medidas(antes, despues, len(_res), any(c.a.reboot for c, r in _res if r.ok))
+
+    def _hallazgos(self, g, items):
+        """Lo que de verdad más te frena (hardware/configuración que ningún tweak de registro arregla)."""
+        if g != self.gen or not self.hallazgos.winfo_exists():
+            return
+        top = [i for i in items if i["prio"] <= 1][:3]
+        c = Card(self.hallazgos, accent=YELLOW if top else GREEN)
+        c.pack(fill="x", pady=(0, 14))
+        if not top:
+            tk.Label(c.body, text="Lo que más te frena: nada importante", font=F(12, True), fg=GREEN, bg=PANEL).pack(anchor="w")
+            WrapLabel(c.body, fg=MUTED, font=F(9), text="Tu RAM, tus discos y tu configuración no tienen ningún problema grave. "
+                      "Lo que sale abajo son ajustes pequeños.").pack(fill="x", pady=(2, 0))
+            return
+        tk.Label(c.body, text="Lo que más te frena (esto sí se nota)", font=F(12, True), fg=FG, bg=PANEL).pack(anchor="w")
+        WrapLabel(c.body, fg=MUTED, font=F(9), text="Estos son problemas reales de tu equipo; arreglarlos rinde más que casi todos los ajustes de abajo.").pack(fill="x", pady=(2, 8))
+        for i in top:
+            r = tk.Frame(c.body, bg=PANEL)
+            r.pack(fill="x", pady=4)
+            tk.Label(r, text="●", font=F(10, True), fg=RED if i["prio"] == 0 else YELLOW, bg=PANEL).pack(side="left", anchor="n")
+            dest = {"xmp": "bios"}.get(i["key"])
+            if dest:
+                NeonButton(r, "Ver guía", lambda d=dest: self.app.show(d), color=YELLOW, font=F(9, True), padx=12, pady=5).pack(side="right", padx=(8, 0))
+            col = tk.Frame(r, bg=PANEL)
+            col.pack(side="left", fill="x", expand=True, padx=8)
+            tk.Label(col, text=i["title"], font=F(10, True), fg=FG, bg=PANEL, anchor="w").pack(fill="x")
+            WrapLabel(col, text=i["why"], fg=MUTED, font=F(9)).pack(fill="x")
+
+    def muestra_medidas(self, antes, despues, n, reinicio):
+        import medir
+        for w in self.resultado.winfo_children():
+            w.destroy()
+        filas = medir.comparar(antes, despues)
+        c = Card(self.resultado, accent=GREEN)
+        c.pack(fill="x", pady=(0, 14))
+        tk.Label(c.body, text="Resultado medido en tu PC", font=F(13, True), fg=FG, bg=PANEL).pack(anchor="w")
+        WrapLabel(c.body, fg=MUTED, font=F(9), text=f"Medí antes y después de aplicar {n} ajuste{'s' if n != 1 else ''}. "
+                  "Si una fila dice «igual», no cambió nada medible: no te prometo más de lo que se ve aquí.").pack(fill="x", pady=(2, 8))
+        col = {"mejor": (GREEN, "✓ mejor"), "igual": (MUTED, "= igual"), "peor": (RED, "✗ peor")}
+        for t, a, b, u, v in filas:
+            r = tk.Frame(c.body, bg=PANEL)
+            r.pack(fill="x", pady=2)
+            tk.Label(r, text=t, font=F(10), fg=FG, bg=PANEL, anchor="w", width=36).pack(side="left")
+            tk.Label(r, text=f"{a} → {b} {u}", font=F(10, True), fg=FG, bg=PANEL, anchor="w", width=22).pack(side="left")
+            tk.Label(r, text=col[v][1], font=F(10, True), fg=col[v][0], bg=PANEL).pack(side="left")
+        if reinicio:
+            WrapLabel(c.body, fg=YELLOW, font=F(9), text="Varios ajustes necesitan reiniciar el PC: esos no se pueden medir hasta entonces. "
+                      "Reinicia y pulsa «FPS reales» para comprobarlos con un juego.").pack(fill="x", pady=(8, 0))
+        self.scroll.canvas.yview_moveto(0)
 
     # ---- 5. resumen ----------------------------------------------------------
     def show_summary(self):

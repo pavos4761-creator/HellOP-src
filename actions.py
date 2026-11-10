@@ -350,24 +350,11 @@ def reg_tweaks():
                   ("HKCU", r"Control Panel\Mouse", "MouseThreshold1", "0", REG_SZ),
                   ("HKCU", r"Control Panel\Mouse", "MouseThreshold2", "0", REG_SZ)],
                  profiles=("gaming",), reboot=True),
-        RegTweak("game_priority", "gaming", "Prioridad máxima para juegos (menos latencia)",
-                 "Da más tiempo de CPU y prioridad de GPU a los juegos y reduce la reserva para tareas multimedia (de 20% a 0%).",
-                 [("HKLM", _PROF, "SystemResponsiveness", 0, REG_DWORD),
-                  ("HKLM", _PROF + r"\Tasks\Games", "GPU Priority", 8, REG_DWORD),
-                  ("HKLM", _PROF + r"\Tasks\Games", "Priority", 6, REG_DWORD),
-                  ("HKLM", _PROF + r"\Tasks\Games", "Scheduling Category", "High", REG_SZ),
-                  ("HKLM", _PROF + r"\Tasks\Games", "SFIO Priority", "High", REG_SZ)],
-                 needs_admin=True, profiles=("gaming",)),
         RegTweak("game_hags", "gaming", "Programación de GPU acelerada por hardware",
                  "Deja que la gráfica gestione su propia memoria: menos latencia y carga de CPU en gráficas compatibles. "
                  "Requiere reiniciar.",
                  [("HKLM", r"SYSTEM\CurrentControlSet\Control\GraphicsDrivers", "HwSchMode", 2, REG_DWORD)],
                  needs_admin=True, profiles=("gaming",), reboot=True, require_existing=True),
-        RegTweak("net_throttle", "network", "Quitar el límite de red de Windows",
-                 "Windows limita por defecto el tráfico de red mientras reproduces multimedia. Se desactiva para menos "
-                 "latencia y más velocidad estable en juegos y descargas.",
-                 [("HKLM", _PROF, "NetworkThrottlingIndex", 0xFFFFFFFF, REG_DWORD)],
-                 needs_admin=True, profiles=("gaming",)),
     ]
 
 

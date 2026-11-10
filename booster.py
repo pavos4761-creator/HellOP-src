@@ -76,6 +76,19 @@ def set_timer(on):
 _demo_state = {"timer": False}
 
 
+def _timer_global():
+    """¿Windows deja que un programa afine el reloj para todos? (Windows 10 y 11 antes de la 22621: sí; después: solo con el ajuste global)."""
+    try:
+        import sys
+        if sys.getwindowsversion().build < 22000:
+            return True
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SYSTEM\CurrentControlSet\Control\Session Manager\kernel") as k:
+            return winreg.QueryValueEx(k, "GlobalTimerResolutionRequests")[0] == 1
+    except Exception:  # noqa: BLE001
+        return False
+
+
 # --------------------------------------------------------------------------
 # Procesos
 # --------------------------------------------------------------------------
@@ -155,6 +168,8 @@ class Booster:
             ms = set_timer(True)
             self.timer_ms = ms
             log(f"⏱  Temporizador de Windows a {ms:.2f} ms" if ms else "⏱  No pude cambiar el temporizador")
+            if IS_WIN and not DEMO and not _timer_global():
+                log("⏱  Ojo: en Windows 11 el temporizador solo llega a tu juego si activas «Temporizador global» (Optimizar → Ajustes avanzados) y reinicias.")
 
         self.game_pids = []
         if game_name and not DEMO:
@@ -252,6 +267,17 @@ class Booster:
             log(f"⏸  Servicios en pausa: {', '.join(self.stopped) or 'ninguno'}")
         elif opts.get("services"):
             log("⏸  Servicios: necesitas administrador para pausarlos")
+        self.opts_standby = bool(opts.get("standby"))
+        self.purgado = 0.0
+        self._t_standby = 0
+        if self.opts_standby:
+            import medir
+            mb = medir.purgar_standby(True)
+            if mb is None:
+                log("🧹  Memoria en caché: necesito administrador para vaciarla")
+            else:
+                self.purgado += mb
+                log(f"🧹  Memoria en caché vaciada: {mb:.0f} MB")
         if opts.get("dns") and not DEMO:
             run_cmd(["ipconfig", "/flushdns"])
             log("🌐  Caché DNS vaciada")
@@ -327,6 +353,19 @@ class Booster:
             pass
 
     # ------------------------------------------------------------------
+    def tick(self, log=lambda m: None):
+        """Se llama cada segundo: si el juego se queda sin RAM libre pero hay mucha caché acumulada, la vacía (como hace ISLC)."""
+        if not (self.active and getattr(self, "opts_standby", False)) or time.time() - self._t_standby < 15:
+            return
+        self._t_standby = time.time()
+        import medir
+        st = medir.standby_mb()
+        if st and st > 1024 and psutil.virtual_memory().available < 1.5 * 1024 ** 3 and not DEMO:
+            mb = medir.purgar_standby(True)
+            if mb:
+                self.purgado += mb
+                log(f"🧹  Memoria en caché vaciada: {mb:.0f} MB (te quedabas sin RAM libre)")
+
     def stats(self):
         cur, best = query_timer_ms()
         game_prio = "—"

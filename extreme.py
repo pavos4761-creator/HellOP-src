@@ -287,11 +287,6 @@ class VbsTweak(RegTweak):
 def registry_actions():
     ex = ("extreme",)
     return [
-        RegTweak("x_prio_sep", "latency", "Prioridad máxima al programa en primer plano",
-                 "Cambia cómo Windows reparte el tiempo de CPU: tu juego en primer plano recibe porciones más largas y prioritarias "
-                 "frente a lo que haya detrás (Win32PrioritySeparation = 38).",
-                 [("HKLM", K_PRIO, "Win32PrioritySeparation", 38, REG_DWORD)],
-                 needs_admin=True, profiles=ex, effect="pequeño"),
         RegTweak("x_power_throttle", "latency", "Desactivar el «throttling» de energía de procesos",
                  "Windows reduce la velocidad de procesos que cree de fondo (EcoQoS). En CPUs híbridas (Intel 12ª gen o más) "
                  "puede mandar tu juego a los núcleos eficientes. Esto lo evita.",
@@ -468,16 +463,6 @@ def nic_actions():
         guids = [g for g in as_list(run_ps_json(
             "ConvertTo-Json -InputObject @(Get-NetAdapter -Physical | Where-Object Status -eq 'Up' | "
             "ForEach-Object { [string]$_.InterfaceGuid }) -Compress", default=[]))]
-    if guids:
-        base = r"SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces"
-        changes = []
-        for g in guids:
-            changes += [("HKLM", f"{base}\\{g}", "TcpAckFrequency", 1, REG_DWORD),
-                        ("HKLM", f"{base}\\{g}", "TCPNoDelay", 1, REG_DWORD)]
-        acts.append(RegTweak("x_nagle", "network", "Desactivar el algoritmo de Nagle (TCP sin retardos)",
-                             "Envía los paquetes TCP al instante en vez de agruparlos. Con juegos que usan UDP (casi todos) el cambio es "
-                             "mínimo; ayuda en algunos MMO y juegos con TCP. Se ofrece por completitud.",
-                             changes, needs_admin=True, profiles=("extreme",), effect="mínimo"))
     return acts
 
 

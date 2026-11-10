@@ -13,6 +13,7 @@ OPTIONS = [
     ("bg_prio", "Prioridad baja para todo lo de fondo (navegador, launchers, etc.)", True),
     ("bg_ram", "Liberar la RAM que usan los programas de fondo", True),
     ("services", "Pausar servicios que despiertan al disco y la CPU (SysMain, búsqueda, Windows Update…) · necesita administrador", True),
+    ("standby", "Vaciar la memoria en caché cuando te quedas sin RAM libre (quita tirones en PC de 16 GB o menos) · necesita administrador", True),
     ("dns", "Vaciar la caché DNS", False),
     ("power", "Plan de energía de Alto rendimiento mientras juegas (se restaura al terminar)", True),
     ("affinity", "Dejar los núcleos 0 y 1 libres para Windows (solo CPU de 6 núcleos o más; prueba si te va mejor)", False),
@@ -173,6 +174,7 @@ class BoosterPage(tk.Frame):
 
     def _loop(self):
         if self.b.active:
+            self.b.tick(self._log)
             s = self.b.stats()
             self.tiles["timer"].config(text=f"{s['timer']:.2f} ms" if s["timer"] else "—")
             self.tiles["game"].config(text=s["game_prio"])

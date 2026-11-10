@@ -71,5 +71,5 @@ MITOS = [
     ("MaxPreRenderedFrames", "Sin documentación actual en Windows 11: usa la opción de baja latencia del propio juego."),
     ("Forzar HPET o «useplatformclock»", "Suele empeorar los tirones. HellOP lo QUITA si lo encuentra."),
     ("Desactivar el archivo de paginación", "Hay juegos que fallan sin él; el rendimiento no mejora."),
-    ("Programas de «resolución del temporizador»", "En Windows 11 se gestiona por proceso: la mejora es casi siempre placebo."),
+    ("Programas de «resolución del temporizador» sueltos", "En Windows 11 el temporizador es por proceso: solo sirve si además se activa el ajuste global (HellOP lo ofrece en «Ajustes avanzados»)."),
 ]
