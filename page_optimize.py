@@ -64,6 +64,8 @@ class OptimizePage(tk.Frame):
         self.mostrar_barra(False)
         for w in self.stage.winfo_children():
             w.destroy()
+        NeonButton(c.body, "Comprobarlo con tu juego (FPS reales)", lambda: self.app.show("fps"), color=CYAN, font=F(10, True),
+                   padx=16, pady=7).pack(anchor="w", pady=(10, 0))
         self.scroll.canvas.yview_moveto(0)
 
     def heading(self, title, sub=None):
