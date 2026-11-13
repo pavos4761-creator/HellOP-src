@@ -584,7 +584,15 @@ class ServiceAction(Action):
             self.profiles = profiles
         self.risk, self.effect = risk, effect
 
+    # Servicios que Windows protege (ni el administrador puede tocarlos con «sc»): se apagan con su directiva oficial.
+    _DIRECTIVA = {"DoSvc": (r"SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization", "DODownloadMode", 0)}
+
     def check(self):
+        d = self._DIRECTIVA.get(self.name)
+        if d:
+            act = reg_read("HKLM", d[0], d[1])
+            if act is not None and act[0] == d[2]:
+                return None
         cur = reg_read("HKLM", rf"SYSTEM\CurrentControlSet\Services\{self.name}", "Start")
         if cur is None or cur[0] == 4:
             return None
@@ -597,14 +605,30 @@ class ServiceAction(Action):
         mode = _START_NAMES.get(start[0] if start else 3, "demand")
         if mode == "auto" and delayed and delayed[0] == 1:
             mode = "delayed-auto"
+        d = self._DIRECTIVA.get(self.name)
+        if d:       # p. ej. Optimización de entrega: Windows no deja desactivar el servicio, pero sí apagar el reparto con otros PC
+            prev = reg_read("HKLM", d[0], d[1])
+            reg_write("HKLM", d[0], d[1], d[2], winreg.REG_DWORD)
+            return {"name": self.name, "directiva": [d[0], d[1], prev[0] if prev else None],
+                    "_msg": "Apagado con la directiva de Windows (el servicio sigue existiendo pero ya no comparte tu conexión)."}
         rc, out, err = run_cmd(["sc", "config", self.name, "start=", "disabled"])
         if rc != 0:
-            raise RuntimeError(out or err or "sc config falló")
+            txt = out or err or ""
+            if "5" in txt.split("FAILED")[-1][:6] or "denegado" in txt.lower() or "denied" in txt.lower():
+                raise RuntimeError("Windows protege este servicio y no deja desactivarlo (ni siquiera como administrador). Déjalo como está.")
+            raise RuntimeError(txt or "sc config falló")
         run_cmd(["sc", "stop", self.name])
         return {"name": self.name, "mode": mode}
 
     @classmethod
     def undo_data(cls, data):
+        if data.get("directiva"):
+            path, name, prev = data["directiva"]
+            if prev is None:
+                reg_delete("HKLM", path, name)
+            else:
+                reg_write("HKLM", path, name, prev, winreg.REG_DWORD)
+            return
         run_cmd(["sc", "config", data["name"], "start=", data["mode"]])
 
 
