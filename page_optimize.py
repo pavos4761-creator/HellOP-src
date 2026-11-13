@@ -64,8 +64,6 @@ class OptimizePage(tk.Frame):
         self.mostrar_barra(False)
         for w in self.stage.winfo_children():
             w.destroy()
-        NeonButton(c.body, "Comprobarlo con tu juego (FPS reales)", lambda: self.app.show("fps"), color=CYAN, font=F(10, True),
-                   padx=16, pady=7).pack(anchor="w", pady=(10, 0))
         self.scroll.canvas.yview_moveto(0)
 
     def heading(self, title, sub=None):
@@ -400,6 +398,8 @@ class OptimizePage(tk.Frame):
         if reinicio:
             WrapLabel(c.body, fg=YELLOW, font=F(9), text="Varios ajustes necesitan reiniciar el PC: esos no se pueden medir hasta entonces. "
                       "Reinicia y pulsa «FPS reales» para comprobarlos con un juego.").pack(fill="x", pady=(8, 0))
+        NeonButton(c.body, "Comprobarlo con tu juego (FPS reales)", lambda: self.app.show("fps"), color=CYAN, font=F(10, True),
+                   padx=16, pady=7).pack(anchor="w", pady=(10, 0))
         self.scroll.canvas.yview_moveto(0)
 
     # ---- 5. resumen ----------------------------------------------------------
