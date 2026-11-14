@@ -33,7 +33,9 @@ def espera(app, s):
 
 
 def main():
+    print('importando', flush=True)
     from qtui import app as qapp, shell
+    print('creando ventana', flush=True)
     app, v = qapp.run()
     v.resize(1240, 820)
     # las excepciones dentro de slots/ hilos quedan en errores.log: las recogemos también
@@ -58,4 +60,9 @@ def main():
         print(e[-1200:])
 
 
-main()
+try:
+    main()
+except BaseException:  # noqa: BLE001
+    print('FALLO', traceback.format_exc(), flush=True)
+    raise
+print('FIN', flush=True)
