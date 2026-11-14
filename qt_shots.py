@@ -47,7 +47,7 @@ def main():
     for k in claves:
         antes = len(errores)
         try:
-            v.show(k)
+            v.ir(k)
             espera(app, float(os.environ.get("ESPERA", "1.2")))
             v.grab().save(f"{OUT}/{modo}_{k}.png")
         except Exception:  # noqa: BLE001

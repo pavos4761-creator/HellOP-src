@@ -189,7 +189,7 @@ class Buscador(QFrame):
         elif k == "cmd:atras":
             self.v.navega(-1)
         else:
-            self.v.show(k)
+            self.v.ir(k)
 
 
 class Aviso(QLabel):
@@ -240,7 +240,7 @@ class Ventana(QMainWindow):
         self.pages = _Paginas(self)
         self._atajos()
         self.refresh_license()
-        self.show("home")
+        self.ir("home")
         QTimer.singleShot(1500, self._tick_live)
         QTimer.singleShot(4000, self._auto_check)
         QTimer.singleShot(6000, self._check_revoked)
@@ -353,7 +353,7 @@ class Ventana(QMainWindow):
             cv.setContentsMargins(0, 0, 0, 4)
             cv.setSpacing(1)
             for k, ic, t in items:
-                b = BotonNav(ic, t, lambda k=k: self.show(k))
+                b = BotonNav(ic, t, lambda k=k: self.ir(k))
                 self.nav[k] = b
                 cv.addWidget(b)
             lv.addWidget(caja)
@@ -485,7 +485,7 @@ class Ventana(QMainWindow):
             QShortcut(QKeySequence(seq), self, activated=fn)
 
     # ---- navegación -----------------------------------------------------------------------
-    def show(self, key, _hist=True):
+    def ir(self, key, _hist=True):
         if key != self.current and key != "locked" and _hist:
             self._hist = self._hist[:self._hist_i + 1] + [key]
             self._hist_i = len(self._hist) - 1
@@ -533,7 +533,7 @@ class Ventana(QMainWindow):
         i = self._hist_i + delta
         if 0 <= i < len(self._hist):
             self._hist_i = i
-            self.show(self._hist[i], _hist=False)
+            self.ir(self._hist[i], _hist=False)
 
     # ---- servicios que usan las pantallas ------------------------------------------------
     def bg(self, fn, done=None, fail=None):
@@ -584,7 +584,7 @@ class Ventana(QMainWindow):
         self._insig = []
         lic = Insignia(txt, tone)
         lic.setCursor(Qt.CursorShape.PointingHandCursor)
-        lic.mousePressEvent = lambda e: self.show("license")
+        lic.mousePressEvent = lambda e: self.ir("license")
         self.zona_der.addWidget(lic)
         self._insig.append(lic)
         if is_admin() or DEMO:
@@ -603,7 +603,7 @@ class Ventana(QMainWindow):
     def mark_update_available(self, latest):
         if self._upd_btn is not None:
             return
-        self._upd_btn = Boton(f"⬇  Actualización v{latest} disponible", lambda: self.show("update"), kind="primary", tone="green")
+        self._upd_btn = Boton(f"⬇  Actualización v{latest} disponible", lambda: self.ir("update"), kind="primary", tone="green")
         self.zona_der.insertWidget(0, self._upd_btn)
         self.status(f"Hay una versión nueva: v{latest}")
         self.toast(f"Hay una versión nueva: v{latest}. Pulsa el botón verde de arriba.", "green")
@@ -629,7 +629,7 @@ class Ventana(QMainWindow):
         def hecho(st):
             if antes == "pro" and st["level"] == "invalid":
                 self.refresh_license()
-                self.show("license")
+                self.ir("license")
                 self.info("Clave anulada", st["msg"] + "\n\nHellOP vuelve al modo gratis.")
             elif antes != st["level"]:
                 self.refresh_license()
@@ -687,7 +687,7 @@ class Ventana(QMainWindow):
         self._texto_modo()
         self.busca.setStyleSheet("text-align: left; font-weight: 400; color: %s;" % theme.C["muted"])
         self.refresh_license()
-        self.show(actual or "home", _hist=False)
+        self.ir(actual or "home", _hist=False)
 
     # ---- varios -----------------------------------------------------------------------------------
     def abrir_buscador(self):
