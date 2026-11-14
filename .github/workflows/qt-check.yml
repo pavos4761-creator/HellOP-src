@@ -22,11 +22,13 @@ jobs:
           sudo apt-get install -y libegl1 libgl1 libxkbcommon0 libfontconfig1 libdbus-1-3 libxcb-cursor0 fonts-noto fonts-dejavu-core
           pip install PySide6-Essentials psutil qrcode
       - name: Capturas (claro y oscuro)
+        shell: bash
         run: |
           mkdir -p out
-          HELLOP_MODE=claro OUT=out python qt_shots.py 2>&1 | tail -60 | tee out/log_claro.txt
-          HELLOP_MODE=oscuro OUT=out ESPERA=0.6 python qt_shots.py 2>&1 | tail -60 | tee out/log_oscuro.txt
-        continue-on-error: true
+          HELLOP_MODE=claro OUT=out python -X faulthandler qt_shots.py > out/log_claro.txt 2>&1 || true
+          echo "salida: $?" >> out/log_claro.txt
+          HELLOP_MODE=oscuro OUT=out ESPERA=0.6 python -X faulthandler qt_shots.py > out/log_oscuro.txt 2>&1 || true
+          tail -30 out/log_claro.txt
       - name: Publicar capturas en la rama shots
         run: |
           cd out
