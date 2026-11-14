@@ -402,3 +402,47 @@ class Pagina(QWidget):
         ef.setOffset(0, dy)
         ef.setColor(theme.color("shadow", alpha / 255))
         w.setGraphicsEffect(ef)
+
+
+from PySide6.QtWidgets import QAbstractItemView, QHeaderView, QTableWidget, QTableWidgetItem  # noqa: E402
+
+
+class Tabla(QTableWidget):
+    """Tabla de solo lectura con filas alternas. `rellena(filas)` recibe una lista de listas de texto.
+    `tonos` (opcional) es una lista paralela con el tono de cada fila (green/yellow/red/muted) para colorear la primera columna."""
+
+    def __init__(self, columnas, anchos=None, alto_fila=34, parent=None):
+        super().__init__(0, len(columnas), parent)
+        self.setHorizontalHeaderLabels(columnas)
+        self.verticalHeader().setVisible(False)
+        self.verticalHeader().setDefaultSectionSize(alto_fila)
+        self.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.setAlternatingRowColors(True)
+        self.setShowGrid(False)
+        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        hh = self.horizontalHeader()
+        hh.setStretchLastSection(True)
+        hh.setHighlightSections(False)
+        if anchos:
+            for i, a in enumerate(anchos):
+                if a:
+                    self.setColumnWidth(i, a)
+                else:
+                    hh.setSectionResizeMode(i, QHeaderView.ResizeMode.Stretch)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+
+    def rellena(self, filas, tonos=None, alto_max=None):
+        self.setRowCount(len(filas))
+        for r, fila in enumerate(filas):
+            for c, v in enumerate(fila):
+                it = QTableWidgetItem(str(v))
+                if c == 0 and tonos and tonos[r]:
+                    it.setForeground(theme.color(tonos[r]))
+                self.setItem(r, c, it)
+        h = self.horizontalHeader().height() + self.rowCount() * self.verticalHeader().defaultSectionSize() + 4
+        self.setFixedHeight(min(h, alto_max) if alto_max else h)
+
+    def seleccion(self):
+        f = self.currentRow()
+        return f if f >= 0 else None

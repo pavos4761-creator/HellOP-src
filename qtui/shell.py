@@ -301,7 +301,7 @@ class Ventana(QMainWindow):
         nom.setStyleSheet("font-size: 21px; font-weight: 800; letter-spacing: 1px;")
         h.addWidget(nom)
         h.addSpacing(14)
-        self.busca = QPushButton("   Buscar o saltar a…                                      Ctrl K")
+        self.busca = QPushButton("   Buscar o saltar a…   (Ctrl K)")
         self.busca.setProperty("kind", "ghost")
         self.busca.setCursor(Qt.CursorShape.PointingHandCursor)
         self.busca.setFixedSize(300, 34)
@@ -342,9 +342,9 @@ class Ventana(QMainWindow):
         lv = QVBoxLayout(cont)
         lv.setContentsMargins(0, 0, 4, 0)
         lv.setSpacing(1)
-        self.nav, self.grupos = {}, {}
+        self.nav, self.grupos, self.botones_grupo = {}, {}, {}
         for titulo, items in SECTIONS:
-            gb = QPushButton(f"{titulo}")
+            gb = QPushButton(f"▾  {titulo}")
             gb.setObjectName("grupo")
             gb.setCursor(Qt.CursorShape.PointingHandCursor)
             lv.addWidget(gb)
@@ -358,9 +358,11 @@ class Ventana(QMainWindow):
                 cv.addWidget(b)
             lv.addWidget(caja)
             self.grupos[titulo] = caja
+            self.botones_grupo[titulo] = gb
             gb.clicked.connect(lambda _=False, c=caja, g=gb, t=titulo: self._pliega(c, g, t))
             if titulo in ("GAMING", "AVANZADO"):
                 caja.hide()
+                gb.setText(f"▸  {titulo}")
         lv.addStretch(1)
         sc.setWidget(cont)
         v.addWidget(sc, 1)
@@ -386,6 +388,7 @@ class Ventana(QMainWindow):
 
     def _pliega(self, caja, boton, titulo):
         caja.setVisible(not caja.isVisible())
+        boton.setText(("▾  " if caja.isVisible() else "▸  ") + titulo)
 
     def _texto_modo(self):
         self.btn_modo.setText("☀  Claro" if theme.MODO == "oscuro" else "☾  Oscuro")
@@ -499,8 +502,9 @@ class Ventana(QMainWindow):
         self.current = key
         # abre el grupo que contiene la página
         for t, items in SECTIONS:
-            if any(k == key for k, _i, _n in items):
+            if any(k == key for k, _i, _n in items) and not self.grupos[t].isVisible():
                 self.grupos[t].show()
+                self.botones_grupo[t].setText(f"▾  {t}")
         if licencia.locked(key):
             self.pages["locked"].pon(NOMBRES.get(key, key))
             page = self.pages["locked"]
