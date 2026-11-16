@@ -16,6 +16,13 @@ def main():
             ctypes.windll.shcore.SetProcessDpiAwareness(1)   # texto nítido en pantallas 4K/escaladas
         except Exception:  # noqa: BLE001
             pass
+    try:
+        from qtui.app import main as qt_main
+    except ImportError:          # sin PySide6: se abre la interfaz antigua
+        qt_main = None
+    if qt_main is not None:
+        qt_main()
+        return
     while True:
         from app import App
         app = App()

@@ -11,7 +11,10 @@ from pathlib import Path
 import actions
 import games
 import version
-import widgets
+try:
+    import widgets          # solo existe el tema de colores PRO en la interfaz antigua
+except Exception:  # noqa: BLE001
+    widgets = None
 from util import DEMO
 
 FORMAT = "hellop-config"
@@ -34,7 +37,7 @@ def build():
             gl.append({"name": str(x.get("name", exe))[:80], "exe": exe, "profile": {k: bool(v) for k, v in x["profile"].items()
                                                                                        if k in games.DEFAULT_PROFILE}})
     return {"format": FORMAT, "app": "HellOP", "version": version.__version__, "created": time.strftime("%Y-%m-%d"),
-            "acento": widgets.acento_actual() if widgets.PRO_THEME else None, "auto": bool(g.get("auto")), "tweaks": tw, "games": gl}
+            "acento": widgets.acento_actual() if widgets and widgets.PRO_THEME else None, "auto": bool(g.get("auto")), "tweaks": tw, "games": gl}
 
 
 def export(path):
@@ -62,7 +65,7 @@ def read(path):
             prof = x.get("profile") if isinstance(x.get("profile"), dict) else {}
             gl.append({"name": str(x.get("name", x["exe"]))[:80], "exe": x["exe"],
                        "profile": {k: bool(v) for k, v in prof.items() if k in games.DEFAULT_PROFILE}})
-    ac = d.get("acento") if d.get("acento") in widgets.ACENTOS else None
+    ac = d.get("acento") if widgets and d.get("acento") in widgets.ACENTOS else None
     return {"version": str(d.get("version", "?"))[:20], "created": str(d.get("created", ""))[:10], "acento": ac,
             "auto": bool(d.get("auto")), "tweaks": tw, "games": gl}
 

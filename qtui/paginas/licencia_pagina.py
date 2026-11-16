@@ -188,8 +188,11 @@ class Licencia(Pagina):
                 fallos += (not r.ok)
             g = config_io.apply_games(cfg) if quiere_g else (0, [])
             if quiere_c and cfg["acento"]:
-                import widgets
-                widgets.guardar_acento(cfg["acento"])
+                try:
+                    import widgets
+                    widgets.guardar_acento(cfg["acento"])
+                except Exception:  # noqa: BLE001
+                    pass
             return ok, fallos, g
 
         def hecho(res):

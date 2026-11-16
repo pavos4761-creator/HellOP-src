@@ -137,8 +137,8 @@ class Buscador(QFrame):
         self.lista.itemActivated.connect(lambda _i: self.elige())
         self.lista.itemClicked.connect(lambda _i: self.elige())
         try:
-            import paleta
-            self.claves = paleta.CLAVES
+            from .claves_busqueda import CLAVES
+            self.claves = CLAVES
         except Exception:  # noqa: BLE001
             self.claves = {}
         self.items = [(k, t, self.claves.get(k, "")) for k, _i, t in PAGES] + [
@@ -648,7 +648,7 @@ class Ventana(QMainWindow):
 
     def _asistente_primera_vez(self):
         try:
-            import asistente
+            from .paginas import asistente
             if os.environ.get("HELLOP_ASISTENTE") == "1" or (not DEMO and not asistente.visto()):
                 self.abrir_asistente()
         except Exception:  # noqa: BLE001

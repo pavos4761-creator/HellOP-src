@@ -9,6 +9,7 @@ faulthandler.dump_traceback_later(int(os.environ.get("SHOTS_TIMEOUT", "420")), e
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 os.environ["HELLOP_DEMO"] = "1"
 sys.argv = ["main.py", "--demo"]
+sys.modules["tkinter"] = None   # prueba de que la interfaz Qt no depende de Tk
 sys.path.insert(0, os.getcwd())
 OUT = os.environ.get("OUT", "shots")
 os.makedirs(OUT, exist_ok=True)
@@ -42,6 +43,12 @@ def main():
     v.puente._registra = lambda tb: errores.append(tb)
     claves = os.environ.get("PAGES", "").split(",") if os.environ.get("PAGES") else [k for k, _i, _t in shell.PAGES]
     informe = []
+    try:
+        from qtui.paginas import asistente
+        d = asistente.Asistente(v)
+        d.show(); espera(app, 0.5); d.grab().save(f"{OUT}/asistente.png"); d.close()
+    except Exception:  # noqa: BLE001
+        errores.append('[asistente] ' + traceback.format_exc())
     from qtui import theme
     modo = theme.MODO
     for k in claves:
