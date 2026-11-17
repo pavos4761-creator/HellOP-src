@@ -28,10 +28,24 @@ jobs:
       - name: Instalar dependencias
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt pyinstaller
+          pip install -r requirements.txt PySide6-Essentials pyinstaller
 
       - name: Compilar el exe
-        run: python -m PyInstaller --noconsole --onefile --uac-admin --name HellOP --icon assets/hellop.ico main.py
+        run: >
+          python -m PyInstaller --noconsole --onefile --uac-admin --name HellOP --icon assets/hellop.ico
+          --collect-submodules qtui
+          --exclude-module tkinter --exclude-module PySide6.QtWebEngineCore --exclude-module PySide6.QtQml
+          --exclude-module PySide6.QtQuick --exclude-module PySide6.QtPdf --exclude-module PySide6.Qt3DCore
+          main.py
+
+      - name: Probar que el exe arranca
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath "dist/HellOP.exe" -ArgumentList "--demo" -PassThru
+          Start-Sleep -Seconds 15
+          if ($p.HasExited) { Write-Error "El exe se cerro solo (codigo $($p.ExitCode))"; exit 1 }
+          Stop-Process -Id $p.Id -Force
+          "Tamano: {0:N1} MB" -f ((Get-Item dist/HellOP.exe).Length / 1MB)
 
       - name: Calcular huellas SHA256 (el codigo fuente NO se publica)
         shell: pwsh

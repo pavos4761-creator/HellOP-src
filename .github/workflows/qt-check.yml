@@ -25,7 +25,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p out
-          HELLOP_MODE=claro OUT=out python -X faulthandler qt_shots.py > out/log_claro.txt 2>&1 || true
+          HELLOP_MODE=claro OUT=out ESPERA=3 python -X faulthandler qt_shots.py > out/log_claro.txt 2>&1 || true
           echo "salida: $?" >> out/log_claro.txt
           HELLOP_MODE=oscuro OUT=out ESPERA=0.6 python -X faulthandler qt_shots.py > out/log_oscuro.txt 2>&1 || true
           tail -30 out/log_claro.txt

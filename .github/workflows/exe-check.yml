@@ -1,0 +1,52 @@
+name: Probar el exe (sin publicar)
+
+on:
+  push:
+    branches: [qt]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Leer la version de version.py
+        id: ver
+        shell: pwsh
+        run: |
+          $v = (Select-String -Path version.py -Pattern '__version__\s*=\s*"([^"]+)"').Matches[0].Groups[1].Value
+          "v=$v" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt PySide6-Essentials pyinstaller
+
+      - name: Compilar el exe
+        run: >
+          python -m PyInstaller --noconsole --onefile --uac-admin --name HellOP --icon assets/hellop.ico
+          --collect-submodules qtui
+          --exclude-module tkinter --exclude-module PySide6.QtWebEngineCore --exclude-module PySide6.QtQml
+          --exclude-module PySide6.QtQuick --exclude-module PySide6.QtPdf --exclude-module PySide6.Qt3DCore
+          main.py
+
+      - name: Probar que el exe arranca
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath "dist/HellOP.exe" -ArgumentList "--demo" -PassThru
+          Start-Sleep -Seconds 15
+          if ($p.HasExited) { Write-Error "El exe se cerro solo (codigo $($p.ExitCode))"; exit 1 }
+          Stop-Process -Id $p.Id -Force
+          "Tamano: {0:N1} MB" -f ((Get-Item dist/HellOP.exe).Length / 1MB)
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HellOP-prueba
+          path: dist/HellOP.exe
