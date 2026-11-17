@@ -762,6 +762,7 @@ class ProcessAction(Action):
 
 
 def process_actions(min_total=150 * 1024 * 1024, limit=8):
+    return []   # ya no se ofrece cerrar las apps que estás usando: si están abiertas es porque las usas
     me = os.getpid()
     try:
         user = psutil.Process().username()
@@ -960,7 +961,6 @@ def demo_actions():
         DemoAction("d7", "startup", "No abrir «RtkAudUService» al iniciar Windows", "Audio (Realtek). Si dejas de oír los ajustes de sonido, vuelve a activarlo.", r"Ruta: C:\Windows\System32\DriverStore\RtkAudUService64.exe", risk="medio"),
         DemoAction("d8", "services", "Desactivar servicio: Telemetría de Windows", "Envía datos de uso a Microsoft y consume CPU/disco.", "Servicio «DiagTrack»: automático", admin=True),
         DemoAction("d9", "bloat", "Quitar «Juegos de King (Candy Crush…)»", "Juegos patrocinados preinstalados. Se puede volver a instalar desde la Microsoft Store.", "Paquete: king.com.CandyCrushSaga", reversible=False),
-        DemoAction("d10", "procs", "Cerrar «chrome.exe» (1.4 GB de RAM)", "Está abierto con 23 procesos usando 1.4 GB. Guarda antes tu trabajo.", "Abierto ahora mismo", reversible=False, risk="medio"),
         DemoAction("x1", "latency", "Procesador siempre al 100 % (sin bajar de frecuencia)", "La CPU nunca baja su estado mínimo: respuesta inmediata, algo más de consumo y calor.", "Valor actual: 5 → nuevo: 100", admin=True, profiles=("extreme",), effect="real"),
         DemoAction("x2", "latency", "Quitar el temporizador HPET forzado", "Tu Windows fuerza el reloj HPET, que añade latencia en cada lectura de tiempo.", "useplatformclock: yes → (quitar)", admin=True, reboot=True, profiles=("extreme",), effect="real"),
         DemoAction("x3", "latency", "Desactivar el ahorro de energía de la tarjeta de red (Realtek PCIe GbE)", "Quita EEE, Green Ethernet y moderación de interrupciones: menos latencia de red. Se corta la red 2 segundos.", "Ajustes: 3", admin=True, profiles=("extreme",), effect="pequeño"),
