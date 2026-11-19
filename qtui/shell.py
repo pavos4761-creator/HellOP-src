@@ -79,6 +79,15 @@ class _Paginas(dict):
             from .widgets import Pagina
             pagina = Pagina(self.v, NOMBRES.get(key, key), "Esta pantalla se está montando.")
             pagina.pendiente = True
+        except Exception:  # noqa: BLE001
+            # si una pantalla falla al montarse, se ve el motivo en vez de quedarse en blanco
+            import traceback
+            tb = traceback.format_exc()
+            self.v._registra_error()
+            from .widgets import Pagina, Etiqueta
+            pagina = Pagina(self.v, NOMBRES.get(key, key), "Esta pantalla no pudo abrirse. Queda anotado en errores.log.")
+            pagina.add(Etiqueta(tb[-900:], "mono", "red"))
+            pagina.pendiente = True
         self.v.stack.addWidget(pagina)
         self[key] = pagina
         return pagina
@@ -221,11 +230,70 @@ class Aviso(QLabel):
             self.move(p.width() - self.width() - 22, p.height() - self.height() - 22)
 
 
+class Intro(QWidget):
+    """Entrada animada con el logo (dura ~1,3 s, se puede saltar con un clic)."""
+    DUR = 1300
+
+    def __init__(self, padre):
+        super().__init__(padre)
+        self.logo = _pix(logo_data.LOGO_128)
+        self.t0 = None
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.update)
+        self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, False)
+        self.setGeometry(padre.rect())
+        self.raise_()
+        self.show()
+        import time as _t
+        self._t = _t
+        self.t0 = _t.perf_counter()
+        self.timer.start(8)
+
+    def mousePressEvent(self, e):
+        self._fin()
+
+    def _fin(self):
+        self.timer.stop()
+        self.hide()
+        self.deleteLater()
+
+    def paintEvent(self, _e):
+        k = (self._t.perf_counter() - self.t0) * 1000 / self.DUR
+        if k >= 1:
+            self._fin()
+            return
+        ease = lambda x: 1 - (1 - min(1, max(0, x))) ** 3
+        entra = ease(k / 0.55)
+        sale = ease((k - 0.75) / 0.25)
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        p.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+        p.setOpacity(1 - sale)
+        p.fillRect(self.rect(), theme.color("bg"))
+        cx, cy = self.width() / 2, self.height() / 2 - 20
+        # anillo que se abre alrededor del logo
+        ac = theme.color("accent")
+        ac.setAlphaF(0.35 * (1 - sale))
+        p.setPen(ac)
+        r = 60 + 80 * entra
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        p.drawEllipse(QPoint(int(cx), int(cy)), int(r), int(r))
+        esc = 0.7 + 0.3 * entra + 0.15 * sale
+        w = self.logo.width() * esc
+        h = self.logo.height() * esc
+        p.setOpacity(entra * (1 - sale))
+        p.drawPixmap(int(cx - w / 2), int(cy - h / 2), int(w), int(h), self.logo)
+        f = theme.fuente(26, True)
+        p.setFont(f)
+        p.setPen(theme.color("fg"))
+        p.drawText(QRect(0, int(cy + h / 2 + 14), self.width(), 40), Qt.AlignmentFlag.AlignHCenter, "HellOP")
+        p.end()
+
+
 class Ventana(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.setMouseTracking(True)
         self.setMinimumSize(980, 640)
         self.setWindowTitle("HellOP" + (" · MODO DEMO" if DEMO else ""))
@@ -241,6 +309,8 @@ class Ventana(QMainWindow):
         self._atajos()
         self.refresh_license()
         self.ir("home")
+        if (not DEMO or os.environ.get("HELLOP_INTRO")) and not os.environ.get("HELLOP_SIN_INTRO"):
+            self.intro = Intro(self.ventana)
         QTimer.singleShot(1500, self._tick_live)
         QTimer.singleShot(4000, self._auto_check)
         QTimer.singleShot(6000, self._check_revoked)
@@ -521,17 +591,8 @@ class Ventana(QMainWindow):
         return "locked" if licencia.locked(key) else key
 
     def _entra(self, page):
-        """Aparece con un fundido corto."""
-        ef = QGraphicsOpacityEffect(page)
-        page.setGraphicsEffect(ef)
-        a = QPropertyAnimation(ef, b"opacity", page)
-        a.setDuration(160)
-        a.setStartValue(0.0)
-        a.setEndValue(1.0)
-        a.setEasingCurve(QEasingCurve.Type.OutCubic)
-        a.finished.connect(lambda: page.setGraphicsEffect(None))
-        a.start()
-        self._anim = a
+        """Las pantallas aparecen al instante (un fundido hacía que la app fuera a tirones)."""
+        return
 
     def navega(self, delta):
         i = self._hist_i + delta

@@ -39,6 +39,8 @@ def main():
     print('creando ventana', flush=True)
     app, v = qapp.run()
     v.resize(1240, 820)
+    if os.environ.get('HELLOP_INTRO'):
+        espera(app, 0.5); v.grab().save(f"{OUT}/intro.png"); espera(app, 1.5)
     # las excepciones dentro de slots/ hilos quedan en errores.log: las recogemos también
     v.puente._registra = lambda tb: errores.append(tb)
     claves = os.environ.get("PAGES", "").split(",") if os.environ.get("PAGES") else [k for k, _i, _t in shell.PAGES]

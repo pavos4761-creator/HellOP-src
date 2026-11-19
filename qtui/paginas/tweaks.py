@@ -27,7 +27,7 @@ class Tweaks(Pagina):
         c = Tarjeta(tone="yellow", titulo="Cómo funciona")
         for t in ("No se marca nada solo. Marca los cuadrados que quieras y pulsa «Aplicar los marcados», o aplica uno solo con su botón.",
                   "Todo queda en el Historial: puedes deshacer cualquier tweak uno a uno o todos a la vez.",
-                  "«Efecto real» significa que se mide en la mayoría de equipos; «casi nulo» se ofrece por completitud. "
+                  "«Efecto real» significa que se mide en la mayoría de equipos; los ajustes de efecto casi nulo ya no se ofrecen. "
                   "Sé realista: estos ajustes dan mejoras pequeñas; los saltos grandes vienen de los gráficos del juego y del calor.",
                   "Muchos piden reiniciar y administrador; te lo indico en cada uno. Solo aparecen los que aplican a TU equipo."):
             c.add(Etiqueta("•  " + t, "muted"))
@@ -79,6 +79,7 @@ class Tweaks(Pagina):
     def _scanned(self, acts):
         self.busy = False
         self.b_scan.setEnabled(True)
+        acts = [a for a in acts if getattr(a, 'effect', '') != 'mínimo']   # sin ajustes de efecto casi nulo
         self.acts = acts
         ya = f"  ·  otros {tweaks.SKIPPED} ya están aplicados o no aplican a tu equipo" if tweaks.SKIPPED else ""
         self.msg.setText((f"{len(acts)} tweaks disponibles en tu equipo" if acts else "No queda ningún tweak por aplicar. ¡Todo hecho!") + ya)

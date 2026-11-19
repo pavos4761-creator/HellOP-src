@@ -10,10 +10,10 @@ from PySide6.QtGui import QColor, QFont, QFontDatabase
 
 PALETAS = {
     "claro": dict(bg="#eef0f7", side="#ffffff", panel="#ffffff", panel2="#f3f4fb", border="#dfe2f0", fg="#151a2d", muted="#5b6280",
-                  accent="#3b5bfd", teal="#0f9b8e", green="#17a56b", yellow="#d9822b", red="#d1383d", on_accent="#ffffff",
+                  accent="#e5472b", teal="#0f9b8e", green="#17a56b", yellow="#d9822b", red="#d1383d", on_accent="#ffffff",
                   hover="#e8ebf8", track="#e3e6f2", shadow="#10131a"),
     "oscuro": dict(bg="#121316", side="#1a1c20", panel="#1a1c20", panel2="#23262b", border="#2c3036", fg="#ecedf0", muted="#9aa0aa",
-                   accent="#7b92ff", teal="#3ccfc0", green="#3ddc97", yellow="#ffb224", red="#ff6b6b", on_accent="#10131a",
+                   accent="#ff6a3d", teal="#3ccfc0", green="#3ddc97", yellow="#ffb224", red="#ff4d6d", on_accent="#ffffff",
                    hover="#262a30", track="#2b2f35", shadow="#000000"),
 }
 C = dict(PALETAS["claro"])
@@ -28,9 +28,9 @@ def modo_guardado():
     try:
         from util import APP_DIR
         m = str(json.loads((APP_DIR / "tema.json").read_text("utf-8")).get("modo", "")).lower()
-        return m if m in PALETAS else "claro"
+        return m if m in PALETAS else "oscuro"
     except Exception:  # noqa: BLE001
-        return "claro"
+        return "oscuro"
 
 
 def guarda_modo(modo):
@@ -107,8 +107,8 @@ def qss():
         f'QLabel[tone="{t}"] {{ color: {c[t] if t != "muted" else c["muted"]}; }}' for t in TONOS)
     return f"""
 * {{ font-family: "{fam}"; font-size: 13px; color: {c['fg']}; outline: 0; }}
-QMainWindow, QWidget#raiz {{ background: transparent; }}
-QWidget#ventana {{ background: {c['bg']}; border: 1px solid {c['border']}; border-radius: 10px; }}
+QMainWindow, QWidget#raiz {{ background: {c['bg']}; }}
+QWidget#ventana {{ background: {c['bg']}; border: 1px solid {c['border']}; border-radius: 0px; }}
 QWidget#pagina, QScrollArea, QScrollArea > QWidget > QWidget {{ background: transparent; }}
 QScrollArea {{ border: none; }}
 QLabel {{ background: transparent; }}
@@ -127,7 +127,7 @@ QFrame#card[tone="yellow"] {{ border-left: 3px solid {c['yellow']}; }}
 QFrame#card[tone="red"] {{ border-left: 3px solid {c['red']}; }}
 QFrame#card[tone="accent"] {{ border-left: 3px solid {c['accent']}; }}
 QFrame#card[tone="teal"] {{ border-left: 3px solid {c['teal']}; }}
-QFrame#cardsoft {{ background: {c['panel2']}; border: 1px solid {c['border']}; border-radius: 10px; }}
+QFrame#cardsoft {{ background: {c['panel2']}; border: 1px solid {c['border']}; border-radius: 0px; }}
 QFrame#sidebar {{ background: {c['side']}; border: 1px solid {c['border']}; border-radius: 12px; }}
 QFrame#barra {{ background: {c['panel']}; border: 1px solid {c['border']}; border-radius: 12px; }}
 QFrame#titulo {{ background: transparent; }}

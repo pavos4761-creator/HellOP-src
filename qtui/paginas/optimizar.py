@@ -316,6 +316,7 @@ class Optimizar(Pagina):
             if self.perfiles:
                 self._chips(self.profile)
             return
+        acts = [a for a in acts if getattr(a, 'effect', '') != 'mínimo']   # sin ajustes de efecto casi nulo
         self.acts = acts
         self._restore_hecho = False
         self.show_grid()
@@ -416,6 +417,9 @@ class Optimizar(Pagina):
         self.lbl_res = Etiqueta("", "small", "muted", wrap=True)
         izq.addWidget(self.lbl_sel)
         izq.addWidget(self.lbl_res)
+        self.prog = Barra(0, "accent")
+        self.prog.hide()
+        izq.addWidget(self.prog)
         h.addLayout(izq, 1)
         h.addWidget(self.v_restore)
         self.b_fin = Boton("Terminar", self.show_summary, kind="ghost")
@@ -467,6 +471,9 @@ class Optimizar(Pagina):
         quiere_restore = self.v_restore.isChecked() and not self._restore_hecho
         for c in lista:
             c.corriendo()
+        self.prog.setRange(0, len(lista))
+        self.prog.setValue(0)
+        self.prog.show()
 
         def work():
             antes = _medir()
@@ -501,6 +508,7 @@ class Optimizar(Pagina):
         if g != self.gen:
             return
         c.fin(r)
+        self.prog.setValue(self.prog.value() + 1)
         if r.ok:
             self.applied.append(c.a)
             self.need_reboot = self.need_reboot or c.a.reboot
@@ -511,6 +519,7 @@ class Optimizar(Pagina):
         self.busy = False
         if g != self.gen:
             return
+        self.prog.hide()
         res, antes, despues = out
         self.actualiza_barra()
         if antes and despues:

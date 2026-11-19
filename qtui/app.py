@@ -18,6 +18,12 @@ def run():
     from .shell import Ventana
     v = Ventana()
     v.show()
+    if sys.platform == "win32":      # esquinas redondeadas de Windows 11 (en Windows 10 no hace nada)
+        try:
+            import ctypes
+            ctypes.windll.dwmapi.DwmSetWindowAttribute(int(v.winId()), 33, ctypes.byref(ctypes.c_int(2)), 4)
+        except Exception:  # noqa: BLE001
+            pass
     return app, v
 
 
