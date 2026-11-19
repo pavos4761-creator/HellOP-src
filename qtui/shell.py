@@ -258,6 +258,8 @@ class Intro(QWidget):
         self.deleteLater()
 
     def paintEvent(self, _e):
+        if self.geometry() != self.parentWidget().rect():
+            self.setGeometry(self.parentWidget().rect())
         k = (self._t.perf_counter() - self.t0) * 1000 / self.DUR
         if k >= 1:
             self._fin()
